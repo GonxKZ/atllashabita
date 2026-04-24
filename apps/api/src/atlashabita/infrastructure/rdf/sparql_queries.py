@@ -51,6 +51,37 @@ _UPDATE_PATTERN = re.compile(
 
 _COMMENT_LINE_PATTERN = re.compile(r"#[^\n]*")
 
+#: Patrón estricto para identificadores que se concatenan dentro de IRIs.
+#:
+#: Permitimos letras, dígitos, guiones, guiones bajos y puntos. No aceptamos
+#: espacios, ``<``, ``>``, comillas ni corchetes que permitirían a un cliente
+#: romper la IRI e inyectar tripletas adicionales en la consulta.
+_SAFE_IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$")
+
+#: Patrón para ``territory_id`` con el formato ``kind:code`` (5 dígitos INE).
+_SAFE_TERRITORY_ID = re.compile(
+    r"^(autonomous_community|province|municipality):[A-Za-z0-9_-]{1,16}$"
+)
+
+
+def _require_safe_identifier(value: str, *, field: str) -> str:
+    """Asegura que ``value`` sea un identificador seguro para interpolar en una IRI.
+
+    Sin esta validación, un cliente podría enviar algo como
+    ``"x> . DELETE WHERE { ?s ?p ?o . } #"`` y romper la consulta generada.
+    Se lanza ``ValueError`` para que la capa HTTP lo convierta en un 400.
+    """
+    if not isinstance(value, str) or not _SAFE_IDENTIFIER.match(value):
+        raise ValueError(f"{field} inválido: {value!r}")
+    return value
+
+
+def _require_safe_territory_id(value: str) -> str:
+    """Valida ``kind:code`` antes de construir la URI del territorio."""
+    if not isinstance(value, str) or not _SAFE_TERRITORY_ID.match(value):
+        raise ValueError(f"territory_id inválido: {value!r}")
+    return value
+
 
 class SparqlUpdateForbiddenError(RuntimeError):
     """Se lanza cuando se intenta ejecutar una consulta de escritura prohibida."""
@@ -83,6 +114,7 @@ class SparqlRunner:
         los pesos del perfil, demostrando el modelo sin bloquearse en la
         persistencia de scores. Los valores devueltos están en escala [0, 100].
         """
+        _require_safe_identifier(profile_id, field="profile_id")
         profile_uri = URIRef(f"{AHR}profile/{profile_id}")
         target_class = _scope_to_class(scope)
         query = f"""
@@ -153,6 +185,7 @@ class SparqlRunner:
 
     def municipalities_by_province(self, province_code: str) -> list[dict[str, Any]]:
         """Lista los municipios pertenecientes a una provincia."""
+        _require_safe_identifier(province_code, field="province_code")
         province_uri = URIRef(f"{AHR}territory/province/{province_code}")
         query = f"""
         PREFIX ah: <{AH}>
@@ -238,6 +271,7 @@ class SparqlRunner:
 
     def indicator_definition(self, indicator_code: str) -> dict[str, Any]:
         """Metadatos de la definición de un indicador."""
+        _require_safe_identifier(indicator_code, field="indicator_code")
         indicator_uri = URIRef(f"{AHR}indicator/{indicator_code}")
         query = f"""
         PREFIX ah: <{AH}>
@@ -374,11 +408,9 @@ def _scope_to_class(scope: str) -> URIRef:
 
 
 def _territory_uri_from_id(territory_id: str) -> URIRef:
-    """Convierte ``municipality:41091`` al URIRef canónico."""
-    try:
-        kind, code = territory_id.split(":", maxsplit=1)
-    except ValueError as exc:
-        raise ValueError(f"territory_id inválido: {territory_id!r}") from exc
+    """Convierte ``municipality:41091`` al URIRef canónico validando el formato."""
+    _require_safe_territory_id(territory_id)
+    kind, code = territory_id.split(":", maxsplit=1)
     return URIRef(f"{AHR}territory/{kind}/{code}")
 
 

@@ -15,7 +15,9 @@ describe('useRankings', () => {
 
   it('genera clave estable con perfil, ámbito y hash de pesos', () => {
     const key = rankingKey({ profile: 'family', scope: 'province:41' }, 'default');
-    expect(key).toEqual(['rankings', 'family', 'province:41', null, 'default']);
+    // Cuando `limit` no se especifica, la clave usa el valor por defecto
+    // (RANKING_DEFAULT_LIMIT = 20) para no duplicar entradas en caché.
+    expect(key).toEqual(['rankings', 'family', 'province:41', 20, 'default']);
   });
 
   it('consulta ranking al montar y expone la respuesta', async () => {

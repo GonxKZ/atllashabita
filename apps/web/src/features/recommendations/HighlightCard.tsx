@@ -16,13 +16,37 @@ export type HighlightCardProps = {
 };
 
 /**
+ * Componente interno que aísla el estado de "imagen fallida".
+ *
+ * Al montarlo con ``key={imageSrc ?? 'placeholder'}`` desde el padre, React
+ * remonta el componente automáticamente cada vez que cambia la fuente, por lo
+ * que el estado `failed` se reinicia sin necesidad de `useEffect`. Así se
+ * evita el antipatrón de sincronizar estado con props que detectó
+ * ``react-doctor``.
+ */
+function HighlightMedia({ imageSrc, name }: { imageSrc?: string; name: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!imageSrc || failed) {
+    return <HighlightPlaceholder name={name} />;
+  }
+  return (
+    <img
+      src={imageSrc}
+      alt={`Vista de ${name}`}
+      loading="lazy"
+      decoding="async"
+      className="h-full w-full object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+/**
  * Tarjeta horizontal que combina una imagen destacada con los atributos
  * clave del territorio recomendado. Se inspira en la captura de referencia:
  * foto a la izquierda y contenido textual a la derecha, con CTA primario.
  */
 export function HighlightCard({ highlight, imageSrc, onOpen, className }: HighlightCardProps) {
-  const [imageFailed, setImageFailed] = useState(false);
-
   return (
     <article
       aria-label={`Recomendación destacada: ${highlight.name}`}
@@ -34,18 +58,7 @@ export function HighlightCard({ highlight, imageSrc, onOpen, className }: Highli
         .join(' ')}
     >
       <div className="relative h-44 w-full shrink-0 overflow-hidden rounded-xl bg-[var(--color-surface-muted)] md:h-auto md:w-56">
-        {imageSrc && !imageFailed ? (
-          <img
-            src={imageSrc}
-            alt={`Vista de ${highlight.name}`}
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <HighlightPlaceholder name={highlight.name} />
-        )}
+        <HighlightMedia key={imageSrc ?? 'placeholder'} imageSrc={imageSrc} name={highlight.name} />
         <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[var(--color-brand-700)] backdrop-blur">
           Top {highlight.score}
         </span>
