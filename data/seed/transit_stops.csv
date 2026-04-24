@@ -1,0 +1,20 @@
+source_id,stop_id,name,lat,lon,mode,municipality_code,agency_id
+crtm_gtfs,MAD-SOL,Sol,40.417000,-3.703800,metro,28079,crtm
+crtm_gtfs,MAD-ATO,Atocha-Cercanías,40.406800,-3.690600,rail,28079,crtm
+crtm_gtfs,MAD-CHM,Chamartín,40.472900,-3.682600,rail,28079,crtm
+crtm_gtfs,MAD-NM,Nuevos Ministerios,40.446200,-3.692700,metro,28079,crtm
+crtm_gtfs,MAD-MOC,Moncloa,40.435000,-3.719300,metro,28079,crtm
+crtm_gtfs,MAD-PRI,Príncipe Pío,40.420200,-3.719600,rail,28079,crtm
+crtm_gtfs,MAD-COL,Colón,40.425300,-3.691600,metro,28079,crtm
+crtm_gtfs,MAD-AEP,Aeropuerto T4,40.496100,-3.592600,metro,28079,crtm
+crtm_gtfs,MOS-CTR,Móstoles Central,40.322700,-3.864900,rail,28092,crtm
+crtm_gtfs,MOS-ESL,Móstoles El Soto,40.309400,-3.878300,metro,28092,crtm
+crtm_gtfs,ALC-LH,Alcalá La Garena,40.476200,-3.379800,rail,28005,crtm
+crtm_gtfs,ALC-UV,Alcalá Universidad,40.498500,-3.358000,rail,28005,crtm
+crtm_gtfs,FUE-CTR,Fuenlabrada Central,40.284200,-3.794100,rail,28065,crtm
+crtm_gtfs,FUE-LOR,Fuenlabrada-La Serna,40.293100,-3.804300,rail,28065,crtm
+crtm_gtfs,LEG-CTR,Leganés Central,40.326700,-3.763600,rail,28074,crtm
+crtm_gtfs,LEG-ZAR,Zarzaquemada,40.321000,-3.759200,rail,28074,crtm
+crtm_gtfs,ALCB-CTR,Alcobendas-Marqués,40.540800,-3.640600,metro,28006,crtm
+crtm_gtfs,COS-CTR,Coslada Central,40.423900,-3.557400,rail,28058,crtm
+crtm_gtfs,BOA-CTR,Boadilla del Monte,40.405600,-3.876100,metro,28049,crtm

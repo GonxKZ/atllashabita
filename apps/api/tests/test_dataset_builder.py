@@ -69,13 +69,13 @@ def test_dataset_builder_genera_csv_y_manifiesto(tmp_path: Path) -> None:
     content = json.loads(manifest.manifest_path.read_text(encoding="utf-8"))
     assert content["sources"]
     source_ids = {entry["id"] for entry in content["sources"]}
-    assert source_ids == {
+    assert {
         "ine_datosabiertos",
         "ine_atlas_renta",
         "ine_dirce",
         "miteco_reto_demografico_demografia",
         "miteco_reto_demografico_servicios",
-    }
+    } <= source_ids
     for entry in content["sources"]:
         assert entry["row_count"] > 0
         assert len(entry["checksum_sha256"]) == 64

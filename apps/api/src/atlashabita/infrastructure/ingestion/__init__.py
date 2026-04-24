@@ -13,15 +13,28 @@ Entradas principales:
   * :class:`IneDirceConnector` — DIRCE Directorio Central de Empresas (INE).
   * :class:`MitecoDemographicConnector` — MITECO Reto Demográfico (demografía).
   * :class:`MitecoServicesConnector` — MITECO Reto Demográfico (servicios).
+  * :class:`MitmaMovilidadConnector` — MITMA estudio de movilidad big data.
+  * :class:`DgtAccidentesConnector` — DGT anuario de accidentes con víctimas.
+  * :class:`CrtmMadridConnector` — CRTM Madrid GTFS multimodal.
 
 - :class:`DatasetBuilder` orquesta los conectores, produce los CSV
   normalizados bajo ``data/processed`` y el manifiesto de ejecución.
 """
 
+from atlashabita.infrastructure.ingestion.crtm_madrid import (
+    CrtmMadridConnector,
+    CrtmPayload,
+    RouteRecord,
+    StopRecord,
+)
 from atlashabita.infrastructure.ingestion.dataset_builder import (
     DatasetBuilder,
     DatasetManifest,
     SourceArtifact,
+)
+from atlashabita.infrastructure.ingestion.dgt_accidentes import (
+    AccidentRecord,
+    DgtAccidentesConnector,
 )
 from atlashabita.infrastructure.ingestion.downloader import (
     DownloadedPayload,
@@ -49,6 +62,10 @@ from atlashabita.infrastructure.ingestion.miteco_services import (
     MitecoServicesConnector,
     ServicesRecord,
 )
+from atlashabita.infrastructure.ingestion.mitma_movilidad import (
+    MitmaMovilidadConnector,
+    MobilityRecord,
+)
 from atlashabita.infrastructure.ingestion.seed_loader import (
     SeedDataset,
     SeedLoader,
@@ -62,9 +79,13 @@ from atlashabita.infrastructure.ingestion.sources import (
 
 __all__ = [
     "SOURCE_REGISTRY",
+    "AccidentRecord",
+    "CrtmMadridConnector",
+    "CrtmPayload",
     "DatasetBuilder",
     "DatasetManifest",
     "DemographicRecord",
+    "DgtAccidentesConnector",
     "DownloadedPayload",
     "Downloader",
     "EnterpriseRecord",
@@ -75,13 +96,17 @@ __all__ = [
     "IntegrityError",
     "MitecoDemographicConnector",
     "MitecoServicesConnector",
+    "MitmaMovilidadConnector",
+    "MobilityRecord",
     "OfflineResourceMissingError",
     "PopulationRecord",
+    "RouteRecord",
     "SeedDataset",
     "SeedLoader",
     "ServicesRecord",
     "SourceArtifact",
     "SourceMetadata",
+    "StopRecord",
     "all_sources",
     "seed_loader_from_settings",
 ]

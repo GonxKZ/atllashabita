@@ -8,3 +8,6 @@ population_total,Población residente,habitantes,higher_is_better,"Población re
 age_median,Edad mediana,años,lower_is_better,"Edad mediana de la población según microdatos demográficos del MITECO.",miteco_reto_demografico_demografia,20.0,60.0
 household_size,Tamaño medio del hogar,personas,higher_is_better,"Personas por hogar según el Censo de Población y Viviendas del INE.",ine_datosabiertos,1.0,4.0
 enterprise_density,Densidad empresarial,empresas/1000 hab,higher_is_better,"Empresas activas por cada 1.000 habitantes según DIRCE del INE.",ine_dirce,10.0,150.0
+mobility_flow,Movilidad cotidiana,viajes/día por 1000 hab,higher_is_better,"Intensidad media diaria de viajes con origen o destino en el municipio según el estudio MITMA.",mitma_movilidad,0.0,2500.0
+accident_rate,Tasa de accidentes con víctimas,accidentes/1000 hab,lower_is_better,"Accidentes con víctimas registrados por la DGT por cada 1.000 habitantes.",dgt_accidentes,0.0,30.0
+transit_score,Cobertura de transporte público,puntos,higher_is_better,"Índice de cobertura de transporte público estimado a partir del GTFS multimodal del CRTM.",crtm_gtfs,0.0,100.0
