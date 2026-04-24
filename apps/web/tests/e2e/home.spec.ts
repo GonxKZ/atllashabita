@@ -14,7 +14,13 @@ import { expect, test } from '@playwright/test';
  * backend real, exportar `E2E_BACKEND=1`.
  */
 
-const NAV_LABELS = ['Mapa', 'Ranking', 'Ficha', 'Comparador', 'Fuentes'] as const;
+const NAV_LABELS = [
+  'Inicio',
+  'Explorar mapa',
+  'Recomendador',
+  'Comparador',
+  'Escenarios',
+] as const;
 
 test.describe('Dashboard principal', () => {
   test.beforeEach(async ({ page }) => {
