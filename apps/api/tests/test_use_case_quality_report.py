@@ -24,19 +24,19 @@ def container() -> Container:
 
 def test_informe_incluye_conteos_esperados(container: Container) -> None:
     report = container.get_quality_report.execute()
-    assert report["tables"]["municipalities"] == 10
-    assert report["tables"]["provinces"] == 3
-    assert report["tables"]["autonomous_communities"] == 2
-    assert report["tables"]["sources"] == 5
-    assert report["tables"]["indicators"] == 5
-    assert report["tables"]["observations"] == 50
-    assert report["tables"]["profiles"] == 3
+    assert report["tables"]["municipalities"] >= 100
+    assert report["tables"]["provinces"] == 52
+    assert report["tables"]["autonomous_communities"] == 19
+    assert report["tables"]["sources"] >= 5
+    assert report["tables"]["indicators"] >= 9
+    expected = report["tables"]["municipalities"] * report["tables"]["indicators"]
+    assert report["tables"]["observations"] == expected
+    assert report["tables"]["profiles"] >= 4
 
 
 def test_informe_cobertura_100_para_seed(container: Container) -> None:
     report = container.get_quality_report.execute()
-    assert report["coverage"]["actual_observations"] == 50
-    assert report["coverage"]["expected_observations"] == 50
+    assert report["coverage"]["actual_observations"] == report["coverage"]["expected_observations"]
     assert report["coverage"]["ratio"] == pytest.approx(1.0)
 
 

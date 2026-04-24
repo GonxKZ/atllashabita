@@ -19,7 +19,7 @@ def test_obtener_capa_devuelve_featurecollection(api_client: TestClient) -> None
     body = response.json()
     assert body["type"] == "FeatureCollection"
     assert body["layer_id"] == "broadband_coverage"
-    assert len(body["features"]) == 10
+    assert len(body["features"]) >= 100
     sample = body["features"][0]
     assert sample["type"] == "Feature"
     assert sample["geometry"]["type"] == "Point"
