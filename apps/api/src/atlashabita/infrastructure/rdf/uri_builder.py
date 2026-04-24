@@ -20,6 +20,20 @@ Fase B (M8) añade dos nuevos tipos de recurso:
 * **Actividades PROV-O de ingesta** (``/resource/activity/<source>/<period>``)
   identificadas por la tupla fuente+periodo, de forma que una misma ingesta
   se deduplica y sus observaciones apuntan a una sola URI.
+
+Milestone M11 incorpora cuatro tipos adicionales para los datasets MITMA,
+DGT y CRTM/GTFS:
+
+* **Flujos de movilidad** (``/resource/flow/<origin>/<destination>/<period>[/<mode>]``)
+  con identidad determinista por origen, destino y periodo. Cuando el
+  registro original distingue por modo de transporte, se incluye como
+  cuarto segmento para evitar colisiones.
+* **Accidentes viales** (``/resource/accident/<id>``) donde ``<id>`` es el
+  identificador estable proporcionado por la DGT.
+* **Paradas de transporte** (``/resource/transit_stop/<operator>/<stop_id>``)
+  alineado con la convención GTFS ``agency_id + stop_id``.
+* **Rutas de transporte** (``/resource/transit_route/<operator>/<route_id>``)
+  alineado con GTFS ``agency_id + route_id``.
 """
 
 from __future__ import annotations
@@ -153,6 +167,82 @@ class URIBuilder:
         """URI del named graph de un dominio (territories, observations...)."""
         self._require_non_empty(domain, "domain")
         return URIRef(f"{self.graph_base}{_safe(domain)}")
+
+    def flow(
+        self,
+        origin_code: str,
+        destination_code: str,
+        period: str,
+        mode: str | None = None,
+    ) -> URIRef:
+        """URI determinista de un flujo de movilidad MITMA.
+
+        Se elige la tupla ``(origen, destino, periodo[, modo])`` como clave
+        natural porque MITMA agrega los desplazamientos por origen/destino
+        municipal y por periodo (mes/trimestre/año). Cuando el dataset
+        diferencia el modo (coche, transporte público...) se incluye como
+        cuarto segmento para evitar colisiones entre filas que comparten
+        origen-destino-periodo.
+        """
+        self._require_non_empty(origin_code, "origin_code")
+        self._require_non_empty(destination_code, "destination_code")
+        self._require_non_empty(period, "period")
+        base = (
+            f"{self.resource_base}flow/"
+            f"{_safe(origin_code)}/{_safe(destination_code)}/{_safe(period)}"
+        )
+        if mode is None or not mode.strip():
+            return URIRef(base)
+        return URIRef(f"{base}/{_safe(mode)}")
+
+    def accident(self, accident_id: str) -> URIRef:
+        """URI de un accidente vial DGT.
+
+        ``accident_id`` debe ser el identificador estable que la DGT publica
+        en sus microdatos (``ID_ACCIDENTE``). Si la fuente no proporciona
+        identificador, la capa de ingesta debe sintetizar uno determinista a
+        partir de fecha + coordenada + carretera para garantizar idempotencia.
+        """
+        self._require_non_empty(accident_id, "accident_id")
+        return URIRef(f"{self.resource_base}accident/{_safe(accident_id)}")
+
+    def transit_stop(self, operator: str, stop_id: str) -> URIRef:
+        """URI de una parada de transporte GTFS/CRTM.
+
+        Se usa la convención ``agency_id + stop_id`` para evitar colisiones
+        entre operadores cuando se federen distintos GTFS (CRTM, EMT,
+        Cercanías, Metro). El operador siempre forma parte de la URI.
+        """
+        self._require_non_empty(operator, "operator")
+        self._require_non_empty(stop_id, "stop_id")
+        return URIRef(f"{self.resource_base}transit_stop/{_safe(operator)}/{_safe(stop_id)}")
+
+    def transit_route(self, operator: str, route_id: str) -> URIRef:
+        """URI de una ruta de transporte GTFS/CRTM.
+
+        Idéntica política a :meth:`transit_stop`: ``agency_id + route_id``
+        garantiza unicidad cuando coexisten varias agencias en el grafo.
+        """
+        self._require_non_empty(operator, "operator")
+        self._require_non_empty(route_id, "route_id")
+        return URIRef(f"{self.resource_base}transit_route/{_safe(operator)}/{_safe(route_id)}")
+
+    def accident_geometry(self, accident_id: str) -> URIRef:
+        """URI de la geometría puntual asociada a un accidente DGT.
+
+        Se mantiene la misma política de slug/quote que el resto de URIs
+        para producir IRIs deterministas y URL-safe.
+        """
+        self._require_non_empty(accident_id, "accident_id")
+        return URIRef(f"{self.resource_base}geometry/accident/{_safe(accident_id)}")
+
+    def transit_stop_geometry(self, operator: str, stop_id: str) -> URIRef:
+        """URI de la geometría puntual asociada a una parada de transporte."""
+        self._require_non_empty(operator, "operator")
+        self._require_non_empty(stop_id, "stop_id")
+        return URIRef(
+            f"{self.resource_base}geometry/transit_stop/{_safe(operator)}/{_safe(stop_id)}"
+        )
 
     @staticmethod
     def _require_non_empty(value: str, field_name: str) -> None:
