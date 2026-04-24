@@ -1,0 +1,32 @@
+/**
+ * Tokens de diseño complementarios para AtlasHabita.
+ *
+ * Extienden los definidos en `globals.css` siguiendo la paleta verde-turquesa,
+ * las tipografías Plus Jakarta Sans / Inter y la densidad generosa de la
+ * captura de referencia. Esta capa no sustituye los tokens previos: los
+ * reutiliza y añade rampas y semánticos adicionales que consumen las
+ * primitivas UI y el shell del dashboard.
+ */
+
+@theme {
+  /* Alias semánticos sobre la rampa "brand" existente. */
+  --color-brand-primary: var(--color-brand-500);
+  --color-brand-strong: var(--color-brand-600);
+  --color-brand-contrast: #ffffff;
+
+  /* Colores semánticos para estados. */
+  --color-success-500: #10b981;
+  --color-warning-500: #f59e0b;
+  --color-danger-500: #ef4444;
+  --color-info-500: #0ea5e9;
+
+  /* Bordes suaves para tarjetas y paneles. */
+  --color-line-soft: #e6ebe8;
+  --color-line-strong: #cdd5d0;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
