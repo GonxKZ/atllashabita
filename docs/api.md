@@ -36,8 +36,13 @@ Catálogo operativo de endpoints expuestos por `apps/api` (FastAPI). Alinea el c
 | POST | `/sparql` | **completado** | Ejecuta una consulta del catálogo con `{query_id, bindings}`; devuelve filas, variables y `elapsed_ms`. |
 | GET | `/sparql/catalog` | **completado** | Firmas (`query_id`, bindings esperados, descripción en español) de las consultas disponibles. |
 | GET | `/quality/reports` | **completado** | Reportes de calidad por fuente y ejecución. |
+| GET | `/mobility/flows` | **completado** | Flujos origen-destino MITMA filtrables por origen, destino y periodo. |
+| GET | `/mobility/summary` | **completado** | Resumen agregado de movilidad por territorio. |
+| GET | `/accidents` | **completado** | Listado de accidentes (DGT) filtrable por territorio y periodo. |
+| GET | `/accidents/risk` | **completado** | Indicador de riesgo (accidentes por 1.000 habitantes) por territorio. |
+| GET | `/transit/stops` | **completado** | Paradas de transporte público filtrables por territorio. |
 
-Todos los endpoints están desplegados en `develop` desde la release v0.2.0 (M8). Los routers concretos viven en [`apps/api/src/atlashabita/interfaces/api/routers/`](../apps/api/src/atlashabita/interfaces/api/routers/) (`health.py`, `profiles.py`, `territories.py`, `rankings.py`, `map_layers.py`, `sources.py`, `rdf_export.py`, `sparql.py`, `quality.py`).
+Todos los endpoints están desplegados en `develop` desde la release v0.2.0 (M8). Los routers concretos viven en [`apps/api/src/atlashabita/interfaces/api/routers/`](../apps/api/src/atlashabita/interfaces/api/routers/) (`health.py`, `profiles.py`, `territories.py`, `rankings.py`, `map_layers.py`, `sources.py`, `rdf_export.py`, `sparql.py`, `quality.py`, `mobility.py`, `accidents.py`, `transit.py`).
 
 ---
 
@@ -376,6 +381,144 @@ de SPARQL 1.1 HTTP Protocol (`POST /<dataset>/query`).
 ### 3.10 `GET /quality/reports`
 
 Devuelve una lista paginada de reportes con `source_id`, `timestamp`, `status`, `coverage`, `critical_errors`, `warnings`.
+
+---
+
+### 3.13 `GET /mobility/flows` y `GET /mobility/summary`
+
+Datos de movilidad MITMA expuestos para la pantalla técnica. El loader degrada a lista vacía con log informativo cuando `data/seed/mobility_flows.csv` aún no se ha publicado.
+
+`GET /mobility/flows`:
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `origin` | string | no | Identificador del territorio origen (`municipality:41091`). |
+| `destination` | string | no | Identificador del territorio destino. |
+| `period` | string | no | Periodo en formato libre (`2025`, `2025Q1`). |
+| `limit` | int | no | 1–`request_max_limit` (por defecto 50). |
+| `offset` | int | no | ≥ 0 (por defecto 0). |
+
+**Response 200**
+
+```json
+{
+  "items": [
+    {
+      "origin_id": "municipality:41091",
+      "destination_id": "municipality:28079",
+      "period": "2025",
+      "trips": 1500.0,
+      "mode": "car",
+      "purpose": "work",
+      "source_id": "mitma"
+    }
+  ],
+  "pagination": { "limit": 50, "offset": 0, "total": 1 },
+  "filters": { "origin": null, "destination": null, "period": "2025" }
+}
+```
+
+`GET /mobility/summary?territory_id=`: resumen agregado del territorio.
+
+```json
+{
+  "territory_id": "municipality:41091",
+  "total_outgoing_trips": 2700.0,
+  "total_incoming_trips": 800.0,
+  "outgoing_flows": 2,
+  "incoming_flows": 1,
+  "top_destinations": [
+    { "territory_id": "municipality:28079", "trips": 2700.0 }
+  ],
+  "top_origins": [
+    { "territory_id": "municipality:28079", "trips": 800.0 }
+  ]
+}
+```
+
+---
+
+### 3.14 `GET /accidents` y `GET /accidents/risk`
+
+Datos DGT con indicador de riesgo derivado. Si `data/seed/accidents.csv` no se ha publicado, los endpoints devuelven listas vacías y agregados a cero (sin error).
+
+`GET /accidents`:
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `territory_id` | string | no | Filtra por territorio. |
+| `period` | string | no | Filtra por periodo. |
+| `limit` | int | no | 1–`request_max_limit` (por defecto 50). |
+| `offset` | int | no | ≥ 0 (por defecto 0). |
+
+**Response 200**
+
+```json
+{
+  "items": [
+    {
+      "territory_id": "municipality:41091",
+      "period": "2025",
+      "accidents": 180,
+      "fatalities": 3,
+      "injuries": 40,
+      "severity": "light",
+      "source_id": "dgt"
+    }
+  ],
+  "pagination": { "limit": 50, "offset": 0, "total": 1 },
+  "filters": { "territory_id": "municipality:41091", "period": null }
+}
+```
+
+`GET /accidents/risk?territory_id=`: agregados con normalización por 1.000 habitantes (cuando el dataset conoce la población del territorio).
+
+```json
+{
+  "territory_id": "municipality:41091",
+  "accidents": 330,
+  "fatalities": 5,
+  "injuries": 70,
+  "population": 684234,
+  "accidents_per_1000": 0.4823,
+  "fatalities_per_1000": 0.0073,
+  "records": 2
+}
+```
+
+---
+
+### 3.15 `GET /transit/stops`
+
+Paradas de transporte público (CRTM y operadores municipales). Si `data/seed/transit_stops.csv` aún no se ha publicado, devuelve lista vacía sin error.
+
+| Parámetro | Tipo | Obligatorio | Descripción |
+|---|---|---|---|
+| `territory_id` | string | no | Filtra por territorio. |
+| `limit` | int | no | 1–`request_max_limit` (por defecto 50). |
+| `offset` | int | no | ≥ 0 (por defecto 0). |
+
+**Response 200**
+
+```json
+{
+  "items": [
+    {
+      "stop_id": "stop:1",
+      "territory_id": "municipality:41091",
+      "name": "Plaza Nueva",
+      "lat": 37.388,
+      "lon": -5.992,
+      "modes": ["bus", "tram"],
+      "operator": "Tussam",
+      "lines": ["C1", "C2"],
+      "source_id": "crtm"
+    }
+  ],
+  "pagination": { "limit": 50, "offset": 0, "total": 1 },
+  "filters": { "territory_id": "municipality:41091" }
+}
+```
 
 ---
 
