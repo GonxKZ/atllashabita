@@ -1,0 +1,96 @@
+[project]
+name = "atlashabita-api"
+version = "0.1.0"
+description = "Backend de AtlasHabita: ingesta, grafo RDF, scoring territorial explicable y API REST."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Gonzalo García Lama", email = "gongarlam@alum.us.es" }]
+requires-python = ">=3.12"
+
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "pydantic>=2.9",
+  "pydantic-settings>=2.6",
+  "rdflib>=7.1",
+  "pyshacl>=0.27",
+  "httpx>=0.28",
+  "tenacity>=9.0",
+  "structlog>=24.4",
+  "orjson>=3.10",
+  "python-slugify>=8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "pytest-cov>=5.0",
+  "ruff>=0.7",
+  "mypy>=1.13",
+  "types-requests",
+  "httpx>=0.28",
+  "bandit>=1.7",
+  "pip-audit>=2.7",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/atlashabita"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "W",      # pycodestyle + pyflakes
+  "I",                 # isort
+  "B",                 # bugbear
+  "UP",                # pyupgrade
+  "SIM",               # simplify
+  "N",                 # naming
+  "C4",                # comprehensions
+  "PL",                # pylint
+  "RUF",
+]
+ignore = ["PLR0913", "PLR2004"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004", "S101"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+disallow_any_generics = true
+plugins = ["pydantic.mypy"]
+mypy_path = "src"
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["rdflib.*", "pyshacl.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers --cov=atlashabita --cov-report=term-missing"
+
+[tool.coverage.run]
+branch = true
+source = ["atlashabita"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 70

@@ -1,0 +1,52 @@
+name: ci-rdf
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'ontology/**'
+      - 'apps/api/src/atlashabita/infrastructure/rdf/**'
+      - '.github/workflows/ci-rdf.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - 'ontology/**'
+      - 'apps/api/src/atlashabita/infrastructure/rdf/**'
+      - '.github/workflows/ci-rdf.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validar-ontologia:
+    name: Validar ontología y shapes
+    runs-on: ubuntu-latest
+    if: hashFiles('ontology/atlashabita.ttl') != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - name: Instalar dependencias del backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e "apps/api[dev]"
+      - name: Comprobar sintaxis de la ontología
+        run: |
+          python - <<'PY'
+          from rdflib import Graph
+          g = Graph()
+          g.parse("ontology/atlashabita.ttl", format="turtle")
+          print(f"Ontología OK: {len(g)} tripletas")
+          PY
+      - name: Validar shapes SHACL si existen
+        run: |
+          if [ -f ontology/shapes.ttl ]; then
+            python - <<'PY'
+          from rdflib import Graph
+          Graph().parse("ontology/shapes.ttl", format="turtle")
+          print("Shapes SHACL sintácticamente válidas")
+          PY
+          fi
