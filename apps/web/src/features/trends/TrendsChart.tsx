@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   Area,
   AreaChart,
@@ -8,7 +8,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
+import { resolveDuration } from '@/animations';
 import type { TrendPoint } from '@/data/mock';
 
 export type TrendsChartProps = {
@@ -31,6 +34,40 @@ export function TrendsChart({
   subtitle = 'Score medio de los últimos 12 meses en los territorios seleccionados.',
   className,
 }: TrendsChartProps) {
+  const containerRef = useRef<HTMLElement | null>(null);
+
+  /*
+   * Revelamos el chart de izquierda a derecha con un clip-path inset, en
+   * lugar de depender del plugin DrawSVG (comercial). Como fallback barato
+   * acompaña un fade del bloque contenedor. El efecto se cancela si el
+   * usuario prefiere reducir el movimiento.
+   */
+  useGSAP(
+    () => {
+      const node = containerRef.current;
+      if (!node) return;
+      gsap.from(node, {
+        opacity: 0,
+        duration: resolveDuration(0.5),
+        ease: 'power2.out',
+      });
+      gsap.fromTo(
+        node,
+        { clipPath: 'inset(0 100% 0 0)' },
+        {
+          clipPath: 'inset(0 0% 0 0)',
+          duration: resolveDuration(1.2),
+          ease: 'power3.out',
+          clearProps: 'clipPath',
+        }
+      );
+    },
+    {
+      scope: containerRef,
+      dependencies: [data.length],
+    }
+  );
+
   const domain = useMemo<[number, number]>(() => {
     if (data.length === 0) return [0, 100];
     const values = data.map((point) => point.score);
@@ -41,24 +78,37 @@ export function TrendsChart({
 
   return (
     <section
-      className={['rounded-2xl bg-white p-6 shadow-[var(--shadow-card)]', className ?? '']
+      ref={(node) => {
+        containerRef.current = node;
+      }}
+      className={[
+        'rounded-3xl bg-white p-5 shadow-[var(--shadow-card)] ring-1 ring-[color:var(--color-line-soft)]',
+        className ?? '',
+      ]
         .filter(Boolean)
         .join(' ')}
       aria-label={title}
     >
-      <header className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <h3 className="font-display text-ink-900 text-lg font-semibold">{title}</h3>
-          <p className="text-ink-500 mt-1 text-sm">{subtitle}</p>
+      {/*
+       * Header denso: título, subtítulo en gris medio y badge de variación
+       * mensual (+12 pts) alineado a la derecha. La variación va con `tabular-nums`
+       * para que la cifra no salte cuando aumente o disminuya en tiempo real.
+       */}
+      <header className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="font-display text-ink-900 text-base font-semibold tracking-tight">
+            {title}
+          </h3>
+          <p className="text-ink-500 mt-0.5 text-[12px] leading-snug">{subtitle}</p>
         </div>
-        <span className="text-brand-700 rounded-full bg-[var(--color-brand-50)] px-3 py-1 text-xs font-semibold">
+        <span className="text-brand-700 ring-brand-100 inline-flex items-center gap-1 rounded-full bg-[var(--color-brand-50)] px-2 py-0.5 text-[11px] font-bold tabular-nums ring-1">
           +12 pts
         </span>
       </header>
 
-      <div className="h-56 w-full" role="img" aria-label={`Gráfico de líneas: ${title}`}>
+      <div className="h-40 w-full" role="img" aria-label={`Gráfico de líneas: ${title}`}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+          <AreaChart data={data} margin={{ top: 6, right: 4, bottom: 0, left: -22 }}>
             <defs>
               <linearGradient id="atlashabita-trend-fill" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#10b981" stopOpacity={0.45} />
@@ -68,16 +118,16 @@ export function TrendsChart({
             <CartesianGrid strokeDasharray="3 4" stroke="#e2e8f0" vertical={false} />
             <XAxis
               dataKey="month"
-              tick={{ fill: '#64748b', fontSize: 12 }}
+              tick={{ fill: '#94a3b8', fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: '#e2e8f0' }}
             />
             <YAxis
               domain={domain}
-              tick={{ fill: '#64748b', fontSize: 12 }}
+              tick={{ fill: '#94a3b8', fontSize: 10 }}
               tickLine={false}
               axisLine={false}
-              width={40}
+              width={32}
             />
             <Tooltip
               cursor={{ stroke: '#10b981', strokeDasharray: '4 4' }}

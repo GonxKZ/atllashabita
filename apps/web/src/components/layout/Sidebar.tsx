@@ -8,6 +8,7 @@ import {
   Map as MapIcon,
   SlidersHorizontal,
 } from 'lucide-react';
+import { MotionStagger } from '../motion';
 import { cn } from '../ui/cn';
 import { LayersPanel, type LayerOption } from './LayersPanel';
 import { UserCard } from './UserCard';
@@ -64,26 +65,39 @@ export function Sidebar({
   return (
     <aside
       aria-label="Barra lateral"
+      // 18rem (288px) coincide con el ancho del panel lateral del comp
+      // y mantiene la jerarquía marca > navegación > capas > usuario en
+      // un único bloque blanco con borde derecho sutil.
       className={cn(
-        'flex h-full w-72 shrink-0 flex-col gap-8 border-r border-[color:var(--color-line-soft)]',
-        'bg-white px-5 py-6',
+        'flex h-full w-72 shrink-0 flex-col gap-7 border-r border-[color:var(--color-line-soft)]',
+        'bg-white px-5 pt-6 pb-5',
         className
       )}
     >
-      <a href="#inicio" className="flex items-center gap-2.5" aria-label="AtlasHabita, ir a inicio">
+      <a
+        href="#inicio"
+        className="flex items-center gap-2.5 focus-visible:rounded-xl focus-visible:outline-none"
+        aria-label="AtlasHabita, ir a inicio"
+      >
         <span
           aria-hidden="true"
-          className="bg-brand-500 inline-flex h-9 w-9 items-center justify-center rounded-xl text-white"
+          className="bg-brand-500 inline-flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-[0_8px_18px_-12px_rgba(16,185,129,0.65)]"
         >
-          <Layers size={18} />
+          <Layers size={18} strokeWidth={2.25} />
         </span>
-        <span className="font-display text-ink-900 text-lg font-bold tracking-tight">
+        <span className="font-display text-ink-900 text-[17px] leading-none font-bold tracking-tight">
           AtlasHabita
         </span>
       </a>
 
       <nav aria-label="Navegación principal">
-        <ul className="flex flex-col gap-1">
+        <MotionStagger
+          as="ul"
+          className="flex flex-col gap-1"
+          duration={0.45}
+          stagger={0.05}
+          y={12}
+        >
           {navItems.map((item) => {
             const isActive = item.id === activeNavId;
             return (
@@ -92,27 +106,30 @@ export function Sidebar({
                   href={item.href ?? '#'}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    'flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-colors',
+                    'group flex items-center gap-3 rounded-2xl px-2.5 py-2 text-sm font-medium transition-colors',
+                    'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:outline-none',
                     isActive
                       ? 'bg-brand-50 text-brand-700'
-                      : 'text-ink-500 hover:bg-surface-muted hover:text-ink-900'
+                      : 'text-ink-700 hover:bg-surface-muted hover:text-ink-900'
                   )}
                 >
                   <span
                     aria-hidden="true"
                     className={cn(
-                      'inline-flex h-8 w-8 items-center justify-center rounded-xl',
-                      isActive ? 'bg-brand-500 text-white' : 'bg-surface-muted text-ink-500'
+                      'inline-flex h-8 w-8 items-center justify-center rounded-xl transition-colors',
+                      isActive
+                        ? 'bg-brand-500 text-white shadow-[0_6px_12px_-8px_rgba(16,185,129,0.65)]'
+                        : 'bg-surface-muted text-ink-500 group-hover:text-ink-700'
                     )}
                   >
                     {item.icon}
                   </span>
-                  <span>{item.label}</span>
+                  <span className="tracking-[-0.005em]">{item.label}</span>
                 </a>
               </li>
             );
           })}
-        </ul>
+        </MotionStagger>
       </nav>
 
       <LayersPanel
@@ -125,7 +142,7 @@ export function Sidebar({
         }
       />
 
-      <div className="mt-auto space-y-4">
+      <div className="mt-auto">
         <UserCard
           name={userName}
           subtitle={userSubtitle}

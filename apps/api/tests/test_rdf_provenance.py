@@ -63,7 +63,7 @@ def test_actividad_deduplicada_por_fuente_y_periodo(graph: Graph) -> None:
     # Seed ampliado a 8 fuentes con 9 indicadores repartidos en 2024 y 2025;
     # se dedupe por (source, period). Afirmamos el contrato esencial:
     # no hay duplicados y el número cuadra con la combinación real de
-    # fuentes × periodos observados, entre 6 y 16.
+    # fuentes y periodos observados, entre 6 y 16.
     assert 6 <= len(activities) <= 16
     # Cada actividad tiene URI única por construcción.
     uris = [str(a) for a in activities]

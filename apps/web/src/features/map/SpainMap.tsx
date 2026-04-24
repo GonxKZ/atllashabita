@@ -1,7 +1,16 @@
-import { useCallback, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
+import { resolveDuration } from '@/animations';
 import { MapLegend, type MapLegendStop } from './MapLegend';
 import { MapTooltip } from './MapTooltip';
 import type { MapPoint } from '@/data/mock';
@@ -100,6 +109,7 @@ export function SpainMap({
   offline = false,
 }: SpainMapProps) {
   const [hovered, setHovered] = useState<HoveredState | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
 
   const legendStops = useMemo(() => buildLegendStops(), []);
 
@@ -111,6 +121,33 @@ export function SpainMap({
         radius: 10 + Math.round((point.score / 100) * 14),
       })),
     [points]
+  );
+
+  /*
+   * Animación de entrada de los marcadores al montar (o cuando cambian los
+   * puntos). Usamos `gsap.from` sobre `.maplibregl-marker` para que cada pin
+   * aparezca con un leve "pop" escalonado. Respeta `prefers-reduced-motion`.
+   */
+  useGSAP(
+    () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const targets = container.querySelectorAll('.maplibregl-marker');
+      if (targets.length === 0) return;
+      gsap.from(targets, {
+        scale: 0,
+        opacity: 0,
+        duration: resolveDuration(0.45),
+        stagger: 0.04,
+        ease: 'back.out(1.5)',
+        transformOrigin: '50% 50%',
+        clearProps: 'transform,opacity',
+      });
+    },
+    {
+      scope: containerRef,
+      dependencies: [markers.length],
+    }
   );
 
   const handleEnter = useCallback(
@@ -142,10 +179,16 @@ export function SpainMap({
 
   return (
     <section
+      ref={(node) => {
+        containerRef.current = node;
+      }}
       data-spain-map
       aria-label={ariaLabel}
+      // El mapa lleva radios 1.5rem (rounded-3xl) coincidentes con la card
+      // contenedora del DashboardShell. La sombra interior es muy suave para
+      // no competir con la sombra de la card padre.
       className={[
-        'relative h-full min-h-[360px] w-full overflow-hidden rounded-2xl bg-[var(--color-surface-muted)] shadow-[var(--shadow-card)]',
+        'relative h-full min-h-[360px] w-full overflow-hidden rounded-[20px] bg-[var(--color-surface-muted)]',
         className ?? '',
       ]
         .filter(Boolean)
@@ -166,12 +209,13 @@ export function SpainMap({
             <button
               type="button"
               aria-label={`${marker.name}: score ${marker.score}`}
-              className="relative flex items-center justify-center rounded-full border-2 border-white/90 transition-transform hover:scale-110 focus-visible:scale-110"
+              className="focus-visible:ring-brand-300 relative flex items-center justify-center rounded-full border-2 border-white/95 font-bold text-white tabular-nums transition-transform hover:scale-110 focus-visible:scale-110 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
               style={{
                 width: marker.radius,
                 height: marker.radius,
                 backgroundColor: marker.color,
-                boxShadow: '0 6px 18px -8px rgba(6, 95, 70, 0.55)',
+                boxShadow: '0 6px 18px -6px rgba(6, 95, 70, 0.55)',
+                fontSize: Math.max(10, marker.radius * 0.42),
               }}
               onPointerEnter={handleEnter(marker)}
               onPointerMove={handleMove}
@@ -188,14 +232,29 @@ export function SpainMap({
               }}
               onBlur={handleLeave}
             >
+              {/*
+               * Highlight superior: gradiente radial blanco que añade una
+               * sensación de relieve a la burbuja, igual que en el comp.
+               */}
               <span
                 aria-hidden="true"
-                className="absolute inset-1 rounded-full opacity-80"
+                className="pointer-events-none absolute inset-1 rounded-full opacity-80"
                 style={{
                   background:
                     'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.55), transparent 60%)',
                 }}
               />
+              {/*
+               * Score numérico dentro de la burbuja (visible sólo cuando el
+               * tamaño es >= 24px para evitar amontonamiento en marcadores
+               * pequeños). La fuente blanca contrasta AA con cualquier verde
+               * de la rampa porque siempre estamos en >=`brand-400`.
+               */}
+              {marker.radius >= 24 ? (
+                <span aria-hidden="true" className="relative leading-none drop-shadow-sm">
+                  {marker.score}
+                </span>
+              ) : null}
             </button>
           </Marker>
         ))}
