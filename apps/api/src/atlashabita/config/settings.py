@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -56,6 +57,22 @@ class Settings(BaseSettings):
     sparql_max_results: int = Field(default=500, ge=1, le=10_000)
     sparql_timeout_seconds: float = Field(default=5.0, ge=0.1, le=60.0)
     sparql_allow_update: bool = Field(default=False)
+
+    sparql_backend: Literal["memory", "fuseki"] = Field(
+        default="memory",
+        description=(
+            "Backend que ejecuta SPARQL: ``memory`` utiliza el grafo rdflib"
+            " construido en proceso; ``fuseki`` delega en un endpoint remoto."
+        ),
+    )
+    fuseki_base_url: str = Field(
+        default="http://localhost:3030",
+        description="URL base del servidor Fuseki (sin trailing slash).",
+    )
+    fuseki_dataset: str = Field(
+        default="atlashabita",
+        description="Nombre del dataset publicado por el servidor Fuseki.",
+    )
 
     cache_ttl_seconds: int = Field(default=300, ge=0)
     cache_max_entries: int = Field(default=256, ge=1)

@@ -26,7 +26,9 @@ from atlashabita.interfaces.api.routers import (
     profiles,
     quality,
     rankings,
+    rdf_export,
     sources,
+    sparql,
     territories,
 )
 from atlashabita.observability import configure_logging, get_logger
@@ -93,3 +95,5 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(map_layers.router)
     app.include_router(sources.router)
     app.include_router(quality.router)
+    app.include_router(sparql.router)
+    app.include_router(rdf_export.router)
