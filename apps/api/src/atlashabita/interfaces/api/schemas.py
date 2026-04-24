@@ -273,6 +273,58 @@ class HealthResponse(_ApiModel):
     timestamp: str
 
 
+# ---------------------------------------------------------------------------
+# SPARQL y exportación RDF
+# ---------------------------------------------------------------------------
+
+
+SparqlQueryId = Literal[
+    "top_scores_by_profile",
+    "municipalities_by_province",
+    "indicators_for_territory",
+    "sources_used_by_territory",
+    "count_triples_by_class",
+    "indicator_definition",
+]
+
+RdfExportFormat = Literal["turtle", "json-ld", "nt", "trig"]
+
+
+class SparqlQueryRequest(_ApiModel):
+    """Cuerpo del endpoint ``POST /sparql``.
+
+    ``bindings`` es un diccionario libre porque cada ``query_id`` acepta un
+    subconjunto distinto. La validación específica vive en el caso de uso,
+    no aquí, para mantener los schemas como proyección del contrato público.
+    """
+
+    query_id: SparqlQueryId
+    bindings: dict[str, Any] = Field(default_factory=dict)
+
+
+class SparqlQueryResponse(_ApiModel):
+    """Respuesta del endpoint ``POST /sparql``."""
+
+    query_id: str
+    rows: tuple[dict[str, Any], ...]
+    elapsed_ms: int
+
+
+class SparqlCatalogEntry(_ApiModel):
+    """Firma pública de una consulta del catálogo."""
+
+    query_id: str
+    description: str
+    required: tuple[str, ...]
+    optional: tuple[str, ...] = ()
+
+
+class SparqlCatalogResponse(_ApiModel):
+    """Respuesta del endpoint ``GET /sparql/catalog``."""
+
+    queries: tuple[SparqlCatalogEntry, ...]
+
+
 __all__ = [
     "ErrorResponse",
     "GeoJSONFeature",
@@ -288,8 +340,14 @@ __all__ = [
     "RankingEntryRead",
     "RankingRequest",
     "RankingResponse",
+    "RdfExportFormat",
     "ScoreContributionRead",
     "SourceRead",
+    "SparqlCatalogEntry",
+    "SparqlCatalogResponse",
+    "SparqlQueryId",
+    "SparqlQueryRequest",
+    "SparqlQueryResponse",
     "TerritoryDetailResponse",
     "TerritoryHierarchyRead",
     "TerritoryRead",
