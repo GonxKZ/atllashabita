@@ -6,6 +6,11 @@
  * captura de referencia. Esta capa no sustituye los tokens previos: los
  * reutiliza y añade rampas y semánticos adicionales que consumen las
  * primitivas UI y el shell del dashboard.
+ *
+ * Nota M9 — pase pixel-perfect (issue #89): los valores se calibran contra
+ * `atlashabita-main.png`. La marca se refuerza con `brand-500=#10b981` y
+ * `brand-700=#047857`, los neutros se acercan a la paleta cálida del comp y
+ * los radios pasan a 1.25rem-1.5rem para igualar las cards de la captura.
  */
 
 @theme {
@@ -20,9 +25,22 @@
   --color-danger-500: #ef4444;
   --color-info-500: #0ea5e9;
 
-  /* Bordes suaves para tarjetas y paneles. */
+  /*
+   * Bordes suaves alineados con el comp pixel-perfect: tonos cálidos en gris
+   * verdoso para que las cards reposen sobre el fondo `surface-soft` sin
+   * romper la continuidad visual. `line-soft` es el por defecto en cards y
+   * `line-strong` se reserva para divisores explícitos.
+   */
   --color-line-soft: #e6ebe8;
   --color-line-strong: #cdd5d0;
+
+  /*
+   * Sombras de elevación pixel-perfect: la base es prácticamente invisible
+   * para que el borde sea quien delimite, y la "lift" añade un halo difuso
+   * a 28px que reproduce la flotación percibida en la captura.
+   */
+  --shadow-elevated-soft:
+    0 1px 2px rgba(15, 23, 42, 0.04), 0 16px 32px -22px rgba(15, 23, 42, 0.16);
 }
 
 @keyframes shimmer {

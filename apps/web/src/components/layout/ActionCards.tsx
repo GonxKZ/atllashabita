@@ -29,6 +29,14 @@ export function ActionCards({ items, className }: ActionCardsProps) {
     <ul className={cn('grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4', className)}>
       {items.map((item) => (
         <li key={item.id}>
+          {/*
+           * Cada card es un `article` con un icono coloreado a la izquierda,
+           * título y descripción debajo, y una flecha que sirve de pista
+           * visual de afordancia. Usamos la técnica `absolute inset-0`
+           * sobre un `<a>` interno para que toda la card sea clicable sin
+           * anidar interactivos (evita el warning "button cannot contain
+           * a nested button" que detectaba React DOM en versiones previas).
+           */}
           <Card
             as="article"
             tone="base"
@@ -40,7 +48,7 @@ export function ActionCards({ items, className }: ActionCardsProps) {
               <span
                 aria-hidden="true"
                 className={cn(
-                  'inline-flex h-10 w-10 items-center justify-center rounded-2xl',
+                  'inline-flex h-11 w-11 items-center justify-center rounded-2xl',
                   ACCENT_BG[item.accent ?? 'brand']
                 )}
               >
@@ -49,13 +57,16 @@ export function ActionCards({ items, className }: ActionCardsProps) {
               <ArrowRight
                 aria-hidden="true"
                 size={18}
-                className="text-ink-300 group-hover:text-brand-500 transition-colors"
+                className="text-ink-300 group-hover:text-brand-500 transition-all group-hover:translate-x-0.5"
               />
             </header>
-            <div className="flex flex-col gap-1">
-              <h3 className="font-display text-ink-900 text-base font-semibold">
+            <div className="flex flex-col gap-1.5">
+              <h3 className="font-display text-ink-900 text-base font-semibold tracking-tight">
                 {item.href ? (
-                  <a href={item.href} className="focus:outline-none">
+                  <a
+                    href={item.href}
+                    className="rounded-md focus-visible:ring-2 focus-visible:ring-[var(--color-brand-300)] focus-visible:outline-none"
+                  >
                     <span className="absolute inset-0" aria-hidden="true" />
                     {item.title}
                   </a>
