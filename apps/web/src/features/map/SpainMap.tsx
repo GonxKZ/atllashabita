@@ -10,33 +10,29 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
-import { resolveDuration } from '@/animations';
-import { MapLegend, type MapLegendStop } from './MapLegend';
-import { MapTooltip } from './MapTooltip';
+import { prefersReducedMotion, resolveDuration } from '@/animations';
+import { MapLegend } from './MapLegend';
+import { MapTooltip, type MapTooltipIndicator } from './MapTooltip';
+import {
+  buildLegendStops,
+  computeLayerDomain,
+  resolveLayer,
+  valueToColor,
+  valueToRadius,
+  type EnrichedMapPoint,
+  type MapLayerDefinition,
+  type MapLayerId,
+} from './layers/catalog';
 import type { MapPoint } from '@/data/mock';
 
 /**
- * Escala verde oscuro → verde claro utilizada en el mapa. Coincide con la
- * rampa del sistema de diseño (`brand-800` → `brand-200`). Al ordenarse de
- * mayor a menor score, valores altos reciben el verde más intenso, coherente
- * con la semántica "encaja mejor" descrita en `16_FRONTEND_UX_UI_Y_FLUJOS.md`.
+ * URL pública del estilo vectorial OpenFreeMap (Liberty). No requiere API key.
  */
-const GREEN_RAMP = ['#065f46', '#047857', '#059669', '#10b981', '#34d399'] as const;
-
-/**
- * Umbrales de score que particionan el rango [0, 100] en 5 tramos.
- * Se exponen como constantes para que los tests y la leyenda puedan
- * referenciarlos sin duplicación.
- */
-const SCORE_BREAKS = [80, 65, 50, 35, 0] as const;
-
-/** URL pública del estilo vectorial OpenFreeMap (Liberty). No requiere API key. */
 const OPENFREEMAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 
 /**
  * Estilo de fallback cuando no se puede cargar OpenFreeMap (entorno offline,
- * tests, o error de red). Mantiene el color de marca para que la pantalla
- * no se degrade a un lienzo negro.
+ * tests, o error de red).
  */
 const FALLBACK_STYLE = {
   version: 8 as const,
@@ -53,80 +49,165 @@ const FALLBACK_STYLE = {
   ],
 };
 
-export type SpainMapProps = {
-  /** Puntos coroplético-equivalentes a renderizar como círculos. */
-  points: MapPoint[];
+/**
+ * Paleta verde original heredada del primer iterador del mapa. Se mantiene
+ * exportada para que los tests existentes y otros consumidores legacy puedan
+ * seguir importando `scoreToColor`.
+ */
+const LEGACY_GREEN_RAMP = ['#065f46', '#047857', '#059669', '#10b981', '#34d399'] as const;
+const LEGACY_SCORE_BREAKS = [80, 65, 50, 35, 0] as const;
+
+/**
+ * Devuelve el color del score respetando los tramos verdes legacy.
+ * Conservada por compatibilidad con tests y código previo.
+ */
+export function scoreToColor(score: number): string {
+  for (let index = 0; index < LEGACY_SCORE_BREAKS.length; index += 1) {
+    if (score >= LEGACY_SCORE_BREAKS[index]) {
+      return LEGACY_GREEN_RAMP[index];
+    }
+  }
+  return LEGACY_GREEN_RAMP[LEGACY_GREEN_RAMP.length - 1];
+}
+
+export type SpainMapPoint = MapPoint | EnrichedMapPoint;
+
+export interface SpainMapProps {
+  /** Puntos a representar como burbujas. */
+  readonly points: readonly SpainMapPoint[];
   /** Etiqueta accesible del mapa para lectores de pantalla. */
-  ariaLabel?: string;
-  className?: string;
-  /** Etiqueta de la capa activa mostrada en la leyenda. */
-  layerLabel?: string;
-  /** Sufijo de unidad del indicador activo (se propaga al tooltip). */
-  unit?: string;
+  readonly ariaLabel?: string;
+  readonly className?: string;
+  /** Identificador de capa activa (catálogo). */
+  readonly layerId?: MapLayerId;
+  /**
+   * Etiqueta de la capa activa mostrada en la leyenda. Si se omite y se
+   * dispone de `layerId`, se infiere desde el catálogo.
+   */
+  readonly layerLabel?: string;
+  /**
+   * Sufijo de unidad del indicador activo. Se infiere del catálogo cuando
+   * está disponible. Mantenido por compatibilidad con la API previa.
+   */
+  readonly unit?: string;
   /**
    * Fuerza el estilo de fallback. Útil en tests para evitar peticiones de red
    * y en entornos sin acceso a OpenFreeMap.
    */
-  offline?: boolean;
-};
-
-type HoveredState = {
-  point: MapPoint;
-  x: number;
-  y: number;
-};
-
-/**
- * Devuelve el color del score respetando los tramos declarados en
- * `SCORE_BREAKS` y `GREEN_RAMP`.
- */
-export function scoreToColor(score: number): string {
-  for (let index = 0; index < SCORE_BREAKS.length; index += 1) {
-    if (score >= SCORE_BREAKS[index]) {
-      return GREEN_RAMP[index];
-    }
-  }
-  return GREEN_RAMP[GREEN_RAMP.length - 1];
+  readonly offline?: boolean;
 }
 
-function buildLegendStops(): MapLegendStop[] {
-  // Presentamos los tramos de menor a mayor para leerse de izquierda a derecha.
-  const stops: MapLegendStop[] = [];
-  for (let index = SCORE_BREAKS.length - 1; index >= 0; index -= 1) {
-    const min = SCORE_BREAKS[index];
-    const max = index === 0 ? 100 : SCORE_BREAKS[index - 1];
-    stops.push({ min, max, color: GREEN_RAMP[index] });
-  }
-  return stops;
+interface MarkerPresentation {
+  readonly id: string;
+  readonly name: string;
+  readonly lat: number;
+  readonly lon: number;
+  readonly score: number;
+  readonly value: number;
+  readonly color: string;
+  readonly radius: number;
+  readonly indicators?: readonly MapTooltipIndicator[];
+  readonly province?: string;
+}
+
+interface HoveredState {
+  readonly marker: MarkerPresentation;
+  readonly x: number;
+  readonly y: number;
+}
+
+function isEnriched(point: SpainMapPoint): point is EnrichedMapPoint {
+  return 'indicators' in point && Array.isArray((point as EnrichedMapPoint).indicators);
+}
+
+/**
+ * Convierte un punto (legacy o enriquecido) en el shape consumido por el
+ * catálogo de capas. Para puntos legacy se simulan los indicadores mínimos
+ * (`score`) que satisfacen los selectores del catálogo de capas.
+ */
+function ensureEnriched(point: SpainMapPoint): EnrichedMapPoint {
+  if (isEnriched(point)) return point;
+  return {
+    ...point,
+    indicators: [],
+    population: 0,
+    province: '',
+    autonomousCommunity: '',
+  };
 }
 
 export function SpainMap({
   points,
   ariaLabel = 'Mapa territorial de España',
   className,
-  layerLabel = 'Score territorial',
-  unit = '',
+  layerId,
+  layerLabel,
+  unit,
   offline = false,
 }: SpainMapProps) {
   const [hovered, setHovered] = useState<HoveredState | null>(null);
   const containerRef = useRef<HTMLElement | null>(null);
 
-  const legendStops = useMemo(() => buildLegendStops(), []);
+  /*
+   * Resolver la capa activa: cuando viene un `layerId` consultamos el
+   * catálogo. Si no se especifica, mantenemos compatibilidad con el
+   * comportamiento previo construyendo una capa "virtual" de score con la
+   * paleta verde original. Esto evita que clientes antiguos (los tests del
+   * propio repo o snapshots ya tomados) sufran cambios visuales no deseados.
+   */
+  const activeLayer: MapLayerDefinition = useMemo(() => {
+    if (layerId) return resolveLayer(layerId);
+    return {
+      id: 'score',
+      label: layerLabel ?? 'Score territorial',
+      description: 'Score agregado [0, 100] del municipio.',
+      unit: unit ?? '',
+      palette: [...LEGACY_GREEN_RAMP] as unknown as MapLayerDefinition['palette'],
+      selector: (point) => point.score,
+    };
+  }, [layerId, layerLabel, unit]);
 
-  const markers = useMemo(
-    () =>
-      points.map((point) => ({
-        ...point,
-        color: scoreToColor(point.score),
-        radius: 10 + Math.round((point.score / 100) * 14),
-      })),
-    [points]
+  const enrichedPoints = useMemo(() => points.map(ensureEnriched), [points]);
+
+  const domain = useMemo(
+    () => computeLayerDomain(enrichedPoints, activeLayer),
+    [enrichedPoints, activeLayer]
   );
 
+  const markers = useMemo<MarkerPresentation[]>(
+    () =>
+      enrichedPoints.map((point) => {
+        const value = activeLayer.selector(point);
+        return {
+          id: point.id,
+          name: point.name,
+          lat: point.lat,
+          lon: point.lon,
+          score: point.score,
+          value,
+          color: valueToColor(value, activeLayer, domain),
+          radius: valueToRadius(value, domain),
+          indicators: point.indicators?.map((indicator) => ({
+            id: indicator.id,
+            label: indicator.label,
+            value: indicator.value,
+            unit: indicator.unit,
+          })),
+          province: point.province || undefined,
+        };
+      }),
+    [enrichedPoints, activeLayer, domain]
+  );
+
+  const legendStops = useMemo(() => buildLegendStops(activeLayer, domain), [activeLayer, domain]);
+
+  const resolvedUnit = unit ?? activeLayer.unit;
+  const resolvedLabel = layerLabel ?? activeLayer.label;
+
   /*
-   * Animación de entrada de los marcadores al montar (o cuando cambian los
-   * puntos). Usamos `gsap.from` sobre `.maplibregl-marker` para que cada pin
-   * aparezca con un leve "pop" escalonado. Respeta `prefers-reduced-motion`.
+   * Animación de entrada de los marcadores al montar (o cuando cambia la
+   * cantidad de puntos). NO la disparamos cuando cambia la capa: en ese caso
+   * solo actualizamos colores/tamaños y respetamos `prefers-reduced-motion`.
    */
   useGSAP(
     () => {
@@ -150,13 +231,44 @@ export function SpainMap({
     }
   );
 
+  /*
+   * Transición de color al cambiar de capa. La duración se ajusta a 0 cuando
+   * el usuario solicita reducción de movimiento, en cuyo caso el color cambia
+   * de forma instantánea. La animación se aplica a los hijos `<button>` de
+   * los marcadores para no tocar el viewport ni las capas vectoriales.
+   */
+  useGSAP(
+    () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const targets = container.querySelectorAll('[data-spain-marker]');
+      if (targets.length === 0) return;
+      const duration = prefersReducedMotion() ? 0 : 0.35;
+      gsap.fromTo(
+        targets,
+        { backgroundColor: 'inherit' },
+        {
+          backgroundColor: (_index: number, target: HTMLElement) =>
+            target.dataset.bubbleColor ?? '#10b981',
+          duration,
+          ease: 'sine.out',
+          overwrite: 'auto',
+        }
+      );
+    },
+    {
+      scope: containerRef,
+      dependencies: [activeLayer.id],
+    }
+  );
+
   const handleEnter = useCallback(
-    (point: MapPoint) => (event: ReactPointerEvent<Element>) => {
+    (marker: MarkerPresentation) => (event: ReactPointerEvent<Element>) => {
       const container = event.currentTarget.closest('[data-spain-map]') as HTMLElement | null;
       const rect = container?.getBoundingClientRect();
       const x = rect ? event.clientX - rect.left : event.clientX;
       const y = rect ? event.clientY - rect.top : event.clientY;
-      setHovered({ point, x, y });
+      setHovered({ marker, x, y });
     },
     []
   );
@@ -183,10 +295,8 @@ export function SpainMap({
         containerRef.current = node;
       }}
       data-spain-map
+      data-active-layer={activeLayer.id}
       aria-label={ariaLabel}
-      // El mapa lleva radios 1.5rem (rounded-3xl) coincidentes con la card
-      // contenedora del DashboardShell. La sombra interior es muy suave para
-      // no competir con la sombra de la card padre.
       className={[
         'relative h-full min-h-[360px] w-full overflow-hidden rounded-[20px] bg-[var(--color-surface-muted)]',
         className ?? '',
@@ -208,7 +318,9 @@ export function SpainMap({
           <Marker key={marker.id} longitude={marker.lon} latitude={marker.lat} anchor="center">
             <button
               type="button"
-              aria-label={`${marker.name}: score ${marker.score}`}
+              data-spain-marker
+              data-bubble-color={marker.color}
+              aria-label={`${marker.name}: ${resolvedLabel} ${marker.value.toLocaleString('es-ES')}${resolvedUnit}`}
               className="focus-visible:ring-brand-300 relative flex items-center justify-center rounded-full border-2 border-white/95 font-bold text-white tabular-nums transition-transform hover:scale-110 focus-visible:scale-110 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
               style={{
                 width: marker.radius,
@@ -228,14 +340,10 @@ export function SpainMap({
                 const btn = event.currentTarget.getBoundingClientRect();
                 const x = rect ? btn.left + btn.width / 2 - rect.left : btn.left;
                 const y = rect ? btn.top - rect.top : btn.top;
-                setHovered({ point: marker, x, y });
+                setHovered({ marker, x, y });
               }}
               onBlur={handleLeave}
             >
-              {/*
-               * Highlight superior: gradiente radial blanco que añade una
-               * sensación de relieve a la burbuja, igual que en el comp.
-               */}
               <span
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-1 rounded-full opacity-80"
@@ -244,12 +352,6 @@ export function SpainMap({
                     'radial-gradient(circle at 30% 30%, rgba(255,255,255,0.55), transparent 60%)',
                 }}
               />
-              {/*
-               * Score numérico dentro de la burbuja (visible sólo cuando el
-               * tamaño es >= 24px para evitar amontonamiento en marcadores
-               * pequeños). La fuente blanca contrasta AA con cualquier verde
-               * de la rampa porque siempre estamos en >=`brand-400`.
-               */}
               {marker.radius >= 24 ? (
                 <span aria-hidden="true" className="relative leading-none drop-shadow-sm">
                   {marker.score}
@@ -262,16 +364,27 @@ export function SpainMap({
 
       {hovered ? (
         <MapTooltip
-          name={hovered.point.name}
-          value={hovered.point.value}
-          score={hovered.point.score}
+          name={hovered.marker.name}
+          value={hovered.marker.value}
+          score={hovered.marker.score}
           x={hovered.x}
           y={hovered.y}
-          unit={unit}
+          unit={resolvedUnit}
+          layerLabel={resolvedLabel}
+          activeIndicatorId={activeLayer.id === 'score' ? undefined : activeLayer.id}
+          indicators={hovered.marker.indicators}
+          province={hovered.marker.province}
         />
       ) : null}
 
-      <MapLegend label={layerLabel} stops={legendStops} className="absolute bottom-4 left-4" />
+      <MapLegend
+        label={resolvedLabel}
+        stops={legendStops}
+        unit={resolvedUnit}
+        domain={domain}
+        description={layerId ? activeLayer.description : undefined}
+        className="absolute bottom-4 left-4"
+      />
     </section>
   );
 }
