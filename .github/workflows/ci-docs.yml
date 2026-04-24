@@ -39,10 +39,17 @@ jobs:
       - name: Buscar atribuciones prohibidas en docs
         run: |
           set -euo pipefail
-          if grep -R --include='*.md' -inE 'co-authored-by|generated with claude|🤖 generated' docs/ README.md 2>/dev/null; then
+          # Sólo cuentan los trailers reales (Co-Authored-By: <correo>) o
+          # firmas explícitas tipo "🤖 Generated with [Claude...]" en cuerpo
+          # de prosa. Las menciones literales documentando la regla (entre
+          # backticks o en docs/reviews/) no son atribución y se filtran.
+          patron='(^[[:space:]]*Co-Authored-By:[[:space:]]+[^`])|(^[^`]*🤖[[:space:]]*Generated[[:space:]]+with[[:space:]]+\[Claude)|(Generated with \[Claude.*\]\(https://claude)'
+          if grep -R --include='*.md' --exclude-dir='docs/reviews' -nE "$patron" docs/ README.md 2>/dev/null; then
             echo "::error::Se encontraron atribuciones a asistentes en la documentación"
             exit 1
           fi
+          # Recordatorio: docs/reviews/* documenta la regla y puede mencionar
+          # los trailers entre backticks; allí no hace falta ningún chequeo.
 
       - name: Comprobar enlaces internos relativos
         run: |
