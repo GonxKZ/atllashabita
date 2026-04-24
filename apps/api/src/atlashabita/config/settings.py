@@ -61,6 +61,12 @@ class Settings(BaseSettings):
     cache_max_entries: int = Field(default=256, ge=1)
 
     request_max_limit: int = Field(default=200, ge=1, le=1000)
+    rate_limit_rpm: int = Field(
+        default=60,
+        ge=1,
+        le=10_000,
+        description="Peticiones por minuto admitidas por IP antes de devolver 429.",
+    )
 
     def data_zone(self, zone: str) -> Path:
         """Devuelve el directorio normalizado de una zona de datos."""
