@@ -1,0 +1,70 @@
+name: ci-docs
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/workflows/ci-docs.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - 'docs/**'
+      - '**/*.md'
+      - '.github/workflows/ci-docs.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  revisar-markdown:
+    name: UTF-8 y enlaces Markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verificar que los Markdown son UTF-8 válidos
+        run: |
+          set -euo pipefail
+          fallos=0
+          while IFS= read -r -d '' archivo; do
+            if ! iconv -f UTF-8 -t UTF-8 "$archivo" > /dev/null 2>&1; then
+              echo "::error file=$archivo::no es UTF-8 válido"
+              fallos=$((fallos + 1))
+            fi
+          done < <(find . -type f -name '*.md' -not -path './node_modules/*' -not -path './.venv/*' -not -path './apps/web/node_modules/*' -print0)
+          exit $fallos
+
+      - name: Buscar atribuciones prohibidas en docs
+        run: |
+          set -euo pipefail
+          if grep -R --include='*.md' -inE 'co-authored-by|generated with claude|🤖 generated' docs/ README.md 2>/dev/null; then
+            echo "::error::Se encontraron atribuciones a asistentes en la documentación"
+            exit 1
+          fi
+
+      - name: Comprobar enlaces internos relativos
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          bad = []
+          for md in Path('.').rglob('*.md'):
+              if any(part in {'node_modules', '.venv', 'dist'} for part in md.parts):
+                  continue
+              text = md.read_text(encoding='utf-8', errors='replace')
+              for match in re.finditer(r'\[[^\]]*\]\(([^)#][^)]*)\)', text):
+                  target = match.group(1).split('#')[0].strip()
+                  if not target or target.startswith(('http://', 'https://', 'mailto:', '/')):
+                      continue
+                  if target.endswith('/'):
+                      resolved = (md.parent / target).resolve()
+                  else:
+                      resolved = (md.parent / target).resolve()
+                  if not resolved.exists():
+                      bad.append(f"{md}: enlace roto -> {target}")
+          for entry in bad:
+              print(f"::warning::{entry}")
+          PY
