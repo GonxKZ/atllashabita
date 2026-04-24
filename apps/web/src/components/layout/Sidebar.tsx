@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   BarChart3,
   Compass,
@@ -31,17 +32,28 @@ export interface SidebarProps {
 }
 
 const DEFAULT_NAV: SidebarNavItem[] = [
-  { id: 'home', label: 'Inicio', icon: <Home size={18} />, href: '#inicio' },
-  { id: 'map', label: 'Explorar mapa', icon: <MapIcon size={18} />, href: '#mapa' },
-  { id: 'recommender', label: 'Recomendador', icon: <Compass size={18} />, href: '#recomendador' },
-  { id: 'comparator', label: 'Comparador', icon: <LayoutGrid size={18} />, href: '#comparador' },
+  { id: 'home', label: 'Inicio', icon: <Home size={18} />, href: '/' },
+  { id: 'map', label: 'Explorar mapa', icon: <MapIcon size={18} />, href: '/mapa' },
+  { id: 'recommender', label: 'Recomendador', icon: <Compass size={18} />, href: '/ranking' },
+  { id: 'comparator', label: 'Comparador', icon: <LayoutGrid size={18} />, href: '/comparador' },
   {
     id: 'scenarios',
     label: 'Escenarios',
     icon: <SlidersHorizontal size={18} />,
-    href: '#escenarios',
+    href: '/sparql',
   },
 ];
+
+/** Mapea rutas activas a navItem id para subrayar el item correcto. */
+function detectActiveId(pathname: string): string | null {
+  if (pathname === '/' || pathname === '') return 'home';
+  if (pathname.startsWith('/mapa')) return 'map';
+  if (pathname.startsWith('/ranking') || pathname.startsWith('/recomendador')) return 'recommender';
+  if (pathname.startsWith('/comparador')) return 'comparator';
+  if (pathname.startsWith('/sparql') || pathname.startsWith('/escenarios')) return 'scenarios';
+  if (pathname.startsWith('/territorio')) return 'recommender';
+  return null;
+}
 
 const DEFAULT_LAYERS: LayerOption[] = [
   { id: 'housing', label: 'Vivienda asequible', checked: true },
@@ -54,13 +66,17 @@ const DEFAULT_LAYERS: LayerOption[] = [
 export function Sidebar({
   navItems = DEFAULT_NAV,
   layers = DEFAULT_LAYERS,
-  activeNavId = 'home',
+  activeNavId,
   userName = 'Alex Romero',
   userSubtitle = 'Cuenta personal',
   userAvatarUrl,
   className,
 }: SidebarProps) {
   const [layerState, setLayerState] = useState<LayerOption[]>(layers);
+  const location = useLocation();
+  // Si el llamador no fija `activeNavId`, el item activo se deduce de la ruta
+  // actual: así el subrayado verde sigue al usuario al navegar.
+  const resolvedActive = activeNavId ?? detectActiveId(location.pathname) ?? 'home';
 
   return (
     <aside
@@ -74,8 +90,8 @@ export function Sidebar({
         className
       )}
     >
-      <a
-        href="#inicio"
+      <Link
+        to="/"
         className="flex items-center gap-2.5 focus-visible:rounded-xl focus-visible:outline-none"
         aria-label="AtlasHabita, ir a inicio"
       >
@@ -88,7 +104,7 @@ export function Sidebar({
         <span className="font-display text-ink-900 text-[17px] leading-none font-bold tracking-tight">
           AtlasHabita
         </span>
-      </a>
+      </Link>
 
       <nav aria-label="Navegación principal">
         <MotionStagger
@@ -99,11 +115,11 @@ export function Sidebar({
           y={12}
         >
           {navItems.map((item) => {
-            const isActive = item.id === activeNavId;
+            const isActive = item.id === resolvedActive;
             return (
               <li key={item.id}>
-                <a
-                  href={item.href ?? '#'}
+                <Link
+                  to={item.href ?? '/'}
                   aria-current={isActive ? 'page' : undefined}
                   className={cn(
                     'group flex items-center gap-3 rounded-2xl px-2.5 py-2 text-sm font-medium transition-colors',
@@ -125,7 +141,7 @@ export function Sidebar({
                     {item.icon}
                   </span>
                   <span className="tracking-[-0.005em]">{item.label}</span>
-                </a>
+                </Link>
               </li>
             );
           })}

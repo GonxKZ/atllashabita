@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { DashboardShell } from '../DashboardShell';
+
+const wrap = (node: ReactNode) => <MemoryRouter>{node}</MemoryRouter>;
 
 /**
  * jsdom no implementa `ResizeObserver`. El panel lateral del dashboard
@@ -59,16 +63,15 @@ beforeAll(() => {
 
 describe('DashboardShell', () => {
   it('muestra el hero con el titular principal de AtlasHabita', () => {
-    render(<DashboardShell />);
+    render(wrap(<DashboardShell />));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       /mejor lugar para vivir en España/i
     );
   });
 
-  it('compone el shell con sidebar, topbar y panel lateral', () => {
-    render(<DashboardShell />);
-    expect(screen.getByRole('navigation', { name: 'Navegación principal' })).toBeInTheDocument();
-    expect(screen.getByRole('searchbox', { name: 'Buscar en AtlasHabita' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Nuevo análisis/i })).toBeInTheDocument();
+  it('en modo embedded no monta sidebar/topbar (los provee RootLayout)', () => {
+    render(wrap(<DashboardShell />));
+    expect(screen.queryByRole('navigation', { name: 'Navegación principal' })).toBeNull();
+    expect(screen.queryByRole('searchbox', { name: 'Buscar en AtlasHabita' })).toBeNull();
   });
 });

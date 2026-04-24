@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { MotionScale } from '../motion';
 import { Card } from '../ui/Card';
 import { cn } from '../ui/cn';
@@ -57,13 +58,13 @@ export function ActionCards({ items, className }: ActionCardsProps) {
               <div className="flex flex-col gap-1.5">
                 <h3 className="font-display text-ink-900 text-base font-semibold tracking-tight">
                   {item.href ? (
-                    <a
-                      href={item.href}
+                    <Link
+                      to={item.href}
                       className="rounded-md focus-visible:ring-2 focus-visible:ring-[var(--color-brand-300)] focus-visible:outline-none"
                     >
                       <span className="absolute inset-0" aria-hidden="true" />
                       {item.title}
-                    </a>
+                    </Link>
                   ) : (
                     item.title
                   )}

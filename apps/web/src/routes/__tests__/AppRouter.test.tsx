@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { DashboardLayout, RoutePlaceholder } from '../AppRouter';
+import { HomeRoute, MapaRoute, RankingRoute, RootLayout, TerritoryRoute } from '../AppRouter';
 import { NotFound } from '../NotFound';
 
 /**
- * `DashboardLayout` monta `DashboardShell`, que a su vez incluye
- * `TrendsChart` (recharts → ResponsiveContainer → ResizeObserver). jsdom
- * no implementa `ResizeObserver`, por lo que polyfilleamos antes de
- * renderizar igual que en `features/trends/__tests__/TrendsChart.test.tsx`.
+ * `RootLayout` monta `Sidebar` + `Topbar` + `<Outlet />`; las rutas
+ * internas inyectan su propio contenido. `TrendsChart` requiere
+ * `ResizeObserver`, ausente en jsdom: lo polyfillamos como en el resto de
+ * tests que tocan recharts.
  */
 beforeAll(() => {
   type Callback = (entries: unknown[], observer: unknown) => void;
@@ -63,14 +63,12 @@ function renderAt(initialPath: string) {
     [
       {
         path: '/',
-        element: <DashboardLayout />,
+        element: <RootLayout />,
         children: [
-          { index: true, element: <RoutePlaceholder label="dashboard" /> },
-          { path: 'mapa', element: <RoutePlaceholder label="mapa" /> },
-          { path: 'recomendador', element: <RoutePlaceholder label="recomendador" /> },
-          { path: 'comparador', element: <RoutePlaceholder label="comparador" /> },
-          { path: 'escenarios', element: <RoutePlaceholder label="escenarios" /> },
-          { path: 'territorio/:id', element: <RoutePlaceholder label="territorio" /> },
+          { index: true, element: <HomeRoute /> },
+          { path: 'mapa', element: <MapaRoute /> },
+          { path: 'ranking', element: <RankingRoute /> },
+          { path: 'territorio/:id', element: <TerritoryRoute /> },
         ],
       },
       { path: '*', element: <NotFound /> },
@@ -86,12 +84,16 @@ describe('AppRouter', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
       /mejor lugar.*vivir en españa/i
     );
-    expect(screen.getByRole('region', { name: 'dashboard' })).toBeInTheDocument();
   });
 
-  it('renderiza placeholders para cada ruta principal', () => {
+  it('navega a /mapa con su título propio', () => {
     renderAt('/mapa');
-    expect(screen.getByRole('region', { name: 'mapa' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/explorar mapa/i);
+  });
+
+  it('navega a /ranking con su título propio', () => {
+    renderAt('/ranking');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/ranking nacional/i);
   });
 
   it('resuelve la ruta de territorio con parámetro dinámico', () => {
