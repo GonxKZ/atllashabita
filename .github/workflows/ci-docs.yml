@@ -22,7 +22,7 @@ jobs:
     name: UTF-8 y enlaces Markdown
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Verificar que los Markdown son UTF-8 válidos
         run: |
