@@ -7,9 +7,12 @@ Datos versionados para que el pipeline funcione sin conexión a fuentes externas
 | Archivo | Contenido | Filas |
 |---|---|---|
 | `territories.csv` | 19 CCAA (17 + Ceuta y Melilla) + 52 provincias + 101 municipios. | 172 |
-| `sources.csv` | Fuentes oficiales con URLs reales (MIVAU SERPAVI, INE datos abiertos, INE Atlas de Renta, INE DIRCE, MITECO Reto Demográfico demografía y servicios, SETELECO, AEMET). | 8 |
-| `indicators.csv` | Indicadores semánticos: rent_median, broadband_coverage, income_per_capita, services_score, climate_comfort, population_total, age_median, household_size, enterprise_density. | 9 |
-| `observations.csv` | Observaciones municipio × indicador (101 × 9). | 909 |
+| `sources.csv` | Fuentes oficiales con URLs reales (MIVAU SERPAVI, INE datos abiertos, INE Atlas de Renta, INE DIRCE, MITECO Reto Demográfico demografía y servicios, SETELECO, AEMET, MITMA movilidad, DGT accidentes, CRTM Madrid GTFS). | 11 |
+| `indicators.csv` | Indicadores semánticos: rent_median, broadband_coverage, income_per_capita, services_score, climate_comfort, population_total, age_median, household_size, enterprise_density, mobility_flow, accident_rate, transit_score. | 12 |
+| `observations.csv` | Observaciones municipio × indicador (101 × 12). | 1212 |
+| `mobility_flows.csv` | Pares origen-destino agregados del estudio MITMA (Madrid, Sevilla, Barcelona, València, Bilbao, Málaga, Murcia, Palma, Oviedo, Zaragoza). | 36 |
+| `accidents.csv` | Accidentes con víctimas por municipio (DGT) cubriendo los 101 municipios. | 101 |
+| `transit_stops.csv` | Paradas multimodales (Metro, Cercanías, Metro Ligero) del CRTM Madrid en municipios cubiertos. | 19 |
 | `profiles.csv` | Perfiles de decisión: remote_work, family, student y retire. | 4 |
 
 ## Procedencia

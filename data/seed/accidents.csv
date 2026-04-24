@@ -1,0 +1,102 @@
+source_id,municipality_code,name,period,accidents_total,fatalities,serious_injuries,slight_injuries
+dgt_accidentes,04013,Almería,2024,1337,6,51,2858
+dgt_accidentes,04079,El Ejido,2024,309,1,12,661
+dgt_accidentes,11012,Cádiz,2024,782,3,30,1672
+dgt_accidentes,11020,Jerez de la Frontera,2024,965,4,37,2063
+dgt_accidentes,11004,Algeciras,2024,821,3,31,1756
+dgt_accidentes,14021,Córdoba,2024,2338,10,89,4998
+dgt_accidentes,18087,Granada,2024,1595,7,61,3409
+dgt_accidentes,18140,Motril,2024,425,2,16,909
+dgt_accidentes,21041,Huelva,2024,963,4,37,2058
+dgt_accidentes,23050,Jaén,2024,613,3,23,1310
+dgt_accidentes,29067,Málaga,2024,2240,12,96,2620
+dgt_accidentes,29069,Marbella,2024,839,4,32,1793
+dgt_accidentes,29054,Fuengirola,2024,589,2,22,1260
+dgt_accidentes,29025,Benalmádena,2024,462,2,18,987
+dgt_accidentes,41091,Sevilla,2024,2810,11,118,3260
+dgt_accidentes,41038,Dos Hermanas,2024,500,2,19,1069
+dgt_accidentes,41004,Alcalá de Guadaíra,2024,382,2,15,816
+dgt_accidentes,22125,Huesca,2024,272,1,10,582
+dgt_accidentes,44216,Teruel,2024,127,1,5,271
+dgt_accidentes,50297,Zaragoza,2024,1980,9,82,2310
+dgt_accidentes,33044,Oviedo,2024,612,3,28,705
+dgt_accidentes,33024,Gijón,2024,962,4,37,2056
+dgt_accidentes,33004,Avilés,2024,515,2,20,1101
+dgt_accidentes,07040,Palma,2024,1340,6,52,1490
+dgt_accidentes,07011,Calvià,2024,351,1,13,751
+dgt_accidentes,35016,Las Palmas de Gran Canaria,2024,1280,5,46,1410
+dgt_accidentes,38038,Santa Cruz de Tenerife,2024,1478,6,56,3160
+dgt_accidentes,38023,San Cristóbal de La Laguna,2024,637,3,24,1362
+dgt_accidentes,39075,Santander,2024,735,3,28,1571
+dgt_accidentes,39087,Torrelavega,2024,347,1,13,742
+dgt_accidentes,05019,Ávila,2024,384,2,15,820
+dgt_accidentes,09059,Burgos,2024,691,3,26,1477
+dgt_accidentes,24089,León,2024,863,4,33,1844
+dgt_accidentes,34120,Palencia,2024,492,2,19,1052
+dgt_accidentes,37274,Salamanca,2024,388,2,18,440
+dgt_accidentes,40194,Segovia,2024,370,2,14,791
+dgt_accidentes,42173,Soria,2024,241,1,9,515
+dgt_accidentes,47186,Valladolid,2024,720,3,32,820
+dgt_accidentes,49275,Zamora,2024,402,2,15,859
+dgt_accidentes,02003,Albacete,2024,1135,5,43,2426
+dgt_accidentes,13034,Ciudad Real,2024,380,2,14,812
+dgt_accidentes,16078,Cuenca,2024,322,1,12,689
+dgt_accidentes,19130,Guadalajara,2024,504,2,19,1078
+dgt_accidentes,45168,Toledo,2024,605,3,23,1293
+dgt_accidentes,45165,Talavera de la Reina,2024,592,2,22,1267
+dgt_accidentes,08019,Barcelona,2024,7164,22,275,8520
+dgt_accidentes,08101,L'Hospitalet de Llobregat,2024,1578,7,60,3373
+dgt_accidentes,08279,Terrassa,2024,1547,6,59,3307
+dgt_accidentes,08187,Sabadell,2024,883,4,34,1887
+dgt_accidentes,08169,Mataró,2024,546,2,21,1167
+dgt_accidentes,17079,Girona,2024,531,2,20,1136
+dgt_accidentes,25120,Lleida,2024,677,3,26,1447
+dgt_accidentes,43148,Tarragona,2024,748,3,28,1600
+dgt_accidentes,43123,Reus,2024,621,3,24,1327
+dgt_accidentes,03014,Alicante,2024,940,4,38,1080
+dgt_accidentes,03065,Elche,2024,1193,5,45,2551
+dgt_accidentes,03133,Torrevieja,2024,342,1,13,732
+dgt_accidentes,12040,Castelló de la Plana,2024,572,2,22,1223
+dgt_accidentes,46250,València,2024,3528,15,142,4180
+dgt_accidentes,46131,Gandia,2024,459,2,17,982
+dgt_accidentes,46190,Paterna,2024,409,2,16,874
+dgt_accidentes,46017,Alzira,2024,194,1,7,415
+dgt_accidentes,06015,Badajoz,2024,928,4,35,1984
+dgt_accidentes,10037,Cáceres,2024,598,3,23,1278
+dgt_accidentes,10148,Plasencia,2024,268,1,10,573
+dgt_accidentes,15030,A Coruña,2024,1546,6,59,3305
+dgt_accidentes,15078,Santiago de Compostela,2024,327,1,12,700
+dgt_accidentes,27028,Lugo,2024,411,2,16,878
+dgt_accidentes,32054,Ourense,2024,671,3,25,1435
+dgt_accidentes,36038,Pontevedra,2024,379,2,14,810
+dgt_accidentes,36057,Vigo,2024,1181,5,45,2525
+dgt_accidentes,28079,Madrid,2024,9482,32,348,11420
+dgt_accidentes,28092,Móstoles,2024,1124,5,43,2402
+dgt_accidentes,28005,Alcalá de Henares,2024,1367,6,52,2922
+dgt_accidentes,28065,Fuenlabrada,2024,1153,5,44,2465
+dgt_accidentes,28074,Leganés,2024,1355,6,51,2897
+dgt_accidentes,28006,Alcobendas,2024,648,3,25,1385
+dgt_accidentes,28058,Coslada,2024,557,2,21,1191
+dgt_accidentes,28049,Boadilla del Monte,2024,416,2,16,889
+dgt_accidentes,30030,Murcia,2024,1620,8,68,1840
+dgt_accidentes,30016,Cartagena,2024,1225,5,47,2619
+dgt_accidentes,30026,Lorca,2024,693,3,26,1482
+dgt_accidentes,31201,Pamplona,2024,1478,6,56,3160
+dgt_accidentes,31036,Barañáin,2024,84,0,3,180
+dgt_accidentes,01059,Vitoria-Gasteiz,2024,1399,6,53,2991
+dgt_accidentes,20069,Donostia/San Sebastián,2024,842,4,32,1800
+dgt_accidentes,20036,Irun,2024,212,1,8,453
+dgt_accidentes,20038,Hondarribia,2024,115,0,4,247
+dgt_accidentes,20071,Tolosa,2024,136,1,5,290
+dgt_accidentes,48020,Bilbao,2024,1110,4,42,1240
+dgt_accidentes,48044,Barakaldo,2024,476,2,18,1018
+dgt_accidentes,48082,Getxo,2024,504,2,19,1078
+dgt_accidentes,26089,Logroño,2024,308,1,14,358
+dgt_accidentes,51001,Ceuta,2024,148,1,7,178
+dgt_accidentes,52001,Melilla,2024,142,1,6,170
+dgt_accidentes,08205,Santa Coloma de Gramenet,2024,789,3,30,1687
+dgt_accidentes,08121,Badalona,2024,866,4,33,1851
+dgt_accidentes,30024,Las Torres de Cotillas,2024,132,1,5,282
+dgt_accidentes,15014,Betanzos,2024,84,0,3,180
+dgt_accidentes,03099,Orihuela,2024,599,3,23,1280
+dgt_accidentes,18004,Almuñécar,2024,196,1,7,419
