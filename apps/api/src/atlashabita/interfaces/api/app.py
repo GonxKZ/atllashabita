@@ -14,8 +14,21 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from atlashabita.application.container import Container
 from atlashabita.config import Settings, get_settings
-from atlashabita.interfaces.api.routers import health
+from atlashabita.interfaces.api.middleware import (
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
+from atlashabita.interfaces.api.routers import (
+    health,
+    map_layers,
+    profiles,
+    quality,
+    rankings,
+    sources,
+    territories,
+)
 from atlashabita.observability import configure_logging, get_logger
 from atlashabita.observability.errors import DomainError
 
@@ -26,6 +39,7 @@ logger = get_logger(__name__)
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     configure_logging(env=settings.env)
+    app.state.container = Container(settings=settings)
     logger.info("api.startup", env=settings.env, version=settings.app_version)
     yield
     logger.info("api.shutdown")
@@ -45,6 +59,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
 
+    _register_middlewares(app, settings)
+    _register_exception_handlers(app)
+    _register_routers(app)
+    return app
+
+
+def _register_middlewares(app: FastAPI, settings: Settings) -> None:
+    # Orden importa: los middlewares se ejecutan en LIFO sobre la respuesta.
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RateLimitMiddleware, requests_per_minute=settings.rate_limit_rpm)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_allow_origins),
@@ -52,10 +76,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["*"],
         allow_credentials=False,
     )
-
-    _register_exception_handlers(app)
-    _register_routers(app)
-    return app
 
 
 def _register_exception_handlers(app: FastAPI) -> None:
@@ -67,3 +87,9 @@ def _register_exception_handlers(app: FastAPI) -> None:
 
 def _register_routers(app: FastAPI) -> None:
     app.include_router(health.router)
+    app.include_router(profiles.router)
+    app.include_router(territories.router)
+    app.include_router(rankings.router)
+    app.include_router(map_layers.router)
+    app.include_router(sources.router)
+    app.include_router(quality.router)
