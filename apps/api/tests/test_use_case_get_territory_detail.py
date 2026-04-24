@@ -23,26 +23,30 @@ def container() -> Container:
     return Container(settings)
 
 
-def test_ficha_sevilla_contiene_los_cinco_indicadores(container: Container) -> None:
+def test_ficha_sevilla_contiene_los_indicadores_nacionales(container: Container) -> None:
     detail = container.get_territory_detail.execute("municipality:41091")
     assert detail["name"] == "Sevilla"
     assert detail["type"] == "municipality"
     assert detail["hierarchy"]["province"] == "Sevilla"
     assert detail["hierarchy"]["autonomous_community"] == "Andalucía"
     indicators = {row["id"] for row in detail["indicators"]}
-    assert indicators == {
+    assert {
         "rent_median",
         "broadband_coverage",
         "income_per_capita",
         "services_score",
         "climate_comfort",
-    }
+        "population_total",
+        "age_median",
+        "household_size",
+        "enterprise_density",
+    } <= indicators
 
 
 def test_ficha_sevilla_incluye_scores_por_perfil(container: Container) -> None:
     detail = container.get_territory_detail.execute("municipality:41091")
     perfiles = {row["profile"] for row in detail["scores"]}
-    assert perfiles == {"remote_work", "family", "student"}
+    assert {"remote_work", "family", "student", "retire"} <= perfiles
     for row in detail["scores"]:
         assert 0.0 <= row["score"] <= 100.0
         assert row["version"] == container.settings.scoring_version

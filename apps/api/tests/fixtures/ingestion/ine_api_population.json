@@ -1,0 +1,18 @@
+{
+  "source": "INE datos abiertos",
+  "landing": "https://www.ine.es/datosabiertos/",
+  "fetched_at": "2026-04-10T07:15:00Z",
+  "license": "CC BY 4.0",
+  "rows": [
+    {"municipality_code": "28079", "name": "Madrid", "population": 3305408, "households": 1271300, "household_size": 2.6, "period": "2025"},
+    {"municipality_code": "08019", "name": "Barcelona", "population": 1660314, "households": 665720, "household_size": 2.5, "period": "2025"},
+    {"municipality_code": "46250", "name": "València", "population": 792492, "households": 311700, "household_size": 2.5, "period": "2025"},
+    {"municipality_code": "41091", "name": "Sevilla", "population": 684234, "households": 263100, "household_size": 2.6, "period": "2025"},
+    {"municipality_code": "50297", "name": "Zaragoza", "population": 681877, "households": 283700, "household_size": 2.4, "period": "2025"},
+    {"municipality_code": "29067", "name": "Málaga", "population": 586384, "households": 225100, "household_size": 2.6, "period": "2025"},
+    {"municipality_code": "30030", "name": "Murcia", "population": 462979, "households": 171400, "household_size": 2.7, "period": "2025"},
+    {"municipality_code": "07040", "name": "Palma", "population": 416065, "households": 166200, "household_size": 2.5, "period": "2025"},
+    {"municipality_code": "35016", "name": "Las Palmas de Gran Canaria", "population": 378675, "households": 140200, "household_size": 2.7, "period": "2025"},
+    {"municipality_code": "48020", "name": "Bilbao", "population": 345821, "households": 146500, "household_size": 2.4, "period": "2025"}
+  ]
+}

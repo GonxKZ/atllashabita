@@ -40,7 +40,8 @@ def builder() -> GraphBuilder:
 def test_build_graph_incluye_municipios(builder: GraphBuilder, dataset: SeedDataset) -> None:
     graph = builder.build_graph(dataset)
     municipalities = set(graph.subjects(RDF.type, AH.Municipality))
-    assert len(municipalities) == 10
+    assert len(municipalities) == len(dataset.municipalities)
+    assert len(municipalities) >= 100
 
 
 def test_build_graph_enlaza_municipio_a_provincia(
@@ -58,7 +59,7 @@ def test_build_graph_conecta_territorio_y_observacion(
     graph = builder.build_graph(dataset)
     sevilla = URIRef(BASE + "resource/territory/municipality/41091")
     observations = list(graph.objects(sevilla, AH.hasIndicatorObservation))
-    assert len(observations) == 5  # 5 indicadores distintos
+    assert len(observations) == len(dataset.indicators)
 
 
 def test_build_genera_named_graphs_por_dominio(builder: GraphBuilder, dataset: SeedDataset) -> None:
