@@ -10,9 +10,12 @@ from atlashabita.application.use_cases.compute_rankings import ComputeRankingsUs
 from atlashabita.application.use_cases.get_map_layer import GetMapLayerUseCase
 from atlashabita.application.use_cases.get_quality_report import GetQualityReportUseCase
 from atlashabita.application.use_cases.get_territory_detail import GetTerritoryDetailUseCase
+from atlashabita.application.use_cases.list_accidents import ListAccidentsUseCase
 from atlashabita.application.use_cases.list_map_layers import ListMapLayersUseCase
+from atlashabita.application.use_cases.list_mobility import ListMobilityUseCase
 from atlashabita.application.use_cases.list_profiles import ListProfilesUseCase
 from atlashabita.application.use_cases.list_sources import ListSourcesUseCase
+from atlashabita.application.use_cases.list_transit import ListTransitUseCase
 from atlashabita.application.use_cases.search_territories import SearchTerritoriesUseCase
 
 __all__ = [
@@ -20,8 +23,11 @@ __all__ = [
     "GetMapLayerUseCase",
     "GetQualityReportUseCase",
     "GetTerritoryDetailUseCase",
+    "ListAccidentsUseCase",
     "ListMapLayersUseCase",
+    "ListMobilityUseCase",
     "ListProfilesUseCase",
     "ListSourcesUseCase",
+    "ListTransitUseCase",
     "SearchTerritoriesUseCase",
 ]

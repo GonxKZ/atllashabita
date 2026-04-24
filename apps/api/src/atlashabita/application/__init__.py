@@ -13,9 +13,12 @@ from atlashabita.application.use_cases import (
     GetMapLayerUseCase,
     GetQualityReportUseCase,
     GetTerritoryDetailUseCase,
+    ListAccidentsUseCase,
     ListMapLayersUseCase,
+    ListMobilityUseCase,
     ListProfilesUseCase,
     ListSourcesUseCase,
+    ListTransitUseCase,
     SearchTerritoriesUseCase,
 )
 
@@ -25,9 +28,12 @@ __all__ = [
     "GetMapLayerUseCase",
     "GetQualityReportUseCase",
     "GetTerritoryDetailUseCase",
+    "ListAccidentsUseCase",
     "ListMapLayersUseCase",
+    "ListMobilityUseCase",
     "ListProfilesUseCase",
     "ListSourcesUseCase",
+    "ListTransitUseCase",
     "ScoringService",
     "SearchTerritoriesUseCase",
 ]
