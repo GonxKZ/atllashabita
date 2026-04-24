@@ -26,6 +26,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from atlashabita.infrastructure.ingestion.crtm_madrid import CrtmMadridConnector
+from atlashabita.infrastructure.ingestion.dgt_accidentes import (
+    DgtAccidentesConnector,
+)
 from atlashabita.infrastructure.ingestion.downloader import Downloader
 from atlashabita.infrastructure.ingestion.ine_api import IneApiConnector
 from atlashabita.infrastructure.ingestion.ine_atlas_renta import (
@@ -37,6 +41,9 @@ from atlashabita.infrastructure.ingestion.miteco_demographic import (
 )
 from atlashabita.infrastructure.ingestion.miteco_services import (
     MitecoServicesConnector,
+)
+from atlashabita.infrastructure.ingestion.mitma_movilidad import (
+    MitmaMovilidadConnector,
 )
 from atlashabita.infrastructure.ingestion.sources import (
     SOURCE_REGISTRY,
@@ -102,6 +109,9 @@ class DatasetBuilder:
         self._ine_dirce = IneDirceConnector(downloader, fixture_dir=fixtures)
         self._miteco_demo = MitecoDemographicConnector(downloader, fixture_dir=fixtures)
         self._miteco_svc = MitecoServicesConnector(downloader, fixture_dir=fixtures)
+        self._mitma = MitmaMovilidadConnector(downloader, fixture_dir=fixtures)
+        self._dgt = DgtAccidentesConnector(downloader, fixture_dir=fixtures)
+        self._crtm = CrtmMadridConnector(downloader, fixture_dir=fixtures)
 
     def build(self) -> DatasetManifest:
         """Ejecuta cada conector y escribe los CSV + manifiesto."""
@@ -196,6 +206,62 @@ class DatasetBuilder:
                     "period",
                 ),
                 from_cache=svc_payload.from_cache,
+            )
+        )
+
+        mitma_payload = self._mitma.fetch()
+        mitma_records = self._mitma.parse(mitma_payload)
+        artifacts.append(
+            self._write_csv(
+                source_id=self._mitma.source_id,
+                rows=self._mitma.to_csv_rows(mitma_records),
+                fieldnames=(
+                    "origin_code",
+                    "destination_code",
+                    "daily_trips",
+                    "average_distance_km",
+                    "average_duration_min",
+                    "period",
+                ),
+                from_cache=mitma_payload.from_cache,
+            )
+        )
+
+        dgt_payload = self._dgt.fetch()
+        dgt_records = self._dgt.parse(dgt_payload)
+        artifacts.append(
+            self._write_csv(
+                source_id=self._dgt.source_id,
+                rows=self._dgt.to_csv_rows(dgt_records),
+                fieldnames=(
+                    "municipality_code",
+                    "name",
+                    "period",
+                    "accidents_total",
+                    "fatalities",
+                    "serious_injuries",
+                    "slight_injuries",
+                ),
+                from_cache=dgt_payload.from_cache,
+            )
+        )
+
+        crtm_payload = self._crtm.fetch()
+        crtm_data = self._crtm.parse(crtm_payload)
+        artifacts.append(
+            self._write_csv(
+                source_id=self._crtm.source_id,
+                rows=self._crtm.to_csv_rows(crtm_data.stops),
+                fieldnames=(
+                    "stop_id",
+                    "name",
+                    "lat",
+                    "lon",
+                    "mode",
+                    "municipality_code",
+                    "agency_id",
+                ),
+                from_cache=crtm_payload.from_cache,
             )
         )
 
