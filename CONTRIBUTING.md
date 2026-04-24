@@ -14,7 +14,7 @@ Esta guía resume el flujo de trabajo para mantener el repositorio saludable y t
 
 ## Commits
 
-Se usan [Conventional Commits](https://www.conventionalcommits.org/) en español. El tipo refleja la intención y el alcance identifica el módulo:
+Se usan [Conventional Commits](https://www.conventionalcommits.org/). El tipo refleja la intención y el alcance identifica el módulo:
 
 ```
 feat(rdf): generar grafo semántico desde datasets limpios

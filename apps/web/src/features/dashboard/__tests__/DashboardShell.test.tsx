@@ -5,8 +5,6 @@ import { DashboardShell } from '../DashboardShell';
 describe('DashboardShell', () => {
   it('muestra el titular inicial del proyecto', () => {
     render(<DashboardShell />);
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /brújula territorial/i
-    );
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/brújula territorial/i);
   });
 });

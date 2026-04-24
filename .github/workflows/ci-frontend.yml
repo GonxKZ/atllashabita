@@ -1,6 +1,7 @@
 name: ci-frontend
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [develop, main]
     paths:
@@ -18,12 +19,12 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   calidad:
-    name: Lint, tipos y pruebas unitarias
+    name: Lint, tipos y pruebas unitarias del frontend
     runs-on: ubuntu-latest
-    if: hashFiles('apps/web/package.json') != ''
     steps:
       - name: Clonar repositorio
         uses: actions/checkout@v4
@@ -42,9 +43,14 @@ jobs:
 
       - name: Instalar dependencias del frontend
         working-directory: apps/web
-        run: pnpm install --frozen-lockfile || pnpm install
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install --no-frozen-lockfile
+          fi
 
-      - name: Formato (prettier)
+      - name: Comprobar formato (prettier)
         working-directory: apps/web
         run: pnpm format:check
 
@@ -64,6 +70,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cobertura-frontend
+          name: cobertura-frontend-${{ github.run_id }}
           path: apps/web/coverage
           if-no-files-found: ignore
+          retention-days: 14
