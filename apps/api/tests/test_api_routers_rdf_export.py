@@ -56,7 +56,7 @@ def test_rdf_export_default_es_turtle(api_client: TestClient) -> None:
 def test_rdf_export_tamanio_razonable(api_client: TestClient) -> None:
     response = api_client.get("/rdf/export", params={"format": "nt"})
     assert response.status_code == 200
-    # El dataset seed ampliado a 101 municipios × 9 indicadores genera miles
+    # El dataset seed ampliado (101 municipios y 9 indicadores) genera miles
     # de triples; al serializar en N-Triples rondamos los pocos MB. Se
     # comprueba un rango laxo para no acoplar al conteo exacto.
     assert 5_000 < len(response.content) < 16_000_000
