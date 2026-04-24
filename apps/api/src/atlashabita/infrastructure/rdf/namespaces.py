@@ -21,6 +21,17 @@ GeoSPARQL (``GEO``) es intencional: mantenemos las propiedades ``geo:lat`` /
 ``geo:long`` históricas y añadimos ``geo:hasGeometry`` / ``geo:asWKT`` de
 GeoSPARQL para que consultas espaciales (distancia, buffer, within) sean
 posibles con herramientas compatibles con OGC.
+
+El milestone M11 incorpora los vocabularios **SOSA/SSN** y **QB**:
+
+* :data:`SOSA` modela las observaciones sensoriales/encuestadas (``sosa:Observation``,
+  ``sosa:hasFeatureOfInterest``, ``sosa:hasSimpleResult``). Las clases
+  ``ah:MobilityFlow`` se modelan como ``sosa:Observation`` con la pareja
+  origen-destino como *feature of interest*.
+* :data:`SSN` extiende SOSA con sistemas y procedimientos.
+* :data:`QB` (Data Cube) permite tratar los flujos como observaciones
+  multidimensionales (origen, destino, periodo, modo) reutilizables con las
+  herramientas estándar del RDF Data Cube Vocabulary.
 """
 
 from __future__ import annotations
@@ -68,8 +79,20 @@ GEO_WGS84 = Namespace("http://www.w3.org/2003/01/geo/wgs84_pos#")
 #: PROV-O para procedencia (fuente, ingesta, atribuciones).
 PROV = RDFLIB_PROV
 
-#: Data Cube Vocabulary (reservado por si se modelan observaciones multidim).
+#: Data Cube Vocabulary para observaciones multidimensionales (flujos de
+#: movilidad MITMA: origen, destino, periodo, modo). Se usa explícitamente
+#: en el milestone M11 al declarar ``ah:MobilityFlow`` como
+#: ``qb:Observation``.
 QB = Namespace("http://purl.org/linked-data/cube#")
+
+#: Sensor, Observation, Sample, Actuator (W3C). Se aplica a flujos de
+#: movilidad MITMA (``sosa:Observation``) y deja preparado el grafo para
+#: integrar futuros sensores territoriales (calidad del aire, ruido).
+SOSA = Namespace("http://www.w3.org/ns/sosa/")
+
+#: Semantic Sensor Network (W3C). Capa superior sobre SOSA para representar
+#: sistemas, procedimientos y propiedades observables de mayor complejidad.
+SSN = Namespace("http://www.w3.org/ns/ssn/")
 
 
 def bind_all(graph: Graph | Dataset) -> None:
@@ -91,6 +114,8 @@ def bind_all(graph: Graph | Dataset) -> None:
     graph.bind("wgs84", GEO_WGS84, override=True)
     graph.bind("prov", PROV, override=True)
     graph.bind("qb", QB, override=True)
+    graph.bind("sosa", SOSA, override=True)
+    graph.bind("ssn", SSN, override=True)
 
 
 __all__ = [
@@ -105,5 +130,7 @@ __all__ = [
     "QB",
     "SF",
     "SKOS",
+    "SOSA",
+    "SSN",
     "bind_all",
 ]

@@ -11,21 +11,27 @@
 @prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
 @prefix prov:  <http://www.w3.org/ns/prov#> .
 @prefix qb:    <http://purl.org/linked-data/cube#> .
+@prefix sosa:  <http://www.w3.org/ns/sosa/> .
+@prefix ssn:   <http://www.w3.org/ns/ssn/> .
 
 ###############################################################################
-# Ontología AtlasHabita (v0.2.0 — Fase B M8)                                 #
-# Amplía la base v0.1.0 con alineación GeoSPARQL y PROV-O reforzado.         #
+# Ontología AtlasHabita (v0.3.0 — Fase B M11)                                #
+# Amplía v0.2.0 con clases para flujos de movilidad, accidentes y transporte #
+# público (MITMA + DGT + CRTM), alineadas con SOSA/SSN y QB.                 #
 ###############################################################################
 
 <https://data.atlashabita.example/ontology/>
     a owl:Ontology ;
     dct:title "Ontología AtlasHabita"@es ;
     dct:description
-        "Vocabulario para representar territorios españoles, indicadores, observaciones, fuentes, scores explicables, geometrías GeoSPARQL y procedencia PROV-O."@es ;
+        "Vocabulario para representar territorios españoles, indicadores, observaciones, fuentes, scores explicables, geometrías GeoSPARQL, procedencia PROV-O, flujos de movilidad, accidentes viales y red de transporte público."@es ;
     dct:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.2.0" ;
+    owl:versionInfo "0.3.0" ;
     owl:imports <http://www.opengis.net/ont/geosparql> ,
-                <http://www.w3.org/ns/prov-o> .
+                <http://www.w3.org/ns/prov-o> ,
+                <http://www.w3.org/ns/sosa/> ,
+                <http://www.w3.org/ns/ssn/> ,
+                <http://purl.org/linked-data/cube> .
 
 ###############################################################################
 # Jerarquía territorial (alineada con geo:Feature de GeoSPARQL)              #
@@ -304,3 +310,176 @@ ah:confidence
     rdfs:label "confianza"@es ;
     rdfs:domain ah:Score ;
     rdfs:range xsd:decimal .
+
+###############################################################################
+# Movilidad: flujos origen-destino (MITMA)                                   #
+# Un MobilityFlow es una observación SOSA cuya "feature of interest" es la   #
+# par origen-destino y cuyo "observed property" es el número de viajes en   #
+# un periodo concreto. Se modela también como qb:Observation para integrarse #
+# con cubos de datos por (origen, destino, periodo, modo).                  #
+###############################################################################
+
+ah:MobilityFlow
+    a owl:Class ;
+    rdfs:label "Flujo de movilidad"@es ;
+    rdfs:comment "Volumen de desplazamientos entre dos territorios en un periodo (MITMA)."@es ;
+    rdfs:subClassOf prov:Entity , sosa:Observation , qb:Observation .
+
+ah:flowOrigin
+    a owl:ObjectProperty ;
+    rdfs:label "origen del flujo"@es ;
+    rdfs:domain ah:MobilityFlow ;
+    rdfs:range ah:Territory ;
+    rdfs:subPropertyOf sosa:hasFeatureOfInterest .
+
+ah:flowDestination
+    a owl:ObjectProperty ;
+    rdfs:label "destino del flujo"@es ;
+    rdfs:domain ah:MobilityFlow ;
+    rdfs:range ah:Territory .
+
+ah:flowTrips
+    a owl:DatatypeProperty ;
+    rdfs:label "número de viajes"@es ;
+    rdfs:comment "Cantidad de desplazamientos observados en el periodo."@es ;
+    rdfs:domain ah:MobilityFlow ;
+    rdfs:range xsd:decimal ;
+    rdfs:subPropertyOf sosa:hasSimpleResult .
+
+ah:flowMode
+    a owl:DatatypeProperty ;
+    rdfs:label "modo de transporte"@es ;
+    rdfs:comment "Modo de transporte (por ejemplo 'all', 'car', 'public_transit')."@es ;
+    rdfs:domain ah:MobilityFlow ;
+    rdfs:range xsd:string .
+
+ah:flowDistanceKm
+    a owl:DatatypeProperty ;
+    rdfs:label "distancia media (km)"@es ;
+    rdfs:domain ah:MobilityFlow ;
+    rdfs:range xsd:decimal .
+
+###############################################################################
+# Accidentes viales (DGT)                                                    #
+# Un RoadAccident es una entidad PROV con geometría puntual y atributos de  #
+# severidad. Se asocia opcionalmente al municipio que lo contiene para       #
+# facilitar agregaciones administrativas.                                    #
+###############################################################################
+
+ah:RoadAccident
+    a owl:Class ;
+    rdfs:label "Accidente vial"@es ;
+    rdfs:comment "Suceso registrado en la red viaria con localización y severidad (DGT)."@es ;
+    rdfs:subClassOf prov:Entity , geo:Feature .
+
+ah:accidentDate
+    a owl:DatatypeProperty ;
+    rdfs:label "fecha del accidente"@es ;
+    rdfs:domain ah:RoadAccident ;
+    rdfs:range xsd:date .
+
+ah:accidentYear
+    a owl:DatatypeProperty ;
+    rdfs:label "año del accidente"@es ;
+    rdfs:domain ah:RoadAccident ;
+    rdfs:range xsd:gYear .
+
+ah:accidentSeverity
+    a owl:DatatypeProperty ;
+    rdfs:label "severidad"@es ;
+    rdfs:comment "'fatal', 'serious', 'slight'."@es ;
+    rdfs:domain ah:RoadAccident ;
+    rdfs:range xsd:string .
+
+ah:accidentVictims
+    a owl:DatatypeProperty ;
+    rdfs:label "víctimas"@es ;
+    rdfs:domain ah:RoadAccident ;
+    rdfs:range xsd:integer .
+
+ah:accidentFatalities
+    a owl:DatatypeProperty ;
+    rdfs:label "fallecidos"@es ;
+    rdfs:domain ah:RoadAccident ;
+    rdfs:range xsd:integer .
+
+ah:accidentRoadType
+    a owl:DatatypeProperty ;
+    rdfs:label "tipo de vía"@es ;
+    rdfs:domain ah:RoadAccident ;
+    rdfs:range xsd:string .
+
+ah:occursIn
+    a owl:ObjectProperty ;
+    rdfs:label "ocurre en"@es ;
+    rdfs:comment "Territorio que contiene el accidente (resolución municipal por defecto)."@es ;
+    rdfs:domain ah:RoadAccident ;
+    rdfs:range ah:Territory .
+
+###############################################################################
+# Transporte público (CRTM y operadores compatibles GTFS)                    #
+# TransitStop modela una parada con geometría puntual, TransitRoute una     #
+# línea con identidad estable y modo. servesStop conecta rutas con paradas. #
+###############################################################################
+
+ah:TransitStop
+    a owl:Class ;
+    rdfs:label "Parada de transporte"@es ;
+    rdfs:comment "Parada o estación de la red de transporte público (CRTM/GTFS)."@es ;
+    rdfs:subClassOf geo:Feature .
+
+ah:TransitRoute
+    a owl:Class ;
+    rdfs:label "Ruta de transporte"@es ;
+    rdfs:comment "Línea o ruta de transporte público con identidad estable."@es .
+
+ah:stopName
+    a owl:DatatypeProperty ;
+    rdfs:label "nombre de parada"@es ;
+    rdfs:domain ah:TransitStop ;
+    rdfs:range xsd:string .
+
+ah:stopCode
+    a owl:DatatypeProperty ;
+    rdfs:label "código de parada"@es ;
+    rdfs:domain ah:TransitStop ;
+    rdfs:range xsd:string .
+
+ah:routeShortName
+    a owl:DatatypeProperty ;
+    rdfs:label "nombre corto de ruta"@es ;
+    rdfs:domain ah:TransitRoute ;
+    rdfs:range xsd:string .
+
+ah:routeLongName
+    a owl:DatatypeProperty ;
+    rdfs:label "nombre largo de ruta"@es ;
+    rdfs:domain ah:TransitRoute ;
+    rdfs:range xsd:string .
+
+ah:transitMode
+    a owl:DatatypeProperty ;
+    rdfs:label "modo de transporte"@es ;
+    rdfs:comment "'bus', 'metro', 'tram', 'rail', 'ferry'."@es ;
+    rdfs:domain ah:TransitRoute ;
+    rdfs:range xsd:string .
+
+ah:operator
+    a owl:DatatypeProperty ;
+    rdfs:label "operador"@es ;
+    rdfs:domain ah:TransitRoute ;
+    rdfs:range xsd:string .
+
+ah:locatedIn
+    a owl:ObjectProperty ;
+    rdfs:label "ubicada en"@es ;
+    rdfs:comment "Territorio administrativo que contiene la parada."@es ;
+    rdfs:domain ah:TransitStop ;
+    rdfs:range ah:Territory .
+
+ah:servesStop
+    a owl:ObjectProperty ;
+    rdfs:label "sirve a parada"@es ;
+    rdfs:comment "Conecta una ruta con una parada por la que pasa."@es ;
+    rdfs:domain ah:TransitRoute ;
+    rdfs:range ah:TransitStop .

@@ -1,9 +1,10 @@
 # Ontología AtlasHabita
 
 Carpeta con los artefactos OWL/SHACL que describen el vocabulario del
-knowledge graph. La versión semántica que vive aquí es **0.2.0 (Fase B M8)**
-y añade alineación con **GeoSPARQL** y reforzamiento de **PROV-O** y
-**SHACL** sobre la base 0.1.0 heredada.
+knowledge graph. La versión semántica que vive aquí es **0.3.0 (Fase B M11)**
+y añade clases para **flujos de movilidad MITMA**, **accidentes DGT** y
+**transporte público CRTM/GTFS** sobre la base 0.2.0 (que ya alineaba con
+GeoSPARQL y reforzaba PROV-O).
 
 ## Archivos
 
@@ -44,11 +45,40 @@ y añade alineación con **GeoSPARQL** y reforzamiento de **PROV-O** y
    - Shape `ah:GeometryShape` exige `geo:asWKT`.
    - Shape `ah:IngestionActivityShape` exige `prov:used`.
 
+## Novedades Fase B (M11)
+
+1. **Movilidad** (`ah:MobilityFlow`)
+   - Subclase de `prov:Entity`, `sosa:Observation` y `qb:Observation`.
+   - Propiedades `ah:flowOrigin`, `ah:flowDestination`, `ah:flowTrips`
+     (subproperty de `sosa:hasSimpleResult`), `ah:flowMode`,
+     `ah:flowDistanceKm`.
+   - URIs deterministas: `/resource/flow/<origin>/<destination>/<period>[/<mode>]`.
+   - Named graph: `/graph/mobility`.
+
+2. **Accidentes viales** (`ah:RoadAccident`)
+   - Subclase de `prov:Entity` y `geo:Feature` con geometría puntual
+     dedicada en `/resource/geometry/accident/<id>`.
+   - Propiedades `ah:accidentDate` (xsd:date), `ah:accidentYear`
+     (xsd:gYear), `ah:accidentSeverity` (enum SHACL), `ah:accidentVictims`,
+     `ah:accidentFatalities`, `ah:accidentRoadType`, `ah:occursIn`.
+   - Named graph: `/graph/accidents`.
+
+3. **Transporte público** (`ah:TransitStop`, `ah:TransitRoute`)
+   - Paradas alineadas con GeoSPARQL (`geo:Feature`) y rutas con modos
+     GTFS validados por SHACL (`bus`/`metro`/`tram`/`rail`/`ferry`/...).
+   - Propiedad `ah:servesStop` para conectar rutas con paradas.
+   - URIs determinadas por `agency_id + stop_id` / `agency_id + route_id`.
+   - Named graph: `/graph/transit`.
+
+4. **Vocabularios añadidos**
+   - `sosa:` y `ssn:` cargados explícitamente en `bind_all`.
+   - `qb:` reforzado: ahora se utiliza activamente en flujos de movilidad.
+
 ## Compatibilidad
 
-La versión 0.2.0 es retrocompatible con 0.1.0: todas las tripletas válidas
-en la versión anterior lo siguen siendo. Las nuevas restricciones sólo
-aplican cuando los nuevos tipos y propiedades aparecen en el grafo.
+La versión 0.3.0 mantiene retrocompatibilidad total con 0.2.0 y 0.1.0.
+Las clases y propiedades nuevas viven en sus propios named graphs y la
+validación SHACL del seed clásico no se ve afectada.
 
 ## Convenciones de URIs
 
@@ -58,18 +88,26 @@ URIs y named graphs. Resumen de recursos:
 ```
 /resource/territory/<kind>/<code>
 /resource/geometry/<kind>/<code>
+/resource/geometry/accident/<id>
+/resource/geometry/transit_stop/<operator>/<stop_id>
 /resource/indicator/<code>
 /resource/source/<id>
 /resource/observation/<indicator>/<kind>/<code>/<period>
 /resource/activity/<source_id>/<period>
 /resource/profile/<id>
 /resource/score/<version>/<profile_id>/<kind>/<code>
+/resource/flow/<origin_code>/<destination_code>/<period>[/<mode>]
+/resource/accident/<id>
+/resource/transit_stop/<operator>/<stop_id>
+/resource/transit_route/<operator>/<route_id>
 ```
 
 ## Referencias
 
 - [GeoSPARQL (OGC)](https://www.ogc.org/standards/geosparql/)
 - [PROV-O (W3C)](https://www.w3.org/TR/prov-o/)
+- [SOSA/SSN (W3C)](https://www.w3.org/TR/vocab-ssn/)
+- [RDF Data Cube (W3C)](https://www.w3.org/TR/vocab-data-cube/)
 - [SHACL (W3C)](https://www.w3.org/TR/shacl/)
 - [OWL 2 (W3C)](https://www.w3.org/TR/owl2-overview/)
 - [SPARQL 1.1 (W3C)](https://www.w3.org/TR/sparql11-query/)
