@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from collections.abc import Mapping
 from typing import Any
 
@@ -17,9 +18,17 @@ _SCOPE_SEPARATOR = ":"
 _SCOPE_ALL = "es"
 _ALLOWED_SCOPE_PREFIXES = {"autonomous_community", "province"}
 
+_CacheKey = tuple[str, str, tuple[tuple[str, float], ...], str]
+
 
 class ComputeRankingsUseCase:
-    """Calcula y cachea rankings para un perfil dado."""
+    """Calcula y cachea rankings para un perfil dado.
+
+    El cache es **LRU acotado** con ``settings.cache_max_entries`` para evitar
+    que combinaciones distintas de pesos personalizados hagan crecer la memoria
+    del proceso sin control. Al superar el umbral se expulsa la entrada menos
+    usada, de forma que las consultas más repetidas se conservan "calientes".
+    """
 
     def __init__(
         self,
@@ -32,9 +41,8 @@ class ComputeRankingsUseCase:
         self._scoring_service = scoring_service
         self._settings = settings
         self._data_version = data_version
-        self._cache: dict[
-            tuple[str, str, tuple[tuple[str, float], ...], str], tuple[TerritoryScore, ...]
-        ] = {}
+        self._cache: OrderedDict[_CacheKey, tuple[TerritoryScore, ...]] = OrderedDict()
+        self._cache_max = max(1, settings.cache_max_entries)
 
     def execute(
         self,
@@ -62,10 +70,17 @@ class ComputeRankingsUseCase:
         territories = self._resolve_scope(resolved_scope)
         bounded_limit = max(1, int(limit))
         cache_key = self._build_cache_key(profile_id, resolved_scope, weights)
-        if cache_key not in self._cache:
-            scores = self._scoring_service.compute(profile_id, scope=territories, weights=weights)
-            self._cache[cache_key] = tuple(scores)
-        scores = list(self._cache[cache_key])
+        cached = self._cache.get(cache_key)
+        if cached is None:
+            cached = tuple(
+                self._scoring_service.compute(profile_id, scope=territories, weights=weights)
+            )
+            self._cache[cache_key] = cached
+            if len(self._cache) > self._cache_max:
+                self._cache.popitem(last=False)
+        else:
+            self._cache.move_to_end(cache_key, last=True)
+        scores = list(cached)
         limited = scores[:bounded_limit]
 
         return {
