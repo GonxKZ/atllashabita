@@ -38,6 +38,22 @@ Cada flecha del diagrama corresponde a un caso de uso en `apps/api/src/atlashabi
 - Reintentos idempotentes con `httpx + tenacity`.
 - Para desarrollo offline se usa el dataset demo de `data/seed/` leído por [`apps/api/src/atlashabita/infrastructure/ingestion/seed_loader.py`](../apps/api/src/atlashabita/infrastructure/ingestion/seed_loader.py).
 
+#### Fuentes oficiales y conectores
+
+A partir de la Fase A del M8 hay cinco conectores Python reales operativos sobre ocho fuentes oficiales:
+
+| Conector | Fuente | URL pública | Indicadores derivados |
+|---|---|---|---|
+| `MivauSerpaviConnector` | MIVAU SERPAVI · alquiler | https://www.mivau.gob.es/vivienda/alquiler/serpavi | `rent_median` |
+| `IneOpenDataConnector` | INE datos abiertos · indicadores | https://www.ine.es/dyngs/INEbase | `population_total`, `age_median`, `household_size` |
+| `IneAtlasRentaConnector` | INE Atlas de renta de los hogares | https://www.ine.es/experimental/atlas/exp_atlas_tab.htm | `income_per_capita` |
+| `IneDirceConnector` | INE DIRCE · directorio de empresas | https://www.ine.es/dyngs/INEbase | `enterprise_density` |
+| `MitecoRetoDemograficoConnector` | MITECO Reto Demográfico · demografía y servicios | https://www.miteco.gob.es/es/reto-demografico | `population_total`, `age_median`, `services_score` |
+| `SetelecoConnector` | SETELECO · banda ancha | https://avancedigital.mineco.gob.es | `broadband_coverage` |
+| `AemetConnector` | AEMET OpenData · climatología | https://opendata.aemet.es | `climate_comfort` |
+
+Todos comparten un `HttpDownloader` con cache local y reintentos exponenciales. La orquestación (`DatasetBuilder`) deduplica indicadores cuando varias fuentes proporcionan la misma señal y registra una `IngestionActivity` PROV-O por tupla `(source, period)`.
+
 ### 2.2 Validación inicial
 
 - Comprueba tamaño, hash, formato y codificación.
@@ -138,17 +154,17 @@ Se separan por dominio para auditar, actualizar y consultar independientemente (
 
 ## 5. Dataset demo (`data/seed/`)
 
-Contiene lo imprescindible para que el pipeline funcione sin conexión y los tests sean deterministas:
+A partir de la Fase A del M8 el dataset cubre toda la geografía española y vive en `data/seed/` (ver [`data/seed/README.md`](../data/seed/README.md)). Sigue versionado para que el pipeline funcione sin conexión y los tests sean deterministas:
 
 | Archivo | Contenido | Filas |
 |---|---|---|
-| `territories.csv` | CCAA, provincias y municipios con centroides y población. | 15 |
-| `sources.csv` | SERPAVI, INE, MITECO, SETELECO, AEMET. | 5 |
-| `indicators.csv` | Definiciones semánticas con unidad y direccionalidad. | 5 |
-| `observations.csv` | Valores por `(indicador, territorio, periodo)`. | 50 |
-| `profiles.csv` | Perfiles de decisión con pesos. | 3 |
+| `territories.csv` | 19 CCAA (17 + Ceuta y Melilla) + 52 provincias + 101 municipios con centroides y población. | 172 |
+| `sources.csv` | 8 fuentes oficiales con URLs reales (MIVAU SERPAVI, INE datos abiertos, INE Atlas de Renta, INE DIRCE, MITECO Reto Demográfico demografía y servicios, SETELECO, AEMET). | 8 |
+| `indicators.csv` | 9 indicadores semánticos: `rent_median`, `broadband_coverage`, `income_per_capita`, `services_score`, `climate_comfort`, `population_total`, `age_median`, `household_size`, `enterprise_density`. | 9 |
+| `observations.csv` | Observaciones municipio × indicador (101 × 9). | 909 |
+| `profiles.csv` | Perfiles de decisión: `remote_work`, `family`, `student`, `retire`. | 4 |
 
-El lector está en [`seed_loader.py`](../apps/api/src/atlashabita/infrastructure/ingestion/seed_loader.py).
+Los conectores reales viven en `apps/api/src/atlashabita/infrastructure/ingestion/` y se orquestan con `DatasetBuilder`. Para repetir la descarga real basta con `ATLASHABITA_INGESTION_ONLINE=1 python scripts/data_pipeline.py ingest`. El lector offline está en [`seed_loader.py`](../apps/api/src/atlashabita/infrastructure/ingestion/seed_loader.py) y cachea el dataset con `lru_cache` por configuración.
 
 ---
 
