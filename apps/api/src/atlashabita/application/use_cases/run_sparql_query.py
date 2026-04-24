@@ -54,6 +54,18 @@ class SparqlRunnerProtocol(Protocol):
 
     def count_triples_by_class(self) -> dict[str, int]: ...
 
+    def mobility_flow_between(
+        self, origin_code: str, destination_code: str, period: str
+    ) -> list[dict[str, Any]]: ...
+
+    def accidents_in_radius(
+        self, lat: float, lon: float, km: float, year: int | None = ...
+    ) -> list[dict[str, Any]]: ...
+
+    def transit_stops_in_municipality(self, municipality_code: str) -> list[dict[str, Any]]: ...
+
+    def risk_index(self, municipality_code: str) -> dict[str, Any]: ...
+
 
 @dataclass(frozen=True, slots=True)
 class QuerySignature:
@@ -117,6 +129,39 @@ _SIGNATURES: Final[Mapping[str, QuerySignature]] = {
         ),
         required=("indicator_code",),
     ),
+    "mobility_flow_between": QuerySignature(
+        query_id="mobility_flow_between",
+        description=(
+            "Flujos de movilidad MITMA entre un origen y un destino para un periodo."
+            " Bindings: origin_code, destination_code, period (todos obligatorios)."
+        ),
+        required=("origin_code", "destination_code", "period"),
+    ),
+    "accidents_in_radius": QuerySignature(
+        query_id="accidents_in_radius",
+        description=(
+            "Accidentes DGT cuya geometría puntual cae dentro de ``km`` km del centro."
+            " Bindings: lat, lon, km (obligatorios), year (opcional)."
+        ),
+        required=("lat", "lon", "km"),
+        optional=("year",),
+    ),
+    "transit_stops_in_municipality": QuerySignature(
+        query_id="transit_stops_in_municipality",
+        description=(
+            "Paradas de transporte público (CRTM/GTFS) ubicadas en un municipio."
+            " Bindings: municipality_code (obligatorio)."
+        ),
+        required=("municipality_code",),
+    ),
+    "risk_index": QuerySignature(
+        query_id="risk_index",
+        description=(
+            "Indice compuesto de riesgo movilidad-accidentes para un municipio."
+            " Bindings: municipality_code (obligatorio)."
+        ),
+        required=("municipality_code",),
+    ),
 }
 
 
@@ -170,6 +215,53 @@ def _optional_int(bindings: Mapping[str, Any], name: str, default: int) -> int:
     return raw
 
 
+def _require_number(bindings: Mapping[str, Any], name: str) -> float:
+    """Extrae un número (``int``/``float``) obligatorio para consultas geoespaciales.
+
+    SPARQL geoespacial necesita coordenadas y radios numéricos: este helper
+    centraliza la coerción y emite ``DomainError`` con código estable cuando
+    el cliente envía un tipo inválido (cadenas, booleanos, ``None``).
+    """
+    raw = bindings.get(name)
+    if raw is None:
+        raise DomainError(
+            code=_ERROR_INVALID_BINDINGS,
+            message=f"El binding {name!r} es obligatorio y debe ser numérico.",
+            status_code=400,
+            details={"binding": name},
+        )
+    if isinstance(raw, bool) or not isinstance(raw, int | float):
+        raise DomainError(
+            code=_ERROR_INVALID_BINDINGS,
+            message=f"El binding {name!r} debe ser numérico.",
+            status_code=400,
+            details={"binding": name},
+        )
+    return float(raw)
+
+
+def _optional_year(bindings: Mapping[str, Any], name: str) -> int | None:
+    """Devuelve un año entero válido (1900-2100) o ``None`` si no se pasa."""
+    raw = bindings.get(name)
+    if raw is None:
+        return None
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        raise DomainError(
+            code=_ERROR_INVALID_BINDINGS,
+            message=f"El binding {name!r} debe ser un año entero (1900-2100).",
+            status_code=400,
+            details={"binding": name},
+        )
+    if not 1900 <= raw <= 2100:
+        raise DomainError(
+            code=_ERROR_INVALID_BINDINGS,
+            message=f"El binding {name!r} fuera de rango (1900-2100).",
+            status_code=400,
+            details={"binding": name},
+        )
+    return raw
+
+
 @dataclass(frozen=True, slots=True)
 class SparqlQueryResult:
     """Resultado serializable del caso de uso."""
@@ -196,6 +288,10 @@ class RunSparqlQueryUseCase:
             "sources_used_by_territory": self._sources_used_by_territory,
             "count_triples_by_class": self._count_triples_by_class,
             "indicator_definition": self._indicator_definition,
+            "mobility_flow_between": self._mobility_flow_between,
+            "accidents_in_radius": self._accidents_in_radius,
+            "transit_stops_in_municipality": self._transit_stops_in_municipality,
+            "risk_index": self._risk_index,
         }
 
     @staticmethod
@@ -264,6 +360,35 @@ class RunSparqlQueryUseCase:
         code = _require_str(bindings, "indicator_code")
         definition = self._runner.indicator_definition(code)
         return [definition] if definition else []
+
+    def _mobility_flow_between(self, bindings: Mapping[str, Any]) -> list[dict[str, Any]]:
+        origin_code = _require_str(bindings, "origin_code")
+        destination_code = _require_str(bindings, "destination_code")
+        period = _require_str(bindings, "period")
+        rows = self._runner.mobility_flow_between(origin_code, destination_code, period)
+        return rows[: self._settings.sparql_max_results]
+
+    def _accidents_in_radius(self, bindings: Mapping[str, Any]) -> list[dict[str, Any]]:
+        lat = _require_number(bindings, "lat")
+        lon = _require_number(bindings, "lon")
+        km = _require_number(bindings, "km")
+        year = _optional_year(bindings, "year")
+        rows = self._runner.accidents_in_radius(lat, lon, km, year=year)
+        return rows[: self._settings.sparql_max_results]
+
+    def _transit_stops_in_municipality(self, bindings: Mapping[str, Any]) -> list[dict[str, Any]]:
+        code = _require_str(bindings, "municipality_code")
+        rows = self._runner.transit_stops_in_municipality(code)
+        return rows[: self._settings.sparql_max_results]
+
+    def _risk_index(self, bindings: Mapping[str, Any]) -> list[dict[str, Any]]:
+        code = _require_str(bindings, "municipality_code")
+        # ``risk_index`` devuelve un único dict; el contrato del catálogo es
+        # ``list[dict]`` por homogeneidad, así que envolvemos. Si la consulta
+        # no encuentra municipio, devolvemos lista vacía para que la API HTTP
+        # responda 200 con cuerpo vacío en lugar de error.
+        result = self._runner.risk_index(code)
+        return [result] if result else []
 
 
 __all__ = [

@@ -45,6 +45,10 @@ def test_sparql_catalog_lista_las_consultas(api_client: TestClient) -> None:
         "sources_used_by_territory",
         "count_triples_by_class",
         "indicator_definition",
+        "mobility_flow_between",
+        "accidents_in_radius",
+        "transit_stops_in_municipality",
+        "risk_index",
     } == ids
     for entry in body["queries"]:
         assert isinstance(entry["description"], str)

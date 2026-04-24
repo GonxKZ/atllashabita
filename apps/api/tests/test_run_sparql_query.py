@@ -33,6 +33,10 @@ class FakeRunner:
     sources_result: list[dict[str, Any]] = field(default_factory=list)
     counts_result: dict[str, int] = field(default_factory=dict)
     definition_result: dict[str, Any] = field(default_factory=dict)
+    mobility_result: list[dict[str, Any]] = field(default_factory=list)
+    accidents_result: list[dict[str, Any]] = field(default_factory=list)
+    transit_stops_result: list[dict[str, Any]] = field(default_factory=list)
+    risk_index_result: dict[str, Any] = field(default_factory=dict)
 
     def top_scores_by_profile(
         self, profile_id: str, scope: str = "municipality", limit: int = 10
@@ -55,6 +59,22 @@ class FakeRunner:
     def count_triples_by_class(self) -> dict[str, int]:
         return dict(self.counts_result)
 
+    def mobility_flow_between(
+        self, origin_code: str, destination_code: str, period: str
+    ) -> list[dict[str, Any]]:
+        return list(self.mobility_result)
+
+    def accidents_in_radius(
+        self, lat: float, lon: float, km: float, year: int | None = None
+    ) -> list[dict[str, Any]]:
+        return list(self.accidents_result)
+
+    def transit_stops_in_municipality(self, municipality_code: str) -> list[dict[str, Any]]:
+        return list(self.transit_stops_result)
+
+    def risk_index(self, municipality_code: str) -> dict[str, Any]:
+        return dict(self.risk_index_result)
+
 
 @pytest.fixture()
 def settings() -> Settings:
@@ -71,6 +91,10 @@ def test_catalog_expone_todas_las_consultas() -> None:
         "sources_used_by_territory",
         "count_triples_by_class",
         "indicator_definition",
+        "mobility_flow_between",
+        "accidents_in_radius",
+        "transit_stops_in_municipality",
+        "risk_index",
     }
     for signature in signatures:
         assert signature.description.strip() != ""
