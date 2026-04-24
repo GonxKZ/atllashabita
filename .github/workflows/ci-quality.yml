@@ -1,0 +1,63 @@
+name: ci-quality
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  conventional-commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validar mensajes de commit
+        run: |
+          set -euo pipefail
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+          commits=$(git log --format="%s" "${base_sha}..${head_sha}")
+          if [ -z "${commits}" ]; then
+            echo "Sin commits nuevos"; exit 0
+          fi
+          invalid=0
+          pattern='^(feat|fix|refactor|perf|test|docs|chore|ci|build|style|revert)(\([a-z0-9-]+\))?!?: .+'
+          while IFS= read -r msg; do
+            if ! [[ "${msg}" =~ ${pattern} ]]; then
+              echo "::error title=Commit inválido::${msg}"
+              invalid=1
+            fi
+          done <<<"${commits}"
+          exit ${invalid}
+
+  no-claude-attribution:
+    name: Sin atribución a asistentes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verificar ausencia de Co-Authored-By y firmas de IA
+        run: |
+          set -euo pipefail
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+          bad=$(git log "${base_sha}..${head_sha}" --format='%B' | grep -iE 'co-authored-by|claude|anthropic|generated with|🤖' || true)
+          if [ -n "${bad}" ]; then
+            echo "::error::Commits contienen atribución prohibida"
+            echo "${bad}"
+            exit 1
+          fi
