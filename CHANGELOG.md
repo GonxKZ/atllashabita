@@ -5,6 +5,46 @@ Todas las versiones notables del producto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto adopta
 [Versionado Semántico](https://semver.org/lang/es/).
 
+## [Unreleased] · candidato v0.3.0 · 2026-04-24
+
+Hito **M9 · Pulido pixel-perfect**. Cuatro pistas paralelas (A/B/C/D) coordinadas en
+worktrees aislados sobre `develop`, cerrando el TFG.
+
+### Añadido
+
+- ADR `docs/adr/0004-pulido-pixel-perfect.md` que formaliza el pase pixel-perfect, el
+  sistema de motion con GSAP y la estrategia de fallback `prefers-reduced-motion`.
+- Auditoría completa `docs/reviews/v0.3.0-audit.md` con estado de issues, PRs,
+  identidad git, workflows en verde, métricas de calidad y plan post-defensa.
+- Sección "Capturas" en el README con referencias a `docs/screenshots/` (PNGs
+  pixel-perfect generados por Playwright en la pista D).
+- Sección "Capacidades v0.2.0" tabular en el README con la matriz exhaustiva de lo
+  ejecutable sobre `develop`.
+
+### Cambiado
+
+- `README.md` reescrito íntegramente con descripción ejecutiva, badges, requisitos,
+  pipeline, modelo RDF, API, UI, testing y roadmap actualizados al estado real
+  (101 municipios, 909 observaciones, 9 indicadores, 4 perfiles, 8 fuentes
+  oficiales, 14 endpoints, 372/372 backend tests, 127/127 frontend tests).
+- `docs/architecture.md`: nueva sección "Estado real v0.2.0 / v0.3.0", referencia a
+  ADR-0004, decisiones DA-005 (GeoSPARQL/PROV-O) y DA-006 (`/sparql` whitelist +
+  Fuseki).
+- `docs/data-pipeline.md`: dataset seed con 172 territorios, 909 observaciones y 4
+  perfiles; tabla con los cinco conectores reales y las ocho fuentes oficiales.
+- `docs/api.md`: catálogo de endpoints con todos los estados marcados como
+  `completado`; versión expuesta en `/health` actualizada a 0.2.0.
+- `docs/testing.md`: estado real de la pirámide (372/127), suites Playwright
+  ampliadas a `ranking`, `territory`, `sparql`.
+- `docs/roadmap.md`: M3..M8 cerradas, M9 con cuatro pistas (A/B/C/D) y referencias
+  a la auditoría v0.3.0.
+- `docs/github-workflow.md`: lista de workflows ampliada a 10 (`ci-codeql`,
+  `ci-trivy`); regla explícita de "único autor" en commits y PRs.
+- `apps/api/README.md` y `apps/web/README.md`: notas resincronizadas con la
+  release v0.2.0.
+- `CONTRIBUTING.md`: párrafo recordando la regla de un único autor en commits
+  y PRs.
+
 ## [0.2.0] - 2026-04-24
 
 ### Añadido

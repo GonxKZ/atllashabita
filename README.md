@@ -1,158 +1,185 @@
 # AtlasHabita
 
-> **Plataforma SIG-semántica de recomendación territorial explicable para España**, construida sobre un Knowledge Graph RDF y un motor de scoring transparente.
+> Plataforma SIG-semantica de recomendacion territorial explicable para Espana. Ingesta datos abiertos oficiales, construye un Knowledge Graph RDF (GeoSPARQL + PROV-O), ejecuta scoring explicable por perfil y expone una experiencia pixel-perfect con mapa, ranking, ficha, SPARQL playground y exportacion RDF.
 
-[![Licencia](https://img.shields.io/badge/licencia-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-v0.3.0-blue.svg)](docs/reviews/v0.3.0-audit.md)
+[![Licencia](https://img.shields.io/badge/licencia-MIT-green.svg)](apps/api/pyproject.toml)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
-[![Node](https://img.shields.io/badge/node-20%2B-green.svg)](https://nodejs.org/)
-[![Estado](https://img.shields.io/badge/estado-MVP%20en%20construcción-orange.svg)]()
+[![Node](https://img.shields.io/badge/node-20%20LTS-green.svg)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-9-orange.svg)](https://pnpm.io/)
+[![Backend tests](https://img.shields.io/badge/backend%20tests-372%2F372-brightgreen.svg)](docs/testing.md)
+[![Frontend tests](https://img.shields.io/badge/frontend%20tests-127%2F127-brightgreen.svg)](docs/testing.md)
+[![Stack](https://img.shields.io/badge/stack-FastAPI%20%7C%20RDFLib%20%7C%20React%2019%20%7C%20Tailwind%20v4-purple.svg)](docs/adr/0003-stack-tecnologico.md)
 
-AtlasHabita convierte datos abiertos heterogéneos del territorio español en decisiones comprensibles mediante un **mapa interactivo**, un **ranking personalizable por perfil** y una **explicación trazable** de cada recomendación. El sistema integra ingesta ETL/ELT, normalización tabular y geoespacial, construcción de un grafo RDF con RDFLib, validación SHACL con pySHACL, scoring explicable y una interfaz React con MapLibre GL.
+AtlasHabita responde a la pregunta "Donde me conviene vivir, estudiar, teletrabajar o emprender en Espana segun lo que valoro?". La plataforma traduce datos abiertos heterogeneos de ocho fuentes oficiales en recomendaciones trazables: cada score se descompone en contribuciones por indicador, cada indicador exhibe su procedencia PROV-O y el grafo RDF es consultable tanto por SPARQL whitelist como por exportacion Turtle/TriG/JSON-LD/NT.
 
 ---
 
 ## Tabla de contenidos
 
-1. [Producto y capturas de referencia](#producto-y-capturas-de-referencia)
-2. [Arquitectura](#arquitectura)
-3. [Stack tecnológico](#stack-tecnológico)
-4. [Requisitos previos](#requisitos-previos)
-5. [Instalación](#instalación)
-6. [Ejecución local](#ejecución-local)
-7. [Pipeline de datos](#pipeline-de-datos)
-8. [Modelo RDF](#modelo-rdf)
-9. [API REST](#api-rest)
+1. [Capacidades v0.2.0](#capacidades-v020)
+2. [Capturas](#capturas)
+3. [Stack y arquitectura screaming](#stack-y-arquitectura-screaming)
+4. [Requisitos](#requisitos)
+5. [Instalacion y ejecucion](#instalacion-y-ejecucion)
+6. [Pipeline de datos](#pipeline-de-datos)
+7. [Modelo RDF](#modelo-rdf)
+8. [API](#api)
+9. [UI y accesibilidad](#ui-y-accesibilidad)
 10. [Testing](#testing)
-11. [Roadmap por fases e issues](#roadmap-por-fases-e-issues)
-12. [Flujo GitHub](#flujo-github)
-13. [Documentación complementaria](#documentación-complementaria)
-14. [Créditos y licencia](#créditos-y-licencia)
+11. [Roadmap](#roadmap)
+12. [Licencia](#licencia)
 
 ---
 
-## Producto y capturas de referencia
+## Capacidades v0.2.0
 
-AtlasHabita resuelve la pregunta **«¿dónde me conviene vivir, estudiar, teletrabajar o emprender en España según lo que valoro?»**. La interfaz reproduce la captura de referencia incluida en `docs/16_FRONTEND_UX_UI_Y_FLUJOS.md` y se compone de:
+Matriz de lo que ya es ejecutable sobre `develop`:
 
-| Zona | Contenido |
-|---|---|
-| Barra lateral (sidebar) | Navegación principal (mapa, ranking, ficha, comparador, inspector de fuentes, modo técnico). |
-| Barra superior (topbar) | Selector de perfil activo y botón **«Nuevo análisis»** para reiniciar la sesión. |
-| Mapa coroplético | Territorios coloreados por score o capa temática activa (MapLibre GL + GeoJSON). |
-| Ranking lateral | Lista ordenada con score, nombre, provincia y factores destacados. |
-| Panel de tendencias | Tarjetas con indicadores, comparativas históricas y alertas de calidad. |
-| Inspector de fuentes | Procedencia, periodo, licencia y fecha de ingesta por indicador. |
+| Area | Capacidad | Estado |
+|---|---|---|
+| **Datos** | 101 municipios reales (17 capitales de CCAA + 52 capitales de provincia + 32 municipios destacados) distribuidos en todas las CCAA incluyendo Ceuta y Melilla. | completo |
+| **Datos** | 8 fuentes oficiales (MIVAU/SERPAVI, INE datos abiertos, INE Atlas de Renta, INE DIRCE, MITECO Reto Demografico demografia y servicios, SETELECO, AEMET). | completo |
+| **Datos** | 9 indicadores (`rent_median`, `broadband_coverage`, `income_per_capita`, `services_score`, `climate_comfort`, `population_total`, `age_median`, `household_size`, `enterprise_density`). | completo |
+| **Datos** | 909 observaciones municipio x indicador con calidad etiquetada. | completo |
+| **Datos** | 4 perfiles de decision (`remote_work`, `family`, `student`, `retire`) con pesos por defecto. | completo |
+| **RDF** | Ontologia propia con alineacion **GeoSPARQL** (`geo:Feature`, `geo:hasGeometry`, `geo:asWKT` con CRS84) y **PROV-O** (`ah:IngestionActivity`, `prov:wasGeneratedBy`, `prov:used`). | completo |
+| **RDF** | Shapes SHACL obligatorias para `Territory`, `Municipality`, `IndicatorObservation`, `Score`, `IngestionActivity`, `Geometry`. | completo |
+| **RDF** | 8 named graphs por dominio (territorios, geometria, indicadores, observaciones, fuentes, procedencia, perfiles, ontologia). | completo |
+| **RDF** | Endpoint `POST /sparql` con catalogo whitelist, adaptador Fuseki opcional y stack Docker Compose. | completo |
+| **RDF** | Endpoint `GET /rdf/export` (Turtle / TriG / JSON-LD / NT) con streaming y tope defensivo de 16 MB. | completo |
+| **Scoring** | Motor explicable (suma ponderada normalizada) con `scoringVersion`, `confidence` y contribuciones por factor. | completo |
+| **Scoring** | Filtros duros (alquiler maximo, conectividad minima) en `POST /rankings/custom`. | completo |
+| **Mapa** | MapLibre GL con capa coropletica y 6 capas activables (score, renta, alquiler, banda ancha, servicios, clima). | completo |
+| **UI** | Ranking paginado (20/pagina) con badge de confianza y sincronizacion con mapa. | completo |
+| **UI** | Ficha territorial con jerarquia, tabla de indicadores, chips PROV-O y modal "Ver RDF" paginado. | completo |
+| **UI** | SPARQL playground con catalogo local, bindings tipados y fallback offline. | completo |
+| **UI** | Motion con GSAP, accesibilidad AA (roles ARIA, focus ring, contraste). | completo |
+| **Testing** | Backend: 372/372 tests verdes con cobertura >= 90% en paquetes criticos. | completo |
+| **Testing** | Frontend: 127/127 tests Vitest + 3 suites Playwright. | completo |
+| **CI** | 10 workflows en verde (`ci-backend`, `ci-frontend`, `ci-build`, `ci-quality`, `ci-security`, `ci-rdf`, `ci-e2e`, `ci-docs`, `ci-codeql`, `ci-trivy`). | completo |
 
-Los flujos principales y los textos de explicación están descritos en [`docs/16_FRONTEND_UX_UI_Y_FLUJOS.md`](docs/16_FRONTEND_UX_UI_Y_FLUJOS.md). Las capturas esperadas para pruebas E2E se documentan en [`apps/web/tests/e2e/fixtures/screenshots.md`](apps/web/tests/e2e/fixtures/screenshots.md).
-
-### Pantallas v0.2.0 (Fase D)
-
-La versión **v0.2.0** amplía la cobertura de producto con datos nacionales mock (>=100 municipios) y tres nuevas rutas:
-
-| Ruta | Descripción |
-|---|---|
-| `/ranking` | Panel nacional con filtros duros (precio máximo, conectividad mínima), paginación 20 por página y badge de confianza por municipio. |
-| `/territorio/:id` | Ficha territorial completa con cabecera, tabla de indicadores, chips PROV-O de procedencia y modal "Ver RDF" con Turtle paginado. |
-| `/sparql` | Panel técnico con catálogo de consultas y ejecutor de bindings tipados. Cae en modo *fallback* local si `/sparql` aún no está disponible. |
-
-El panel SPARQL se carga con `React.lazy`; el chunk resultante se emite como artefacto separado (`SparqlPlayground-*.js`) para mantener un bundle inicial bajo el presupuesto definido en `docs/roadmap.md`.
-
-Detalles y rationale en [`docs/reviews/v0.2.0-release-notes.md`](docs/reviews/v0.2.0-release-notes.md).
-
----
-
-## Arquitectura
-
-El repositorio adopta una **arquitectura screaming por dominios** ([ADR 0002](docs/adr/0002-arquitectura-screaming.md)): el árbol de carpetas expresa el lenguaje del problema (territorios, indicadores, grafo, scoring, fuentes) antes que los frameworks técnicos.
-
-```text
-atlashabita/
-├── apps/
-│   ├── api/                 # Backend Python (FastAPI, RDFLib, pySHACL)
-│   │   └── src/atlashabita/
-│   │       ├── domain/          # Entidades puras y reglas de negocio
-│   │       ├── application/     # Casos de uso
-│   │       ├── infrastructure/  # Adaptadores (RDF, filesystem, HTTP)
-│   │       ├── interfaces/api/  # Routers FastAPI
-│   │       ├── config/          # Configuración tipada
-│   │       └── observability/   # Logging estructurado y errores
-│   └── web/                 # Frontend React 19 + Tailwind v4
-│       └── src/
-│           ├── features/        # Dashboard, mapa, ranking, ficha
-│           ├── components/      # Primitivas UI
-│           ├── services/        # Cliente API tipado
-│           ├── state/           # Stores Zustand
-│           └── styles/          # Tokens Tailwind v4
-├── data/                    # raw/ · normalized/ · analytics/ · rdf/ · seed/
-├── ontology/                # atlashabita.ttl, shapes.ttl
-├── docs/                    # PRD, SRS, arquitectura, ADR, guías
-├── scripts/                 # Utilidades reproducibles
-└── .github/                 # CI, templates, CODEOWNERS
-```
-
-Detalles completos en [`docs/architecture.md`](docs/architecture.md) y en el documento extendido [`docs/10_ARQUITECTURA_DE_SOFTWARE.md`](docs/10_ARQUITECTURA_DE_SOFTWARE.md).
+El detalle de la release M8 vive en [`docs/reviews/v0.2.0-release-notes.md`](docs/reviews/v0.2.0-release-notes.md); la auditoria final M9 en [`docs/reviews/v0.3.0-audit.md`](docs/reviews/v0.3.0-audit.md).
 
 ---
 
-## Stack tecnológico
+## Capturas
 
-Decisión consolidada en [ADR 0003](docs/adr/0003-stack-tecnologico.md):
+Las capturas se generan con Playwright en el workflow `ci-e2e` y se almacenan en `docs/screenshots/`. El reemplazo pixel-perfect frente a la referencia de `docs/16_FRONTEND_UX_UI_Y_FLUJOS.md` se documenta en [ADR 0004](docs/adr/0004-pulido-pixel-perfect.md).
 
-### Backend
+### Dashboard principal
 
-| Aspecto | Elección |
+![Dashboard de AtlasHabita con hero, mapa y resumen de perfil activo](docs/screenshots/dashboard.png)
+
+### Ranking nacional paginado
+
+![Ranking paginado con filtros duros y badge de confianza](docs/screenshots/ranking.png)
+
+### Ficha territorial con PROV-O
+
+![Ficha territorial con tabla de indicadores, chips PROV-O y boton Ver RDF](docs/screenshots/territory.png)
+
+### SPARQL playground
+
+![Panel SPARQL con catalogo de consultas, bindings tipados y fallback local](docs/screenshots/sparql.png)
+
+---
+
+## Stack y arquitectura screaming
+
+Decisiones consolidadas en [ADR 0002](docs/adr/0002-arquitectura-screaming.md) (arquitectura screaming) y [ADR 0003](docs/adr/0003-stack-tecnologico.md) (stack tecnologico).
+
+### Backend (`apps/api/`)
+
+| Aspecto | Eleccion |
 |---|---|
 | Lenguaje | Python 3.12 |
-| Framework web | FastAPI ≥ 0.115 |
-| RDF / SPARQL | RDFLib 7 |
-| Validación semántica | pySHACL |
+| Framework | FastAPI >= 0.115 |
+| RDF | RDFLib 7 |
+| SHACL | pySHACL |
 | Datos tabulares | Pandas + Pydantic v2 |
 | HTTP cliente | httpx + tenacity |
-| Logs | structlog |
-| Tests | pytest + pytest-cov |
-| Lint / formato | ruff |
-| Tipado estricto | mypy |
+| Observabilidad | structlog + request-id |
+| Tests | pytest + pytest-asyncio + pytest-cov |
+| Lint / format | ruff |
+| Tipado estricto | mypy strict |
+| Seguridad | bandit, pip-audit |
 
-### Frontend
+### Frontend (`apps/web/`)
 
-| Aspecto | Elección |
+| Aspecto | Eleccion |
 |---|---|
 | Bundler | Vite 6 |
 | Lenguaje | TypeScript strict |
 | UI | React 19 + Tailwind CSS v4 |
 | Mapas | MapLibre GL JS + react-map-gl |
-| Gráficos | Recharts |
+| Graficos | Recharts |
+| Motion | GSAP (timeline + scroll trigger) |
+| Iconos | lucide-react |
 | Estado servidor | TanStack Query 5 |
 | Estado UI | Zustand 5 |
 | Enrutado | React Router v7 |
-| Tests unitarios | Vitest + Testing Library |
-| Tests E2E | Playwright |
+| Tests unitarios | Vitest + Testing Library + jsdom |
+| Tests E2E | Playwright (Chromium) |
 
-### Infraestructura
+### Arbol del repositorio
 
-- Makefile con objetivos reproducibles (`bootstrap`, `dev`, `lint`, `test`, `build`, `e2e`).
-- Docker Compose opcional para aislar el entorno.
-- GitHub Actions: `ci-quality`, `ci-backend`, `ci-frontend`, `ci-build`, `ci-security`, `ci-rdf`, `ci-e2e`, `ci-docs`.
+```text
+atlashabita/
+|-- apps/
+|   |-- api/                            # Backend Python
+|   |   `-- src/atlashabita/
+|   |       |-- domain/                 # Entidades y politicas puras
+|   |       |-- application/            # Casos de uso
+|   |       |-- infrastructure/         # Adaptadores RDF, ingesta, HTTP, cache
+|   |       |-- interfaces/api/         # Routers FastAPI
+|   |       |-- config/                 # Settings tipadas
+|   |       `-- observability/          # Logging y errores
+|   `-- web/                            # Frontend React 19 + Tailwind v4
+|       `-- src/
+|           |-- features/               # dashboard, map, ranking, territory, sparql, provenance
+|           |-- components/             # primitivas UI (Button, Card, Badge, Pagination, CodeBlock, ...)
+|           |-- services/               # clientes API tipados
+|           |-- state/                  # Zustand stores
+|           |-- hooks/                  # hooks transversales
+|           `-- styles/                 # tokens Tailwind v4
+|-- data/
+|   |-- raw/                            # descargas originales (SHA-256)
+|   |-- normalized/                     # parquet/gpkg limpios
+|   |-- analytics/                      # indicadores agregados
+|   |-- rdf/                            # grafo serializado por named graph
+|   |-- reports/                        # reportes de calidad y SHACL
+|   `-- seed/                           # dataset demo versionado (cobertura nacional)
+|-- ontology/
+|   |-- atlashabita.ttl                 # ontologia OWL 2 + alineacion GeoSPARQL / PROV-O
+|   `-- shapes.ttl                      # shapes SHACL
+|-- docker/                             # Dockerfiles y stack Fuseki
+|-- docs/                               # documentacion tecnica y academica
+|-- scripts/                            # utilidades reproducibles
+`-- .github/                            # workflows CI, templates, CODEOWNERS
+```
+
+Detalle completo en [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
-## Requisitos previos
+## Requisitos
 
-| Herramienta | Versión mínima | Uso |
+| Herramienta | Version minima | Uso |
 |---|---|---|
 | Python | 3.12 | Backend, ingesta, RDF. |
 | Node.js | 20.11 LTS | Frontend Vite + Playwright. |
 | pnpm | 9.15 | Gestor de paquetes del frontend. |
-| GNU Make | 4.x | Orquestación de tareas (opcional pero recomendado). |
-| Docker + Compose | 24.x | Entorno aislado (opcional). |
+| GNU Make | 4.x | Orquestacion de tareas. |
+| Docker + Compose | 24.x | Entorno aislado opcional (incluye profile Fuseki). |
 
-En Windows se recomienda **Git Bash** o **WSL2** para ejecutar el `Makefile` y los scripts.
+En Windows se recomienda **Git Bash** o **WSL2** para ejecutar `Makefile` y scripts.
 
 ---
 
-## Instalación
+## Instalacion y ejecucion
 
-Clona el repositorio y arranca `develop`:
+Clona el repositorio y coloca la rama de integracion:
 
 ```bash
 git clone https://github.com/GonxKZ/atllashabita.git
@@ -160,207 +187,241 @@ cd atllashabita
 git switch develop
 ```
 
-### Opción A · Instalación guiada con Make
+### Instalacion guiada
 
 ```bash
-make bootstrap       # Backend (.venv + apps/api[dev]) y frontend (pnpm install)
+make bootstrap       # Backend (venv + apps/api[dev]) y frontend (pnpm install)
 ```
 
-### Opción B · Instalación manual
+### Arranque en desarrollo
 
 ```bash
-# Backend
-python -m venv .venv
-source .venv/bin/activate          # En Windows: .venv\Scripts\activate
-pip install --upgrade pip
-pip install -e "apps/api[dev]"
-
-# Frontend
-cd apps/web
-pnpm install --frozen-lockfile
-pnpm exec playwright install chromium
-cd ../..
+make dev             # Backend en :8000 y frontend en :5173
 ```
 
-### Opción C · Docker Compose
+La UI estara en `http://localhost:5173` proxyeando `/api/*` al backend en `http://127.0.0.1:8000`. El endpoint de salud es [`GET /health`](http://127.0.0.1:8000/health) y la documentacion OpenAPI en [`/docs`](http://127.0.0.1:8000/docs).
+
+### Tests
 
 ```bash
-cp .env.example .env
-docker compose up --build
+make test            # pytest backend + vitest frontend
 ```
 
----
-
-## Ejecución local
-
-### Arranque conjunto
+### Pipeline RDF
 
 ```bash
-make dev            # Backend en :8000 y frontend en :5173
+make rdf             # Reconstruye el grafo desde data/seed/ y valida SHACL
 ```
 
-### Arranque independiente
+### Fuseki (opcional)
 
 ```bash
-make dev-api        # uvicorn atlashabita.interfaces.api:create_app --factory --reload
-make dev-web        # pnpm -C apps/web dev
+make fuseki-up       # docker compose --profile fuseki up -d fuseki
+make fuseki-load     # carga data/rdf/*.ttl en el dataset
+make fuseki-down     # detiene y conserva el volumen
 ```
 
-La UI estará disponible en `http://localhost:5173` y proxyea `/api/*` al backend en `http://127.0.0.1:8000`. El endpoint de salud es [`GET /health`](http://127.0.0.1:8000/health) y la documentación OpenAPI en [`/docs`](http://127.0.0.1:8000/docs).
-
-### Variables de entorno relevantes
-
-| Variable | Descripción | Valor por defecto |
-|---|---|---|
-| `ATLASHABITA_ENV` | Entorno lógico (`local`, `dev`, `prod`). | `local` |
-| `ATLASHABITA_CORS_ALLOW_ORIGINS` | Orígenes permitidos separados por coma. | `http://localhost:5173` |
-| `VITE_API_BASE_URL` | Base URL que el frontend usa para hablar con la API. | `http://127.0.0.1:8000` |
-| `E2E_BACKEND` | Si `1`, los tests E2E asumen backend disponible. | `0` |
-
-Consulta [`.env.example`](.env.example) para la lista completa.
+Consulta [`.env.example`](.env.example) para la lista completa de variables (`ATLASHABITA_SPARQL_BACKEND`, `ATLASHABITA_FUSEKI_BASE_URL`, `VITE_API_BASE_URL`, etc.).
 
 ---
 
 ## Pipeline de datos
 
-El pipeline sigue un flujo `ingest → validate → normalize → build RDF → SHACL → serialize → consultar`, descrito en detalle en [`docs/data-pipeline.md`](docs/data-pipeline.md) y en el documento académico [`docs/12_INGESTA_ETL_ELT_Y_CALIDAD_DE_DATOS.md`](docs/12_INGESTA_ETL_ELT_Y_CALIDAD_DE_DATOS.md).
+El pipeline se resume en `ingest -> validate -> normalize -> aggregate -> build RDF -> SHACL -> serialize -> consultar`, descrito al detalle en [`docs/data-pipeline.md`](docs/data-pipeline.md).
 
 ```mermaid
 flowchart LR
-    A[Descubrimiento de fuente] --> B[Descarga o lectura]
-    B --> C[data/raw/]
-    C --> D[Validación inicial]
-    D --> E[data/normalized/]
-    E --> F[Agregación territorial]
-    F --> G[data/analytics/]
-    G --> H[Construcción RDF]
-    H --> I[Validación SHACL]
-    I --> J[data/rdf/*.ttl]
-    J --> K[API /rankings · /territories · /sources]
+    A[8 fuentes oficiales] --> B[Conectores httpx + tenacity]
+    B --> C[data/raw/ · SHA-256]
+    C --> D[Validacion inicial]
+    D --> E[data/normalized/ · parquet/gpkg]
+    E --> F[Agregacion territorial]
+    F --> G[data/analytics/indicators_by_territory.parquet]
+    G --> H[Construccion RDF · rdflib]
+    H --> I[SHACL · pyshacl]
+    I --> J[data/rdf/*.ttl por named graph]
+    J --> K[/sparql + /rdf/export + API de dominio/]
 ```
 
-El dataset demo (versionado en `data/seed/`) incluye 15 territorios, 5 fuentes, 5 indicadores, 50 observaciones y 3 perfiles que permiten ejecutar todo el pipeline y los tests sin acceso a fuentes externas.
+Las fuentes oficiales integradas en la Fase A del M8 son:
+
+| Id | Fuente | Licencia | Periodicidad | Indicadores derivados |
+|---|---|---|---|---|
+| `mivau_serpavi` | MIVAU SERPAVI · alquiler | CC BY 4.0 | anual | `rent_median` |
+| `ine_open_data` | INE datos abiertos · indicadores territoriales | CC BY 4.0 | anual | `population_total`, `age_median`, `household_size` |
+| `ine_atlas_renta` | INE Atlas de renta de los hogares | CC BY 4.0 | anual | `income_per_capita` |
+| `ine_dirce` | INE DIRCE · directorio de empresas | CC BY 4.0 | anual | `enterprise_density` |
+| `miteco_reto_demografia` | MITECO Reto Demografico · demografia | CC BY 4.0 | anual | `population_total`, `age_median` |
+| `miteco_reto_servicios` | MITECO Reto Demografico · servicios | CC BY 4.0 | anual | `services_score` |
+| `seteleco` | SETELECO · banda ancha | CC BY 4.0 | semestral | `broadband_coverage` |
+| `aemet` | AEMET · climatologia | AEMET OpenData | anual | `climate_comfort` |
+
+El dataset seed (`data/seed/`) contiene 172 territorios (19 CCAA + 52 provincias + 101 municipios), 909 observaciones y 4 perfiles de decision, suficientes para ejecutar el pipeline y la CI sin conexion a internet.
 
 ---
 
 ## Modelo RDF
 
-La ontología propia reside en [`ontology/atlashabita.ttl`](ontology/atlashabita.ttl) y las restricciones de validación en [`ontology/shapes.ttl`](ontology/shapes.ttl). El resumen ejecutivo con fragmentos y ejemplos SPARQL se encuentra en [`docs/rdf-model.md`](docs/rdf-model.md); el desarrollo completo en [`docs/11_MODELO_DE_DATOS_RDF_Y_ONTOLOGIA.md`](docs/11_MODELO_DE_DATOS_RDF_Y_ONTOLOGIA.md).
+La ontologia vive en [`ontology/atlashabita.ttl`](ontology/atlashabita.ttl) y las shapes en [`ontology/shapes.ttl`](ontology/shapes.ttl). Resumen ejecutivo con ejemplos Turtle y SPARQL en [`docs/rdf-model.md`](docs/rdf-model.md); desarrollo academico en [`docs/11_MODELO_DE_DATOS_RDF_Y_ONTOLOGIA.md`](docs/11_MODELO_DE_DATOS_RDF_Y_ONTOLOGIA.md).
 
-Clases principales: `ah:Territory`, `ah:AutonomousCommunity`, `ah:Province`, `ah:Municipality`, `ah:Indicator`, `ah:IndicatorObservation`, `ah:DataSource`, `ah:DecisionProfile`, `ah:Score`, `ah:ScoreContribution`.
+Clases principales:
+
+- `ah:Territory` (subclase de `geo:Feature`) con `ah:AutonomousCommunity`, `ah:Province`, `ah:Municipality`.
+- `ah:Indicator`, `ah:IndicatorObservation` (subclase de `prov:Entity`).
+- `ah:DataSource` (subclase de `prov:Agent` y `prov:Entity`).
+- `ah:IngestionActivity` (subclase de `prov:Activity`).
+- `ah:DecisionProfile`, `ah:Score`, `ah:ScoreContribution`.
+
+Ejemplo Turtle con GeoSPARQL + PROV-O:
 
 ```turtle
-@prefix ah:  <https://data.atlashabita.example/ontology/> .
-@prefix ahr: <https://data.atlashabita.example/resource/> .
+@prefix ah:    <https://data.atlashabita.example/ontology/> .
+@prefix ahr:   <https://data.atlashabita.example/resource/> .
+@prefix geo:   <http://www.opengis.net/ont/geosparql#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
 
 ahr:territory/municipality/41091
-    a ah:Municipality ;
-    dct:identifier "41091" ;
+    a ah:Municipality, geo:Feature ;
     rdfs:label "Sevilla"@es ;
-    ah:belongsTo ahr:territory/province/41 ;
-    ah:hasIndicatorObservation ahr:observation/rent_median/41091/2025 .
+    ah:population 684025 ;
+    geo:hasGeometry ahr:geometry/municipality/41091 ;
+    ah:hasIndicatorObservation ahr:observation/rent_median/municipality/41091/2025 .
+
+ahr:geometry/municipality/41091
+    a geo:Geometry, geo:Point ;
+    geo:asWKT "<http://www.opengis.net/def/crs/OGC/1.3/CRS84> POINT(-5.9823 37.3886)"^^geo:wktLiteral .
+
+ahr:observation/rent_median/municipality/41091/2025
+    a ah:IndicatorObservation, prov:Entity ;
+    ah:indicator ahr:indicator/rent_median ;
+    ah:value "10.8"^^xsd:decimal ;
+    ah:period "2025" ;
+    ah:periodYear "2025"^^xsd:gYear ;
+    ah:providedBy ahr:source/mivau_serpavi ;
+    prov:wasGeneratedBy ahr:activity/mivau_serpavi/2025 .
+
+ahr:activity/mivau_serpavi/2025
+    a ah:IngestionActivity, prov:Activity ;
+    prov:used ahr:source/mivau_serpavi ;
+    prov:generated ahr:observation/rent_median/municipality/41091/2025 .
 ```
+
+Consultas SPARQL de referencia (top por score, vivienda asequible, indicadores por CCAA, cadena PROV-O) en [`docs/rdf-model.md §8`](docs/rdf-model.md).
 
 ---
 
-## API REST
+## API
 
-La API expone recursos versionados bajo el prefijo `/`. Contratos completos con request/response y códigos de error en [`docs/api.md`](docs/api.md) y en el documento académico [`docs/15_BACKEND_API_CONTRATOS_Y_SERVICIOS.md`](docs/15_BACKEND_API_CONTRATOS_Y_SERVICIOS.md).
+Catalogo operativo con contratos request/response y codigos de error normalizados en [`docs/api.md`](docs/api.md). Endpoints v0.2.0:
 
-| Método | Ruta | Estado |
-|---|---|---|
-| GET | `/health` | completado |
-| GET | `/profiles` | ready (fase 4) |
-| GET | `/territories/search?q=` | ready (fase 4) |
-| GET | `/territories/{id}` | ready (fase 4) |
-| GET | `/territories/{id}/indicators` | ready (fase 4) |
-| GET | `/rankings` | ready (fase 4) |
-| POST | `/rankings/custom` | ready (fase 4) |
-| GET | `/map/layers` · `/map/layers/{layer_id}` | ready (fase 4) |
-| GET | `/sources` · `/sources/{id}` | ready (fase 4) |
-| GET | `/rdf/export` | ready (fase 4) |
-| GET | `/quality/reports` | ready (fase 4) |
+| Metodo | Ruta | Estado | Proposito |
+|---|---|---|---|
+| GET | `/health` | completo | Heartbeat con nombre, version, entorno y timestamp. |
+| GET | `/profiles` · `/profiles/{id}` | completo | Perfiles de decision y pesos por defecto. |
+| GET | `/territories/search` | completo | Busqueda textual tolerante a tildes. |
+| GET | `/territories/{id}` | completo | Ficha territorial con jerarquia, indicadores y scores. |
+| GET | `/territories/{id}/indicators` | completo | Listado detallado de indicadores. |
+| GET | `/rankings` | completo | Ranking parametrizado por perfil y ambito. |
+| POST | `/rankings/custom` | completo | Ranking con pesos y filtros duros personalizados. |
+| GET | `/map/layers` · `/map/layers/{id}` | completo | Catalogo de capas y GeoJSON simplificado. |
+| GET | `/sources` · `/sources/{id}` | completo | Catalogo de fuentes, licencia y cobertura. |
+| GET | `/rdf/export` | completo | Exportacion Turtle/TriG/JSON-LD/NT en streaming (tope 16 MB). |
+| POST | `/sparql` | completo | Ejecuta consulta de catalogo whitelist con bindings tipados. |
+| GET | `/sparql/catalog` | completo | Firma publica (query_id, required, optional) del catalogo SPARQL. |
+| GET | `/quality/reports` | completo | Reportes de calidad por fuente y ejecucion. |
+
+Errores normalizados: `INVALID_PROFILE`, `INVALID_SCOPE`, `INVALID_WEIGHTS`, `INVALID_FILTER`, `TERRITORY_NOT_FOUND`, `LAYER_NOT_FOUND`, `SOURCE_NOT_FOUND`, `INSUFFICIENT_DATA`, `QUALITY_BLOCKED`, `RATE_LIMITED`, `INVALID_QUERY`, `INVALID_BINDINGS`, `INVALID_FORMAT`, `PAYLOAD_TOO_LARGE`, `INTERNAL_ERROR`. Cada respuesta incluye `error`, `message`, `details`.
+
+---
+
+## UI y accesibilidad
+
+El frontend implementa el lenguaje visual de `docs/16_FRONTEND_UX_UI_Y_FLUJOS.md` con cinco pantallas principales:
+
+| Pantalla | Proposito |
+|---|---|
+| Dashboard (`/`) | Hero animado, mapa coropletico, recomendaciones destacadas, tendencias por CCAA. |
+| Ranking (`/ranking`) | Lista nacional paginada (20/pagina) con filtros duros (precio maximo, conectividad minima) y badge de confianza. |
+| Territorio (`/territorio/:id`) | Ficha con cabecera, tabla de indicadores, chips PROV-O y modal "Ver RDF" paginado. |
+| SPARQL (`/sparql`) | Panel tecnico con catalogo de consultas, validador tipado y ejecutor con fallback local. |
+| Inspector de fuentes | Procedencia, licencia, periodicidad y fecha de ingesta por indicador. |
+
+### Motion con GSAP
+
+Las animaciones viven en `apps/web/src/features/hero/`, `features/recommendations/` y `features/trends/` y se orquestan con una timeline GSAP comun con triggers de scroll. Cumplen con `prefers-reduced-motion`: si el sistema operativo lo solicita, los tweens se resuelven instantaneamente. ADR formal en [`docs/adr/0004-pulido-pixel-perfect.md`](docs/adr/0004-pulido-pixel-perfect.md).
+
+### Accesibilidad AA
+
+- Contraste AA validado con tokens Tailwind v4.
+- Roles ARIA explicitos (`role="switch"`, `role="dialog"`, `role="tooltip"`).
+- Focus ring visible en todos los primitivos (`Button`, `Toggle`, `Slider`, `Tab`).
+- `aria-label` / `aria-live` para estados asincronos.
+- Navegacion por teclado garantizada en mapa, ranking, modal RDF y SPARQL playground.
+- Respeta `prefers-reduced-motion`.
 
 ---
 
 ## Testing
 
-La pirámide de pruebas, los comandos por capa y los criterios de aceptación del MVP se recogen en [`docs/testing.md`](docs/testing.md). Resumen rápido:
+La estrategia de pruebas consolidada vive en [`docs/testing.md`](docs/testing.md). Resumen rapido de la piramide actual:
+
+| Capa | Herramienta | Cantidad | Estado |
+|---|---|---|---|
+| Unitarias backend | pytest + pytest-asyncio + pytest-cov | 372 tests | verde |
+| Cobertura backend | coverage.py | >= 90% en paquetes criticos | verde |
+| Lint / tipos backend | ruff + mypy strict | | verde |
+| Unitarias frontend | Vitest + Testing Library | 127 tests (41 archivos) | verde |
+| E2E | Playwright (Chromium) | 5 suites (`home`, `profile-flow`, `ranking`, `territory`, `sparql`) | verde |
+| RDF | rdflib parse + pyshacl | | verde |
+| Seguridad | bandit + pip-audit + npm audit + CodeQL + Trivy | | verde |
+
+Comandos equivalentes:
 
 ```bash
 # Backend
-pytest apps/api/tests                    # Unitarias + integración
-ruff check apps/api/src apps/api/tests   # Lint
-mypy apps/api/src                        # Tipos
+pytest apps/api/tests
+ruff check apps/api/src apps/api/tests
+mypy apps/api/src
 
 # Frontend
-pnpm -C apps/web test                    # Vitest (jsdom)
-pnpm -C apps/web lint                    # ESLint
-pnpm -C apps/web typecheck               # tsc --noEmit
-pnpm -C apps/web format:check            # Prettier
+pnpm -C apps/web test
+pnpm -C apps/web lint
+pnpm -C apps/web typecheck
+pnpm -C apps/web format:check
 
 # E2E
-pnpm -C apps/web e2e                     # Playwright (Chromium)
+pnpm -C apps/web e2e
 
 # RDF
 python -c "from rdflib import Graph; Graph().parse('ontology/atlashabita.ttl', format='turtle')"
 ```
 
-Los criterios de salida del MVP se definen en [`docs/18_PLAN_DE_PRUEBAS_VALIDACION_Y_CALIDAD.md`](docs/18_PLAN_DE_PRUEBAS_VALIDACION_Y_CALIDAD.md).
+---
+
+## Roadmap
+
+Roadmap detallado por milestones con trazabilidad a issues en [`docs/roadmap.md`](docs/roadmap.md). Resumen:
+
+| Milestone | Alcance | Estado |
+|---|---|---|
+| **M0 · Fundamentos** | ADRs, CODEOWNERS, templates, CI base. | completo |
+| **M1 · Infraestructura** | Monorepo, workflows, Docker, Makefile. | completo |
+| **M2 · Pipeline RDF base** | Dataset demo, ontologia, shapes, lector seed. | completo |
+| **M3 · Calidad avanzada** | Reportes YAML/JSON, named graphs, quality gates en CI. | completo |
+| **M4 · Backend FastAPI** | Endpoints de dominio, scoring, RDF export. | completo |
+| **M5 · Frontend pixel-a-pixel** | Dashboard, mapa, ranking, ficha, comparador. | completo |
+| **M6 · Tests + seguridad** | Cobertura, OWASP, Playwright, Lighthouse. | completo |
+| **M7 · Documentacion + release v0.1.0** | README, guias, tag SemVer. | completo |
+| **M8 · Ingesta nacional + SPARQL + v0.2.0** | Conectores INE/MITECO, GeoSPARQL + PROV-O, `/sparql`, release v0.2.0. | completo |
+| **M9 · Pulido pixel-perfect + v0.3.0** | Pixel-perfect UI, GSAP motion, auditoria final, release v0.3.0. | en curso |
 
 ---
 
-## Roadmap por fases e issues
+## Licencia
 
-El roadmap detallado con milestones, estado y issues asociadas está en [`docs/roadmap.md`](docs/roadmap.md). Resumen por hitos:
+Distribuido bajo **licencia MIT** (ver cabeceras de `apps/api/pyproject.toml` y los avisos en cada paquete).
 
-| Milestone | Alcance | Estado | Issues destacadas |
-|---|---|---|---|
-| **M0 · Fundamentos** | ADRs, CODEOWNERS, templates, CI base. | completado | #01, #02, #03 |
-| **M1 · Infraestructura y scaffolding** | Monorepo, workflows, Docker, Makefile. | completado | #04, #05, #06, #07 |
-| **M2 · Pipeline de datos y RDF** | Dataset demo, ontología, shapes, lector seed. | completado | #08, #09, #10, #11, #12 |
-| **M3 · Diseño del sistema de datos** | Validaciones, named graphs, reportes de calidad. | en curso | #13, #14, #15, #16, #17 |
-| **M4 · Backend FastAPI** | Endpoints de dominio, scoring, SPARQL, RDF export. | ready | #18, #19, #20 |
-| **M5 · Frontend pixel a pixel** | Dashboard, mapa, ranking, ficha, comparador. | ready | #21, #22, #23, #24, #25, #26, #27 |
-| **M6 · Tests, CI, seguridad, performance** | Cobertura, OWASP, pip-audit, Playwright completo. | ready | #28, #29, #30, #31, #32, #33 |
-| **M7 · Documentación y release** | README, guías E2E, documentos técnicos, release develop→main. | en curso | #34 |
+Los datasets demo conservan la atribucion de las fuentes originales segun sus licencias respectivas (CC BY 4.0 para las fuentes INE, MIVAU, MITECO y SETELECO; AEMET OpenData para AEMET). La politica completa vive en [`data/seed/README.md`](data/seed/README.md) y [`SECURITY.md`](SECURITY.md).
 
----
-
-## Flujo GitHub
-
-El flujo operativo completo está en [`docs/github-workflow.md`](docs/github-workflow.md) y en [`CONTRIBUTING.md`](CONTRIBUTING.md). Resumen:
-
-1. `main` es estable y protegida; `develop` es la rama de integración.
-2. Cada tarea parte de una rama hija con prefijo semántico:
-   `feat/issue-<n>-<slug>`, `fix/issue-<n>-<slug>`, `refactor/issue-<n>-<slug>`, `docs/issue-<n>-<slug>`, `test/issue-<n>-<slug>`, `ci/issue-<n>-<slug>`, `chore/issue-<n>-<slug>`.
-3. Los commits siguen [Conventional Commits](https://www.conventionalcommits.org/) y son atómicos, sin coautores automáticos.
-4. Todas las PR se dirigen a `develop` excepto la release final. Se exige CI en verde y revisión antes del merge.
-5. Las ramas **no se borran** al fusionar: sirven de registro histórico.
-
----
-
-## Documentación complementaria
-
-| Documento | Propósito |
-|---|---|
-| [`docs/architecture.md`](docs/architecture.md) | Arquitectura screaming, capas y decisiones clave. |
-| [`docs/data-pipeline.md`](docs/data-pipeline.md) | Pipeline de datos ingest → RDF. |
-| [`docs/rdf-model.md`](docs/rdf-model.md) | Resumen ejecutivo del modelo RDF y SPARQL. |
-| [`docs/api.md`](docs/api.md) | Catálogo de endpoints con contratos y errores. |
-| [`docs/testing.md`](docs/testing.md) | Pirámide de pruebas y criterios de aceptación. |
-| [`docs/roadmap.md`](docs/roadmap.md) | Milestones M0–M7 con estado e issues. |
-| [`docs/github-workflow.md`](docs/github-workflow.md) | Reglas operativas del repositorio. |
-| [`docs/03_PRD_PRODUCT_REQUIREMENTS_DOCUMENT.md`](docs/03_PRD_PRODUCT_REQUIREMENTS_DOCUMENT.md) | PRD granular del producto. |
-| [`docs/04_SRS_SOFTWARE_REQUIREMENTS_SPECIFICATION.md`](docs/04_SRS_SOFTWARE_REQUIREMENTS_SPECIFICATION.md) | SRS del sistema. |
-| [`docs/adr/`](docs/adr/) | Architecture Decision Records. |
-
----
-
-## Créditos y licencia
-
-**Autor:** Gonzalo García Lama · Complementos de Bases de Datos · Universidad de Sevilla.
-
-El proyecto se distribuye bajo **licencia MIT** (ver `pyproject.toml` y cabeceras). Los datasets demo respetan las licencias de las fuentes originales (INE, MIVAU/SERPAVI, MITECO, SETELECO, AEMET); su atribución se conserva en [`data/seed/README.md`](data/seed/README.md).
-
-AtlasHabita es un proyecto académico. No sustituye a un portal oficial ni constituye asesoramiento profesional; ofrece orientación explicable sobre datos públicos.
+**Autor:** Gonzalo Garcia Lama (`gongarlam@alum.us.es`) · Complementos de Bases de Datos · Universidad de Sevilla. AtlasHabita es un proyecto academico; no sustituye a un portal oficial ni constituye asesoramiento profesional, solo ofrece orientacion explicable sobre datos publicos.
