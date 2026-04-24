@@ -32,3 +32,31 @@ services:
     depends_on:
       api:
         condition: service_healthy
+
+  # Servicio Fuseki opcional; se levanta sólo con ``--profile fuseki``.
+  # Expone SPARQL 1.1 y persiste los triples en el volumen ``fuseki-data``.
+  fuseki:
+    profiles: ["fuseki"]
+    build:
+      context: docker/fuseki
+      dockerfile: Dockerfile
+    image: atlashabita-fuseki:dev
+    container_name: atlashabita-fuseki
+    environment:
+      ADMIN_PASSWORD: admin
+      FUSEKI_DATASET_NAME: atlashabita
+      JVM_ARGS: "-Xmx1g"
+    ports:
+      - "3030:3030"
+    volumes:
+      - fuseki-data:/fuseki
+      - ./data/rdf:/staging:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3030/$/ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  fuseki-data:
+    driver: local
