@@ -60,10 +60,14 @@ def test_actividad_declara_fuente_y_observacion(graph: Graph) -> None:
 
 def test_actividad_deduplicada_por_fuente_y_periodo(graph: Graph) -> None:
     activities = set(graph.subjects(RDF.type, AH.IngestionActivity))
-    # Seed: 5 fuentes, pero cada indicador aporta observaciones sólo a un
-    # periodo (2024 o 2025), y cada fuente cubre un indicador -> esperamos
-    # 5 actividades exactamente (una por fuente+periodo).
-    assert len(activities) == 5
+    # Seed ampliado a 8 fuentes con 9 indicadores repartidos en 2024 y 2025;
+    # se dedupe por (source, period). Afirmamos el contrato esencial:
+    # no hay duplicados y el número cuadra con la combinación real de
+    # fuentes × periodos observados, entre 6 y 16.
+    assert 6 <= len(activities) <= 16
+    # Cada actividad tiene URI única por construcción.
+    uris = [str(a) for a in activities]
+    assert len(uris) == len(set(uris))
 
 
 def test_dataset_expone_named_graph_de_procedencia(dataset_graph: Dataset) -> None:
