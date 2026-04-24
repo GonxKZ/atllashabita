@@ -1,0 +1,6 @@
+id,title,publisher,url,license,periodicity,description,indicators
+mivau_serpavi,Sistema estatal de referencia del alquiler,Ministerio de Vivienda y Agenda Urbana,https://www.mivau.gob.es/vivienda/alquila-bien-es-tu-derecho/serpavi,CC BY 4.0,anual,Precios medianos de alquiler por municipio y sección.,rent_median
+seteleco_broadband_maps,Mapas de cobertura de banda ancha,Secretaría de Estado de Telecomunicaciones,https://avancedigital.mineco.gob.es/banda-ancha/cobertura,CC BY 4.0,anual,Cobertura de banda ancha fija y móvil por municipio.,broadband_coverage
+ine_atlas_renta,Atlas de Distribución de Renta de los Hogares,Instituto Nacional de Estadística,https://www.ine.es/experimental/atlas/experimental_atlas.htm,CC BY 4.0,anual,Renta neta por persona a nivel municipal.,income_per_capita
+miteco_reto_demografico,Reto Demográfico - servicios municipales,Ministerio para la Transición Ecológica,https://www.miteco.gob.es/es/reto-demografico.html,CC BY 4.0,anual,Indicadores de servicios básicos por municipio.,services_score
+aemet_opendata,AEMET OpenData - indicadores climáticos,Agencia Estatal de Meteorología,https://opendata.aemet.es/,CC BY 4.0,anual,Series climáticas agregadas por municipio.,climate_comfort

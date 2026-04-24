@@ -1,0 +1,219 @@
+@prefix ah:   <https://data.atlashabita.example/ontology/> .
+@prefix ahr:  <https://data.atlashabita.example/resource/> .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:  <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix dct:  <http://purl.org/dc/terms/> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix geo:  <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+###############################################################################
+# Ontología AtlasHabita                                                       #
+###############################################################################
+
+<https://data.atlashabita.example/ontology/>
+    a owl:Ontology ;
+    dct:title "Ontología AtlasHabita"@es ;
+    dct:description
+        "Vocabulario mínimo para representar territorios españoles, indicadores territoriales, fuentes de datos y scores explicables."@es ;
+    dct:license <https://creativecommons.org/licenses/by/4.0/> ;
+    owl:versionInfo "0.1.0" .
+
+###############################################################################
+# Jerarquía territorial                                                        #
+###############################################################################
+
+ah:Territory
+    a owl:Class ;
+    rdfs:label "Territorio"@es ;
+    rdfs:comment "Entidad territorial administrativa con identidad y geometría."@es .
+
+ah:AutonomousCommunity
+    a owl:Class ;
+    rdfs:label "Comunidad autónoma"@es ;
+    rdfs:subClassOf ah:Territory .
+
+ah:Province
+    a owl:Class ;
+    rdfs:label "Provincia"@es ;
+    rdfs:subClassOf ah:Territory .
+
+ah:Municipality
+    a owl:Class ;
+    rdfs:label "Municipio"@es ;
+    rdfs:subClassOf ah:Territory .
+
+ah:belongsTo
+    a owl:ObjectProperty ;
+    rdfs:label "pertenece a"@es ;
+    rdfs:domain ah:Territory ;
+    rdfs:range ah:Territory .
+
+ah:population
+    a owl:DatatypeProperty ;
+    rdfs:label "población"@es ;
+    rdfs:domain ah:Territory ;
+    rdfs:range xsd:integer .
+
+ah:area
+    a owl:DatatypeProperty ;
+    rdfs:label "área (km²)"@es ;
+    rdfs:domain ah:Territory ;
+    rdfs:range xsd:decimal .
+
+###############################################################################
+# Indicadores y observaciones                                                  #
+###############################################################################
+
+ah:Indicator
+    a owl:Class ;
+    rdfs:label "Indicador"@es ;
+    rdfs:comment "Definición semántica de un indicador territorial."@es .
+
+ah:IndicatorObservation
+    a owl:Class ;
+    rdfs:label "Observación"@es ;
+    rdfs:comment "Valor observado de un indicador para un territorio y un periodo."@es .
+
+ah:hasIndicatorObservation
+    a owl:ObjectProperty ;
+    rdfs:label "tiene observación"@es ;
+    rdfs:domain ah:Territory ;
+    rdfs:range ah:IndicatorObservation .
+
+ah:indicator
+    a owl:ObjectProperty ;
+    rdfs:label "indicador"@es ;
+    rdfs:domain ah:IndicatorObservation ;
+    rdfs:range ah:Indicator .
+
+ah:value
+    a owl:DatatypeProperty ;
+    rdfs:label "valor"@es ;
+    rdfs:domain ah:IndicatorObservation ;
+    rdfs:range xsd:decimal .
+
+ah:unit
+    a owl:DatatypeProperty ;
+    rdfs:label "unidad"@es ;
+    rdfs:domain ah:IndicatorObservation ;
+    rdfs:range xsd:string .
+
+ah:period
+    a owl:DatatypeProperty ;
+    rdfs:label "periodo"@es ;
+    rdfs:domain ah:IndicatorObservation ;
+    rdfs:range xsd:string .
+
+ah:direction
+    a owl:DatatypeProperty ;
+    rdfs:label "direccionalidad"@es ;
+    rdfs:domain ah:Indicator ;
+    rdfs:range xsd:string ;
+    rdfs:comment "'higher_is_better' o 'lower_is_better'."@es .
+
+ah:qualityFlag
+    a owl:DatatypeProperty ;
+    rdfs:label "estado de calidad"@es ;
+    rdfs:domain ah:IndicatorObservation ;
+    rdfs:range xsd:string .
+
+###############################################################################
+# Fuentes y procedencia                                                        #
+###############################################################################
+
+ah:DataSource
+    a owl:Class ;
+    rdfs:label "Fuente de datos"@es ;
+    rdfs:subClassOf prov:Agent .
+
+ah:providedBy
+    a owl:ObjectProperty ;
+    rdfs:label "provista por"@es ;
+    rdfs:subPropertyOf prov:wasAttributedTo ;
+    rdfs:domain ah:IndicatorObservation ;
+    rdfs:range ah:DataSource .
+
+ah:license
+    a owl:DatatypeProperty ;
+    rdfs:label "licencia"@es ;
+    rdfs:domain ah:DataSource ;
+    rdfs:range xsd:string .
+
+ah:periodicity
+    a owl:DatatypeProperty ;
+    rdfs:label "periodicidad"@es ;
+    rdfs:domain ah:DataSource ;
+    rdfs:range xsd:string .
+
+###############################################################################
+# Perfiles de decisión y scoring                                               #
+###############################################################################
+
+ah:DecisionProfile
+    a owl:Class ;
+    rdfs:label "Perfil de decisión"@es .
+
+ah:Score
+    a owl:Class ;
+    rdfs:label "Score"@es .
+
+ah:ScoreContribution
+    a owl:Class ;
+    rdfs:label "Contribución al score"@es .
+
+ah:hasScore
+    a owl:ObjectProperty ;
+    rdfs:label "tiene score"@es ;
+    rdfs:domain ah:Territory ;
+    rdfs:range ah:Score .
+
+ah:forProfile
+    a owl:ObjectProperty ;
+    rdfs:label "para perfil"@es ;
+    rdfs:domain ah:Score ;
+    rdfs:range ah:DecisionProfile .
+
+ah:hasContribution
+    a owl:ObjectProperty ;
+    rdfs:label "contribución"@es ;
+    rdfs:domain ah:Score ;
+    rdfs:range ah:ScoreContribution .
+
+ah:weight
+    a owl:DatatypeProperty ;
+    rdfs:label "peso"@es ;
+    rdfs:domain ah:ScoreContribution ;
+    rdfs:range xsd:decimal .
+
+ah:normalizedValue
+    a owl:DatatypeProperty ;
+    rdfs:label "valor normalizado"@es ;
+    rdfs:domain ah:ScoreContribution ;
+    rdfs:range xsd:decimal .
+
+ah:impact
+    a owl:DatatypeProperty ;
+    rdfs:label "impacto"@es ;
+    rdfs:domain ah:ScoreContribution ;
+    rdfs:range xsd:decimal .
+
+ah:scoreValue
+    a owl:DatatypeProperty ;
+    rdfs:label "valor del score"@es ;
+    rdfs:domain ah:Score ;
+    rdfs:range xsd:decimal .
+
+ah:scoringVersion
+    a owl:DatatypeProperty ;
+    rdfs:label "versión del scoring"@es ;
+    rdfs:domain ah:Score ;
+    rdfs:range xsd:string .
+
+ah:confidence
+    a owl:DatatypeProperty ;
+    rdfs:label "confianza"@es ;
+    rdfs:domain ah:Score ;
+    rdfs:range xsd:decimal .

@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentación AtlasHabita
+    url: https://github.com/GonxKZ/atllashabita/tree/develop/docs
+    about: Revisa el paquete documental antes de abrir una issue.
