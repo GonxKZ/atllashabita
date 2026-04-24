@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 import { Progress } from '../ui/Progress';
 import { cn } from '../ui/cn';
 
@@ -14,9 +16,13 @@ export function OpportunityIndex({
   description,
   className,
 }: OpportunityIndexProps) {
+  // `useId` garantiza que dos indicadores en la misma pantalla no compartan
+  // ``id``: antes se usaba un literal fijo que fallaba si el componente se
+  // montaba varias veces (panel lateral + vista comparativa, por ejemplo).
+  const titleId = useId();
   return (
     <section
-      aria-labelledby="opportunity-index-title"
+      aria-labelledby={titleId}
       className={cn(
         'flex flex-col gap-2 rounded-2xl bg-white p-4',
         'border border-[color:var(--color-line-soft)]',
@@ -25,10 +31,7 @@ export function OpportunityIndex({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3
-            id="opportunity-index-title"
-            className="text-ink-500 text-xs font-semibold tracking-wide uppercase"
-          >
+          <h3 id={titleId} className="text-ink-500 text-xs font-semibold tracking-wide uppercase">
             {title}
           </h3>
           {description ? <p className="text-ink-900 mt-1 text-sm">{description}</p> : null}
