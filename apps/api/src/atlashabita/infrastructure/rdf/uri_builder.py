@@ -13,6 +13,13 @@ recursos bajo ``/resource/<dominio>/...`` y named graphs bajo
 ``/graph/<dominio>``. Los nombres con tildes o caracteres especiales se
 normalizan con ``python-slugify`` para producir segmentos URL seguros sin
 perder la identidad semántica (el código INE se mantiene como primario).
+
+Fase B (M8) añade dos nuevos tipos de recurso:
+
+* **Geometrías GeoSPARQL** (``/resource/geometry/<kind>/<code>``).
+* **Actividades PROV-O de ingesta** (``/resource/activity/<source>/<period>``)
+  identificadas por la tupla fuente+periodo, de forma que una misma ingesta
+  se deduplica y sus observaciones apuntan a una sola URI.
 """
 
 from __future__ import annotations
@@ -72,6 +79,18 @@ class URIBuilder:
         segment = _TERRITORY_KIND_SEGMENT[kind]
         return URIRef(f"{self.resource_base}territory/{segment}/{_safe(code)}")
 
+    def geometry(self, code: str, kind: TerritoryKind) -> URIRef:
+        """URI de la geometría asociada a un territorio.
+
+        Se usa una URI dedicada (``/resource/geometry/<kind>/<code>``) en
+        lugar de un blank node porque GeoSPARQL y SPARQL federado sólo
+        pueden referenciar recursos con IRI estable (p.ej. para consultas
+        de distancia entre geometrías de distintos grafos).
+        """
+        self._require_non_empty(code, "code")
+        segment = _TERRITORY_KIND_SEGMENT[kind]
+        return URIRef(f"{self.resource_base}geometry/{segment}/{_safe(code)}")
+
     def indicator(self, code: str) -> URIRef:
         """URI del indicador ``indicator/{code}``."""
         self._require_non_empty(code, "code")
@@ -97,6 +116,18 @@ class URIBuilder:
         """URI de una fuente de datos."""
         self._require_non_empty(source_id, "source_id")
         return URIRef(f"{self.resource_base}source/{_safe(source_id)}")
+
+    def activity(self, source_id: str, period: str) -> URIRef:
+        """URI de una actividad PROV-O de ingesta.
+
+        La tupla ``(source_id, period)`` es la clave de deduplicación natural:
+        varias observaciones ingeridas en la misma ejecución de ``source_id``
+        para un ``period`` concreto comparten la misma actividad, reforzando
+        el análisis de procedencia y reduciendo la explosión combinatoria.
+        """
+        self._require_non_empty(source_id, "source_id")
+        self._require_non_empty(period, "period")
+        return URIRef(f"{self.resource_base}activity/{_safe(source_id)}/{_safe(period)}")
 
     def profile(self, profile_id: str) -> URIRef:
         """URI de un perfil de decisión."""
