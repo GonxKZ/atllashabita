@@ -16,8 +16,11 @@ import { OpportunityIndex } from '@/components/layout/OpportunityIndex';
 import { ActivityFeed } from '@/features/activity';
 import { HighlightCard } from '@/features/recommendations';
 import { SpainMap } from '@/features/map/SpainMap';
+import { MAP_LAYER_CATALOG, resolveLayer } from '@/features/map/layers/catalog';
 import { TrendsChart } from '@/features/trends';
-import { mockActivity, mockHighlight, mockPoints, mockTrends } from '@/data/mock';
+import { mockActivity, mockHighlight, mockTrends } from '@/data/mock';
+import { toEnrichedMapPoints } from '@/data/national_mock';
+import { useMapLayerStore } from '@/state/mapLayer';
 
 /**
  * Filtros rápidos del hero. Igualan los chips visibles en la captura
@@ -104,6 +107,10 @@ const ACTION_ITEMS: ActionCardItem[] = [
  */
 export function DashboardShell() {
   const [activeChips, setActiveChips] = useState<string[]>(['quality']);
+  const activeLayerId = useMapLayerStore((state) => state.activeLayerId);
+  const setActiveLayer = useMapLayerStore((state) => state.setActiveLayer);
+  const activeLayer = useMemo(() => resolveLayer(activeLayerId), [activeLayerId]);
+  const enrichedPoints = useMemo(() => toEnrichedMapPoints(), []);
 
   const hero = useMemo(
     () => (
@@ -151,6 +158,45 @@ export function DashboardShell() {
         </div>
 
         {/*
+         * Mini LayerSwitcher en formato chip-row para alternar la métrica
+         * que colorea el mapa sin abandonar la home. La fila es scrollable
+         * en horizontal en pantallas estrechas y comparte el mismo store
+         * que `/mapa`, por lo que la elección persiste entre rutas.
+         */}
+        <div
+          role="radiogroup"
+          aria-label="Capa activa del mapa territorial"
+          data-feature="dashboard-layer-switcher"
+          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+        >
+          {MAP_LAYER_CATALOG.map((layer) => {
+            const isActive = layer.id === activeLayer.id;
+            return (
+              <button
+                key={layer.id}
+                type="button"
+                role="radio"
+                aria-checked={isActive}
+                onClick={() => setActiveLayer(layer.id)}
+                data-active={isActive ? 'true' : 'false'}
+                className={
+                  isActive
+                    ? 'border-brand-300 bg-brand-50 text-ink-900 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors'
+                    : 'text-ink-500 hover:border-brand-200 hover:bg-brand-50/40 inline-flex items-center gap-2 rounded-full border border-[color:var(--color-line-soft)] bg-white px-3 py-1.5 text-xs font-semibold transition-colors'
+                }
+              >
+                <span
+                  aria-hidden="true"
+                  className="block h-2 w-2 rounded-full"
+                  style={{ backgroundColor: layer.palette[0] }}
+                />
+                {layer.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/*
          * Mapa interactivo MapLibre con tiles reales (OpenFreeMap Liberty).
          * En entornos jsdom (vitest) `vitest.setup.ts` mockea `maplibre-gl`
          * para evitar `URL.createObjectURL`, lo cual deja el árbol DOM
@@ -158,10 +204,10 @@ export function DashboardShell() {
          */}
         <div className="relative h-[400px] overflow-hidden rounded-3xl bg-white shadow-[var(--shadow-card)] ring-1 ring-[color:var(--color-line-soft)]">
           <SpainMap
-            points={mockPoints}
+            points={enrichedPoints}
             ariaLabel="Mapa territorial de España con municipios destacados"
             className="h-full"
-            layerLabel="Score territorial"
+            layerId={activeLayer.id}
           />
         </div>
 
@@ -171,7 +217,7 @@ export function DashboardShell() {
         />
       </section>
     ),
-    [activeChips]
+    [activeChips, activeLayer.id, enrichedPoints, setActiveLayer]
   );
 
   /*
