@@ -22,9 +22,10 @@ def container() -> Container:
     return Container(settings)
 
 
-def test_lista_contiene_los_tres_perfiles_seed(container: Container) -> None:
+def test_lista_contiene_los_perfiles_seed(container: Container) -> None:
     profiles = container.list_profiles.execute()
-    assert {profile.id for profile in profiles} == {"remote_work", "family", "student"}
+    ids = {profile.id for profile in profiles}
+    assert {"remote_work", "family", "student", "retire"} <= ids
 
 
 def test_lista_devuelve_perfiles_ordenados_por_id(container: Container) -> None:

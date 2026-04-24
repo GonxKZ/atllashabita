@@ -23,15 +23,17 @@ def container() -> Container:
     return Container(settings)
 
 
-def test_list_map_layers_incluye_score_por_perfil_y_cinco_indicadores(
+def test_list_map_layers_incluye_score_por_perfil_y_indicadores(
     container: Container,
 ) -> None:
     layers = container.list_map_layers.execute()
     score_layers = [layer for layer in layers if layer["kind"] == "score"]
     indicator_layers = [layer for layer in layers if layer["kind"] == "indicator"]
-    assert len(score_layers) == 3
-    assert len(indicator_layers) == 5
-    assert len(layers) == 8
+    profiles = len(container.dataset.profiles)
+    indicators = len(container.dataset.indicators)
+    assert len(score_layers) == profiles
+    assert len(indicator_layers) == indicators
+    assert len(layers) == profiles + indicators
 
 
 def test_list_map_layers_formato_correcto(container: Container) -> None:
@@ -43,13 +45,13 @@ def test_list_map_layers_formato_correcto(container: Container) -> None:
         assert layer["legend"]
 
 
-def test_get_map_layer_indicator_broadband_devuelve_10_features(
+def test_get_map_layer_indicator_broadband_devuelve_features(
     container: Container,
 ) -> None:
     collection = container.get_map_layer.execute("broadband_coverage")
     assert collection["type"] == "FeatureCollection"
     assert collection["layer_id"] == "broadband_coverage"
-    assert len(collection["features"]) == 10
+    assert len(collection["features"]) >= 100
     for feature in collection["features"]:
         assert feature["geometry"]["type"] == "Point"
         coords = feature["geometry"]["coordinates"]
@@ -58,12 +60,12 @@ def test_get_map_layer_indicator_broadband_devuelve_10_features(
         assert "territory_id" in feature["properties"]
 
 
-def test_get_map_layer_score_remote_work_devuelve_10_features(
+def test_get_map_layer_score_remote_work_devuelve_features(
     container: Container,
 ) -> None:
     collection = container.get_map_layer.execute("score_remote_work")
     assert collection["kind"] == "score"
-    assert len(collection["features"]) == 10
+    assert len(collection["features"]) >= 100
     for feature in collection["features"]:
         value = feature["properties"]["value"]
         assert 0.0 <= value <= 100.0

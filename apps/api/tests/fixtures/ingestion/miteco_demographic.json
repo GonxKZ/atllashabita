@@ -1,0 +1,18 @@
+{
+  "source": "MITECO - Reto Demográfico - datos demográficos",
+  "landing": "https://www.miteco.gob.es/es/cartografia-y-sig/ide/descargas/reto-demografico/datos-demograficos.html",
+  "license": "CC BY 4.0",
+  "period": "2024",
+  "rows": [
+    {"municipality_code": "28079", "name": "Madrid", "age_median": 43.5, "aging_index": 128.0, "demographic_growth": 0.52},
+    {"municipality_code": "08019", "name": "Barcelona", "age_median": 44.6, "aging_index": 150.0, "demographic_growth": 0.35},
+    {"municipality_code": "46250", "name": "València", "age_median": 44.2, "aging_index": 140.0, "demographic_growth": 0.28},
+    {"municipality_code": "41091", "name": "Sevilla", "age_median": 43.2, "aging_index": 130.0, "demographic_growth": 0.18},
+    {"municipality_code": "50297", "name": "Zaragoza", "age_median": 45.8, "aging_index": 155.0, "demographic_growth": 0.15},
+    {"municipality_code": "29067", "name": "Málaga", "age_median": 43.0, "aging_index": 125.0, "demographic_growth": 0.45},
+    {"municipality_code": "30030", "name": "Murcia", "age_median": 42.8, "aging_index": 115.0, "demographic_growth": 0.52},
+    {"municipality_code": "07040", "name": "Palma", "age_median": 42.5, "aging_index": 118.0, "demographic_growth": 0.61},
+    {"municipality_code": "35016", "name": "Las Palmas de Gran Canaria", "age_median": 43.0, "aging_index": 120.0, "demographic_growth": 0.22},
+    {"municipality_code": "48020", "name": "Bilbao", "age_median": 46.7, "aging_index": 170.0, "demographic_growth": 0.08}
+  ]
+}

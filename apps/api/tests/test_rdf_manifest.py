@@ -36,12 +36,14 @@ def test_manifest_tiene_campos_basicos(manifest: dict[str, object]) -> None:
 
 
 def test_manifest_cuenta_observaciones(manifest: dict[str, object]) -> None:
-    assert manifest["observations_count"] == 50
+    # El dataset nacional cubre todas las combinaciones municipio-indicador.
+    assert isinstance(manifest["observations_count"], int)
+    assert manifest["observations_count"] >= 100 * 9
 
 
 def test_manifest_cuenta_territorios(manifest: dict[str, object]) -> None:
-    # 10 municipios + 3 provincias + 2 CCAA = 15 nodos ``ah:*Territory``.
-    assert manifest["territories_count"] == 15
+    # 101 municipios + 52 provincias + 19 CCAA = 172 territorios.
+    assert manifest["territories_count"] == 172
 
 
 def test_manifest_lista_named_graphs(manifest: dict[str, object]) -> None:
