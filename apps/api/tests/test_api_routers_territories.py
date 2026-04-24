@@ -24,7 +24,7 @@ def test_buscar_territorios_requiere_query(api_client: TestClient) -> None:
     assert response.status_code == 422
 
 
-def test_ficha_de_sevilla_incluye_cinco_indicadores(api_client: TestClient) -> None:
+def test_ficha_de_sevilla_incluye_todos_los_indicadores(api_client: TestClient) -> None:
     response = api_client.get("/territories/municipality:41091")
     assert response.status_code == 200
     body = response.json()
@@ -32,7 +32,7 @@ def test_ficha_de_sevilla_incluye_cinco_indicadores(api_client: TestClient) -> N
     assert body["type"] == "municipality"
     assert body["hierarchy"]["province"] == "Sevilla"
     assert body["hierarchy"]["autonomous_community"] == "Andalucía"
-    assert len(body["indicators"]) == 5
+    assert len(body["indicators"]) >= 9
     scores_by_profile = {score["profile"]: score for score in body["scores"]}
     assert "remote_work" in scores_by_profile
     assert 0.0 <= scores_by_profile["remote_work"]["score"] <= 100.0
