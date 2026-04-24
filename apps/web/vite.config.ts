@@ -1,13 +1,14 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { fileURLToPath, URL } from 'node:url';
+
 import tailwindcss from '@tailwindcss/vite';
-import path from 'node:path';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   server: {
@@ -18,22 +19,6 @@ export default defineConfig({
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ''),
-      },
-    },
-  },
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./vitest.setup.ts'],
-    css: true,
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'html', 'lcov'],
-      thresholds: {
-        statements: 60,
-        branches: 60,
-        functions: 60,
-        lines: 60,
       },
     },
   },

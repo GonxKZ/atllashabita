@@ -45,9 +45,7 @@
     font-family: var(--font-sans);
     color: var(--color-ink-900);
     background-color: var(--color-surface-soft);
-    font-feature-settings:
-      'ss01',
-      'cv11';
+    font-feature-settings: 'ss01', 'cv11';
   }
 
   *:focus-visible {

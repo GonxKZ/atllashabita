@@ -42,7 +42,7 @@ Los workflows de `.github/workflows/` ejecutan en cada push y PR:
 
 ## Commits
 
-- Conventional Commits en español (`feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `ci`, `build`).
+- Conventional Commits (`feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `ci`, `build`).
 - Atómicos: un commit = una idea.
 - Sin coautores automáticos, sin firmas de asistentes, sin mención a modelos de IA.
 
@@ -61,4 +61,4 @@ Los workflows de `.github/workflows/` ejecutan en cada push y PR:
 
 ## Release final
 
-El último paso es una PR `develop → main` con release notes en español, tag SemVer y checklist de verificación E2E completo.
+El último paso es una PR `develop → main` con release notes, tag SemVer y checklist de verificación E2E completo.

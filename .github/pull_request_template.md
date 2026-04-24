@@ -33,7 +33,7 @@ Closes #
 ## Checklist
 
 - [ ] Rama parte de `develop` y PR dirigida a `develop`.
-- [ ] Commits atómicos con Conventional Commits en español.
+- [ ] Commits atómicos con Conventional Commits.
 - [ ] Sin credenciales, secretos ni datasets pesados.
 - [ ] Lint, typecheck y tests pertinentes pasan localmente.
 - [ ] Documentación y ADR actualizados si procede.
