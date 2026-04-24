@@ -1,0 +1,70 @@
+name: ci-build
+
+on:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/api/**'
+      - '.github/workflows/ci-build.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - 'apps/web/**'
+      - 'apps/api/**'
+      - '.github/workflows/ci-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-web:
+    name: Build producción del frontend
+    runs-on: ubuntu-latest
+    if: hashFiles('apps/web/package.json') != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Instalar
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile || pnpm install
+      - name: Build
+        working-directory: apps/web
+        run: pnpm build
+      - name: Publicar bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+          if-no-files-found: error
+
+  build-api:
+    name: Build del paquete backend
+    runs-on: ubuntu-latest
+    if: hashFiles('apps/api/pyproject.toml') != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: apps/api/pyproject.toml
+      - name: Instalar dependencias de build
+        run: |
+          python -m pip install --upgrade pip build
+      - name: Construir wheel y sdist
+        working-directory: apps/api
+        run: python -m build --wheel --sdist
+      - name: Publicar artefactos
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-dist
+          path: apps/api/dist
+          if-no-files-found: error
