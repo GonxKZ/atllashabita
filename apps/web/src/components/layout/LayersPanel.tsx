@@ -24,11 +24,14 @@ export function LayersPanel({
   const groupId = useId();
 
   return (
-    <section aria-labelledby={groupId} className={cn('flex flex-col gap-3', className)}>
-      <h2 id={groupId} className="text-ink-500 text-xs font-semibold tracking-[0.14em] uppercase">
+    <section aria-labelledby={groupId} className={cn('flex flex-col gap-2.5', className)}>
+      <h2
+        id={groupId}
+        className="text-ink-500 text-[11px] font-semibold tracking-[0.16em] uppercase"
+      >
         {title}
       </h2>
-      <ul className="flex flex-col gap-1.5">
+      <ul className="flex flex-col gap-0.5">
         {layers.map((layer) => {
           const inputId = `${groupId}-${layer.id}`;
           return (
@@ -47,14 +50,18 @@ export function LayersPanel({
                   checked={layer.checked}
                   disabled={layer.disabled}
                   onChange={(event) => onChange?.(layer.id, event.target.checked)}
+                  // `accent-color` aplica el verde de marca al check nativo en
+                  // navegadores modernos sin perder accesibilidad ni el
+                  // comportamiento por defecto del checkbox.
                   className={cn(
-                    'text-brand-500 focus:ring-brand-300 h-4 w-4 rounded',
+                    'text-brand-500 focus:ring-brand-300 h-4 w-4 cursor-pointer rounded',
+                    'accent-[var(--color-brand-500)]',
                     'border-[color:var(--color-line-strong)]'
                   )}
                 />
                 <span
                   className={cn(
-                    'text-sm',
+                    'text-sm transition-colors',
                     layer.checked ? 'text-ink-900 font-medium' : 'text-ink-500'
                   )}
                 >
