@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Sidebar } from '../Sidebar';
 
 describe('Sidebar', () => {
@@ -27,5 +28,21 @@ describe('Sidebar', () => {
     expect(region).toBeInTheDocument();
     const checkboxes = within(region).getAllByRole('checkbox');
     expect(checkboxes.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('alterna las capas activas al hacer click en sus checkboxes', async () => {
+    const user = userEvent.setup();
+    render(<Sidebar />);
+    const region = screen.getByRole('region', { name: /Capas activas/i });
+    const housingCheckbox = within(region).getByRole('checkbox', { name: /Vivienda asequible/i });
+    expect(housingCheckbox).toBeChecked();
+
+    await user.click(housingCheckbox);
+    expect(housingCheckbox).not.toBeChecked();
+  });
+
+  it('expone el saludo "Hola, <Nombre>" del usuario en la card inferior', () => {
+    render(<Sidebar userName="María Castro" />);
+    expect(screen.getByText('Hola, María')).toBeInTheDocument();
   });
 });

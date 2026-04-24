@@ -21,23 +21,23 @@ Catálogo operativo de endpoints expuestos por `apps/api` (FastAPI). Alinea el c
 | Método | Ruta | Estado | Descripción |
 |---|---|---|---|
 | GET | `/health` | **completado** | Estado básico del backend. |
-| GET | `/profiles` | ready | Lista de perfiles de decisión disponibles. |
-| GET | `/profiles/{profile_id}` | ready | Metadatos y pesos por defecto de un perfil. |
-| GET | `/territories/search?q=` | ready | Búsqueda textual tolerante a tildes y mayúsculas. |
-| GET | `/territories/{id}` | ready | Ficha territorial completa. |
-| GET | `/territories/{id}/indicators` | ready | Listado de indicadores del territorio. |
-| GET | `/rankings` | ready | Ranking parametrizado por perfil y ámbito. |
-| POST | `/rankings/custom` | ready | Ranking con pesos y filtros personalizados. |
-| GET | `/map/layers` | ready | Catálogo de capas disponibles. |
-| GET | `/map/layers/{layer_id}` | ready | GeoJSON simplificado de una capa. |
-| GET | `/sources` | ready | Catálogo de fuentes y estado. |
-| GET | `/sources/{id}` | ready | Detalle de una fuente (licencia, periodicidad, cobertura). |
+| GET | `/profiles` | **completado** | Lista de perfiles de decisión disponibles. |
+| GET | `/profiles/{profile_id}` | **completado** | Metadatos y pesos por defecto de un perfil. |
+| GET | `/territories/search?q=` | **completado** | Búsqueda textual tolerante a tildes y mayúsculas. |
+| GET | `/territories/{id}` | **completado** | Ficha territorial completa. |
+| GET | `/territories/{id}/indicators` | **completado** | Listado de indicadores del territorio. |
+| GET | `/rankings` | **completado** | Ranking parametrizado por perfil y ámbito. |
+| POST | `/rankings/custom` | **completado** | Ranking con pesos y filtros personalizados. |
+| GET | `/map/layers` | **completado** | Catálogo de capas disponibles. |
+| GET | `/map/layers/{layer_id}` | **completado** | GeoJSON simplificado de una capa. |
+| GET | `/sources` | **completado** | Catálogo de fuentes y estado. |
+| GET | `/sources/{id}` | **completado** | Detalle de una fuente (licencia, periodicidad, cobertura). |
 | GET | `/rdf/export` | **completado** | Exportación RDF (Turtle/JSON-LD/NT/TriG) con streaming y tope de 16 MB. |
 | POST | `/sparql` | **completado** | Ejecuta una consulta del catálogo con `{query_id, bindings}`; devuelve filas, variables y `elapsed_ms`. |
 | GET | `/sparql/catalog` | **completado** | Firmas (`query_id`, bindings esperados, descripción en español) de las consultas disponibles. |
-| GET | `/quality/reports` | ready | Reportes de calidad por fuente y ejecución. |
+| GET | `/quality/reports` | **completado** | Reportes de calidad por fuente y ejecución. |
 
-Los estados siguen el roadmap: **completado** = implementado en `develop`; **ready** = especificado y pendiente de implementación en la fase 4 ([`roadmap.md`](roadmap.md)).
+Todos los endpoints están desplegados en `develop` desde la release v0.2.0 (M8). Los routers concretos viven en [`apps/api/src/atlashabita/interfaces/api/routers/`](../apps/api/src/atlashabita/interfaces/api/routers/) (`health.py`, `profiles.py`, `territories.py`, `rankings.py`, `map_layers.py`, `sources.py`, `rdf_export.py`, `sparql.py`, `quality.py`).
 
 ---
 
@@ -51,7 +51,7 @@ Los estados siguen el roadmap: **completado** = implementado en `develop`; **rea
 {
   "status": "ok",
   "name": "AtlasHabita",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "environment": "local",
   "timestamp": "2026-04-24T10:15:00+00:00"
 }

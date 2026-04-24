@@ -1,6 +1,22 @@
 @import 'tailwindcss';
 @import './tokens.css';
 
+/*
+ * Calibración pixel-perfect (issue #89):
+ *  - `brand-500=#10b981` y `brand-700=#047857` igualan la marca de la
+ *    captura `atlashabita-main.png`.
+ *  - `surface-soft=#f5f7f6` reproduce el fondo cálido verdoso del shell.
+ *  - Tipografías: Plus Jakarta Sans (display, 700) e Inter (400-600). El
+ *    `<link>` se monta en `apps/web/index.html`; aquí declaramos la
+ *    variable `--font-display` para que cualquier consumer tipográfico
+ *    (.font-display) caiga al stack adecuado incluso si la fuente no se
+ *    descargó (fallback a Inter / system-ui).
+ *  - Radios: `1.25rem` para componentes secundarios y `1.5rem` para cards
+ *    principales (mapa, hero, panel lateral) — coincide con el comp.
+ *  - Sombras: la base es casi imperceptible (1px) y la elevada usa un
+ *    halo difuso a 28px (`-18px` desplazamiento Y) para flotar las cards
+ *    sin sobrepeso visual.
+ */
 @theme {
   --color-brand-50: #ecfdf5;
   --color-brand-100: #d1fae5;
@@ -46,18 +62,56 @@
     font-family: var(--font-sans);
     color: var(--color-ink-900);
     background-color: var(--color-surface-soft);
-    font-feature-settings: 'ss01', 'cv11';
+    /* `tracking-tight` global aplicado al display para igualar el comp. */
+    font-feature-settings: 'ss01', 'cv11', 'cv09';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
+  /*
+   * Foco accesible coherente con WCAG 2.4.7 (visible) y 2.4.11 (no oculto
+   * por bordes). El offset positivo + un radio mínimo asegura que los
+   * elementos rectangulares (cards, chips) muestren un anillo continuo.
+   */
   *:focus-visible {
     outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
     border-radius: 6px;
+  }
+
+  /*
+   * Selección consistente con la paleta de marca: el navegador por defecto
+   * usa azul, pero en AtlasHabita el verde refuerza la identidad.
+   */
+  ::selection {
+    background-color: var(--color-brand-100);
+    color: var(--color-brand-800);
   }
 }
 
 @layer utilities {
   .font-display {
     font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  /*
+   * Patrón de scrollbar sutil: el panel lateral derecho del dashboard
+   * puede tener overflow vertical; mantenemos el ancho mínimo para no
+   * disrumpir la cuadrícula.
+   */
+  .scrollbar-soft {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+
+  .scrollbar-soft::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-soft::-webkit-scrollbar-thumb {
+    background-color: var(--color-line-strong);
+    border-radius: 9999px;
   }
 }

@@ -28,7 +28,7 @@ Las ramas **no se borran** al mergear. Actúan como registro histórico del trab
 
 ## Pipeline de CI
 
-Los workflows de `.github/workflows/` ejecutan en cada push y PR:
+Los workflows de `.github/workflows/` ejecutan en cada push y PR. Los diez activos en `develop`:
 
 | Workflow | Qué comprueba |
 |---|---|
@@ -39,12 +39,16 @@ Los workflows de `.github/workflows/` ejecutan en cada push y PR:
 | `ci-security.yml` | `bandit`, `pip-audit`, `npm audit` y secret-scan. |
 | `ci-rdf.yml` | Validación SHACL del grafo RDF generado. |
 | `ci-e2e.yml` | Playwright smoke del flujo principal. |
+| `ci-docs.yml` | Markdown lint y enlaces relativos. |
+| `ci-codeql.yml` | Análisis estático SAST sobre Python y TypeScript. |
+| `ci-trivy.yml` | Escaneo de vulnerabilidades en filesystem y dependencias (modo tabla). |
 
 ## Commits
 
 - Conventional Commits (`feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `ci`, `build`).
 - Atómicos: un commit = una idea.
-- Sin coautores automáticos, sin firmas de asistentes, sin mención a modelos de IA.
+- **Único autor en commits y PRs**: todo commit y toda PR está firmada exclusivamente por `GONZALO GARCÍA LAMA <gongarlam@alum.us.es>`. Sin coautores automáticos, sin firmas de asistentes, sin mención a modelos de IA, sin emojis del tipo robot.
+- El comando `git log --all --format='%an <%ae>' | sort -u` debe arrojar exclusivamente esa identidad. La única excepción tolerada son los merges efectuados desde la web de GitHub que registran el correo `noreply` asociado al usuario `GonxKZ`; aun así el `Author Name` permanece estable.
 
 ## Ciclo completo de una issue
 

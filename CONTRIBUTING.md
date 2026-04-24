@@ -27,6 +27,17 @@ chore(ci): cachear dependencias pip en Actions
 
 Los commits deben ser atómicos, describir el **porqué** en el cuerpo cuando no sea obvio y nunca incluir coautores automáticos ni firmas de asistentes.
 
+### Regla de un único autor en commits y PRs
+
+Todo el historial del repositorio mantiene una identidad única: `GONZALO GARCÍA LAMA <gongarlam@alum.us.es>`. Antes de empujar cualquier rama, configura tu copia local con:
+
+```bash
+git config user.name "GONZALO GARCÍA LAMA"
+git config user.email "gongarlam@alum.us.es"
+```
+
+Está prohibido añadir `Co-Authored-By`, firmas externas, menciones a asistentes (Claude, IA, Anthropic, modelos generativos), iconos tipo robot u otras alusiones a herramientas automatizadas. La auditoría `docs/reviews/v0.3.0-audit.md` documenta el comando `git log --all --format='%an <%ae>' | sort -u` que debe seguir devolviendo exclusivamente esa identidad. Cualquier presencia de un coautor adicional bloquea la fusión de la PR.
+
 ## Pull requests
 
 Cada PR se dirige a `develop` salvo la release final hacia `main`. La descripción debe incluir:
