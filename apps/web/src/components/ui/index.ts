@@ -22,3 +22,8 @@ export { Progress, type ProgressProps, type ProgressSize, type ProgressTone } fr
 export { Skeleton, type SkeletonProps, type SkeletonShape } from './Skeleton';
 export { Stat, type StatProps } from './Stat';
 export { Tag, type TagProps, type TagSize, type TagTone } from './Tag';
+export { Pagination, buildPageRange, type PaginationProps } from './Pagination';
+export { Slider, type SliderProps } from './Slider';
+export { CodeBlock, type CodeBlockProps } from './CodeBlock';
+export { DataTable, type DataTableColumn, type DataTableProps } from './DataTable';
+export { Toggle, type ToggleProps } from './Toggle';

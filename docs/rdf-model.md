@@ -284,3 +284,15 @@ El modelo RDF se considera aceptable si:
 - [11 · Modelo RDF y ontología](11_MODELO_DE_DATOS_RDF_Y_ONTOLOGIA.md).
 - [data-pipeline.md](data-pipeline.md) · Pipeline que produce el grafo.
 - [api.md](api.md) · Endpoints que exponen datos derivados del grafo.
+
+---
+
+## 12. Consumo RDF desde la UI (v0.2.0)
+
+La Fase D añade tres superficies en el frontend que ejercitan el grafo:
+
+- `features/territory/RdfExportModal` abre `POST /rdf/export` con `{territory_id, format: 'turtle', chunk_bytes, page}` y muestra el resultado en un `CodeBlock` paginado. Si la API no responde, el modal construye un Turtle sintético con prefijos `ah:`, `dct:`, `prov:`, `xsd:` a partir del dataset nacional mock, para que la demo sea ejecutable sin backend.
+- `features/sparql/SparqlPlayground` consume `GET /sparql/catalog` y `POST /sparql` y mantiene un **catálogo local** con tres consultas de referencia (top-by-score, affordable-housing, indicator-by-ca) que pueden ejecutarse offline sobre el dataset mock. Los bindings se validan en cliente con `features/sparql/schema.ts` (tipos `string`, `integer`, `number`, `boolean`, `iri`).
+- `features/provenance/ProvenanceChip` materializa la procedencia PROV-O por indicador (dataset, licencia, periodo, URL oficial) en un tooltip accesible.
+
+Estos contratos se alinean con los tipos definidos en `apps/web/src/services/sparql.ts` y `apps/web/src/services/rdf_export.ts`. Cuando la Fase C publique los endpoints reales, los hooks (`useSparql`, `useRdfExport`) alternarán automáticamente al backend, manteniendo el fallback solo como red de seguridad.
