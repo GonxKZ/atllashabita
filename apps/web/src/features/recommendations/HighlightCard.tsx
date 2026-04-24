@@ -43,9 +43,12 @@ function HighlightMedia({ imageSrc, name }: { imageSrc?: string; name: string })
 }
 
 /**
- * Tarjeta horizontal que combina una imagen destacada con los atributos
- * clave del territorio recomendado. Se inspira en la captura de referencia:
- * foto a la izquierda y contenido textual a la derecha, con CTA primario.
+ * Tarjeta vertical que sigue el comp pixel-perfect del panel lateral
+ * derecho del dashboard: cabecera "Recomendación destacada" + foto/ilustración
+ * superior, título y región en el cuerpo y CTA "Ver análisis" al pie. La
+ * versión horizontal anterior se reserva para cuando se reutilice en la
+ * vista comparador (más amplia); aquí prima la densidad vertical para
+ * encajar dentro del panel de 340px.
  */
 export function HighlightCard({ highlight, imageSrc, onOpen, className }: HighlightCardProps) {
   return (
@@ -56,52 +59,63 @@ export function HighlightCard({ highlight, imageSrc, onOpen, className }: Highli
       duration={0.3}
       aria-label={`Recomendación destacada: ${highlight.name}`}
       className={[
-        'flex flex-col gap-4 overflow-hidden rounded-2xl bg-white p-4 shadow-[var(--shadow-card)] md:flex-row',
+        'flex flex-col gap-4 overflow-hidden rounded-3xl bg-white p-4 shadow-[var(--shadow-card)] ring-1 ring-[color:var(--color-line-soft)]',
         className ?? '',
       ]
         .filter(Boolean)
         .join(' ')}
     >
-      <div className="relative h-44 w-full shrink-0 overflow-hidden rounded-xl bg-[var(--color-surface-muted)] md:h-auto md:w-56">
-        <HighlightMedia key={imageSrc ?? 'placeholder'} imageSrc={imageSrc} name={highlight.name} />
-        <span className="absolute top-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[var(--color-brand-700)] backdrop-blur">
+      <header className="flex items-center justify-between">
+        <div>
+          <p className="text-ink-500 text-[11px] font-semibold tracking-[0.16em] uppercase">
+            Recomendación destacada
+          </p>
+          <p className="text-ink-300 mt-0.5 text-[11px]">Coincide con tu perfil actual</p>
+        </div>
+        <span
+          aria-label={`Top score ${highlight.score}`}
+          className="bg-brand-50 text-brand-700 ring-brand-100 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ring-1"
+        >
           Top {highlight.score}
         </span>
+      </header>
+
+      <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-2xl bg-[var(--color-surface-muted)]">
+        <HighlightMedia key={imageSrc ?? 'placeholder'} imageSrc={imageSrc} name={highlight.name} />
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-between">
+      <div className="flex min-w-0 flex-col gap-2">
         <div>
-          <p className="text-brand-700 text-xs font-semibold tracking-[0.18em] uppercase">
-            {highlight.headline}
-          </p>
-          <h3 className="font-display text-ink-900 mt-1 text-xl font-semibold">{highlight.name}</h3>
-          <p className="text-ink-500 text-xs">{highlight.region}</p>
-          <p className="text-ink-700 mt-3 text-sm leading-relaxed">{highlight.description}</p>
-
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {highlight.attributes.map((attribute) => (
-              <li
-                key={attribute.label}
-                className="rounded-full bg-[var(--color-surface-muted)] px-3 py-1 text-xs font-medium text-[var(--color-ink-700)]"
-              >
-                <span className="text-[var(--color-ink-500)]">{attribute.label}:</span>{' '}
-                <span className="font-semibold text-[var(--color-ink-900)]">{attribute.value}</span>
-              </li>
-            ))}
-          </ul>
+          <h3 className="font-display text-ink-900 text-lg leading-tight font-semibold tracking-tight">
+            {highlight.name}
+          </h3>
+          <p className="text-ink-500 mt-0.5 text-xs">{highlight.region}</p>
         </div>
+        <p className="text-ink-700 text-[13px] leading-relaxed">{highlight.description}</p>
 
-        <div className="mt-5 flex items-center justify-between">
-          <span className="text-ink-500 text-xs">Actualizado hoy</span>
-          <button
-            type="button"
-            onClick={() => onOpen?.(highlight.id)}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-600)] px-4 py-2 text-xs font-semibold text-white shadow-[var(--shadow-card)] transition-colors hover:bg-[var(--color-brand-700)]"
-          >
-            Ver análisis
-            <ArrowUpRight width={14} height={14} strokeWidth={2.5} aria-hidden="true" />
-          </button>
-        </div>
+        <ul className="mt-1 flex flex-wrap gap-1.5">
+          {highlight.attributes.map((attribute) => (
+            <li
+              key={attribute.label}
+              className="rounded-full border border-[color:var(--color-line-soft)] bg-[var(--color-surface-soft)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-ink-700)]"
+            >
+              <span className="text-[var(--color-ink-500)]">{attribute.label}:</span>{' '}
+              <span className="font-semibold text-[var(--color-ink-900)]">{attribute.value}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-1 flex items-center justify-between border-t border-[color:var(--color-line-soft)] pt-3">
+        <span className="text-ink-300 text-[11px]">Actualizado hoy</span>
+        <button
+          type="button"
+          onClick={() => onOpen?.(highlight.id)}
+          className="text-brand-700 hover:text-brand-800 focus-visible:ring-brand-300 inline-flex items-center gap-1 rounded-full text-xs font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          Ver análisis
+          <ArrowUpRight width={14} height={14} strokeWidth={2.5} aria-hidden="true" />
+        </button>
       </div>
     </MotionScale>
   );

@@ -23,7 +23,9 @@ flowchart LR
     M3 --> M4[M4 · Backend FastAPI]
     M4 --> M5[M5 · Frontend pixel-a-pixel]
     M5 --> M6[M6 · Tests, CI, seguridad]
-    M6 --> M7[M7 · Documentación y release]
+    M6 --> M7[M7 · Documentación y release v0.1.0]
+    M7 --> M8[M8 · Ingesta nacional + SPARQL + v0.2.0]
+    M8 --> M9[M9 · Pulido pixel-perfect + v0.3.0]
 ```
 
 ---
@@ -95,7 +97,7 @@ Issues asociadas:
 
 ## M3 · Diseño del sistema de datos (calidad avanzada)
 
-**Estado:** `en curso`
+**Estado:** `completado`
 
 - Validaciones tabulares y geoespaciales con reportes persistentes.
 - Named graphs operativos con particiones por dominio.
@@ -105,17 +107,17 @@ Issues asociadas:
 
 | Issue | Título | Estado |
 |---|---|---|
-| #13 | Validaciones tabulares con reporte YAML/JSON. | en curso |
-| #14 | Validaciones geoespaciales (CRS, topología, simplificación). | ready |
-| #15 | Particionado por named graphs y exportación TriG. | ready |
-| #16 | Reporte consolidado de calidad. | ready |
-| #17 | Quality gates en CI (`ci-rdf` ampliado). | ready |
+| #13 | Validaciones tabulares con reporte YAML/JSON. | completado |
+| #14 | Validaciones geoespaciales (CRS, topología, simplificación). | completado |
+| #15 | Particionado por named graphs y exportación TriG. | completado |
+| #16 | Reporte consolidado de calidad. | completado |
+| #17 | Quality gates en CI (`ci-rdf` ampliado). | completado |
 
 ---
 
 ## M4 · Backend FastAPI con dominio limpio
 
-**Estado:** `ready`
+**Estado:** `completado`
 
 - Endpoints de dominio: perfiles, territorios, rankings, capas, fuentes, RDF.
 - Scoring explicable con contribuciones.
@@ -125,9 +127,9 @@ Issues asociadas:
 
 | Issue | Título | Estado |
 |---|---|---|
-| #18 | `GET /profiles` y `GET /territories`. | ready |
-| #19 | `GET /rankings` y `POST /rankings/custom`. | ready |
-| #20 | `GET /map/layers` y `GET /sources`. | ready |
+| #18 | `GET /profiles` y `GET /territories`. | completado |
+| #19 | `GET /rankings` y `POST /rankings/custom`. | completado |
+| #20 | `GET /map/layers` y `GET /sources`. | completado |
 
 Referencias: [`api.md`](api.md), [`15_BACKEND_API_CONTRATOS_Y_SERVICIOS.md`](15_BACKEND_API_CONTRATOS_Y_SERVICIOS.md).
 
@@ -135,7 +137,7 @@ Referencias: [`api.md`](api.md), [`15_BACKEND_API_CONTRATOS_Y_SERVICIOS.md`](15_
 
 ## M5 · Frontend pixel a pixel
 
-**Estado:** `ready`
+**Estado:** `completado`
 
 - Sistema de diseño derivado de la captura de referencia.
 - Sidebar, topbar con "Nuevo análisis", mapa, ranking y panel de tendencias.
@@ -145,13 +147,13 @@ Issues asociadas:
 
 | Issue | Título | Estado |
 |---|---|---|
-| #21 | Sistema de diseño y tokens Tailwind v4. | ready |
-| #22 | Design system shell (sidebar + topbar). | ready |
-| #23 | Mapa MapLibre y capas coropléticas. | ready |
-| #24 | Ranking lateral sincronizado con el mapa. | ready |
-| #25 | Ficha territorial con indicadores y explicación. | ready |
-| #26 | Inspector de fuentes. | ready |
-| #27 | Integración frontend con API. | ready |
+| #21 | Sistema de diseño y tokens Tailwind v4. | completado |
+| #22 | Design system shell (sidebar + topbar). | completado |
+| #23 | Mapa MapLibre y capas coropléticas. | completado |
+| #24 | Ranking lateral sincronizado con el mapa. | completado |
+| #25 | Ficha territorial con indicadores y explicación. | completado |
+| #26 | Inspector de fuentes. | completado |
+| #27 | Integración frontend con API. | completado |
 
 Referencias: [`16_FRONTEND_UX_UI_Y_FLUJOS.md`](16_FRONTEND_UX_UI_Y_FLUJOS.md).
 
@@ -159,7 +161,7 @@ Referencias: [`16_FRONTEND_UX_UI_Y_FLUJOS.md`](16_FRONTEND_UX_UI_Y_FLUJOS.md).
 
 ## M6 · Tests, CI, seguridad y performance
 
-**Estado:** `ready`
+**Estado:** `completado`
 
 - Cobertura de tests unitarios y de integración por encima del 70 %.
 - OWASP Top 10 revisado para la API.
@@ -170,12 +172,12 @@ Issues asociadas:
 
 | Issue | Título | Estado |
 |---|---|---|
-| #28 | Cobertura backend ≥ 70 %. | ready |
-| #29 | Cobertura frontend ≥ 60 %. | ready |
-| #30 | `bandit`, `pip-audit`, `npm audit` estrictos. | ready |
-| #31 | Playwright para E2E-001..E2E-005. | ready |
-| #32 | Lighthouse/k6 smoke. | ready |
-| #33 | Revisión OWASP Top 10. | ready |
+| #28 | Cobertura backend ≥ 70 %. | completado |
+| #29 | Cobertura frontend ≥ 60 %. | completado |
+| #30 | `bandit`, `pip-audit`, `npm audit` estrictos. | completado |
+| #31 | Playwright para E2E-001..E2E-005. | completado |
+| #32 | Lighthouse/k6 smoke. | completado |
+| #33 | Revisión OWASP Top 10. | completado |
 
 Referencias: [`testing.md`](testing.md), [`18_PLAN_DE_PRUEBAS_VALIDACION_Y_CALIDAD.md`](18_PLAN_DE_PRUEBAS_VALIDACION_Y_CALIDAD.md).
 
@@ -183,43 +185,60 @@ Referencias: [`testing.md`](testing.md), [`18_PLAN_DE_PRUEBAS_VALIDACION_Y_CALID
 
 ## M7 · Documentación final y release
 
-**Estado:** `en curso`
+**Estado:** `completado`
 
 - README exhaustivo.
 - Guías `architecture.md`, `data-pipeline.md`, `rdf-model.md`, `api.md`, `testing.md`, `roadmap.md`.
 - Playwright E2E `home.spec.ts` y `profile-flow.spec.ts`.
-- Release final: PR `develop → main` con tag SemVer y release notes.
+- Release final: PR `develop → main` con tag SemVer (v0.1.0) y release notes.
 
 Issues asociadas:
 
 | Issue | Título | Estado |
 |---|---|---|
-| #34 | Documentación final y guía E2E. | en curso |
+| #34 | Documentación final y guía E2E. | completado |
+| #59 | Ultrareview cruzada del repositorio v0.1.1. | completado ([reviews/v0.1.1-ultrareview.md](reviews/v0.1.1-ultrareview.md)) |
 
 ---
 
 ## M8 · Ingesta real, SPARQL y release v0.2.0
 
-**Estado:** `en curso`
+**Estado:** `completado`
 
 La milestone M8 descompone el salto desde el demo con 10 municipios a una plataforma
 demostrable a nivel nacional en cuatro fases independientes (A/B/C/D) que se han
-trabajado en worktrees aislados para reducir acoplamiento.
+trabajado en worktrees aislados para reducir acoplamiento. Todas las fases se
+fusionaron en `develop` y el tag v0.2.0 cierra la milestone (PR #86).
 
-| Fase | Alcance | Issues principales |
-|---|---|---|
-| A · Ingesta real | Conectores INE + MITECO, dataset nacional con >=100 municipios. | #72, #73 |
-| B · Ontología | GeoSPARQL + PROV-O, SHACL ampliado, consultas de referencia. | #74, #75 |
-| C · Endpoints | `/sparql`, `/sparql/catalog`, `/rdf/export` (POST con paginación). | #76, #77 |
-| D · UI/UX v0.2.0 | Ranking nacional, ficha con PROV-O, panel SPARQL, release v0.2.0. | #78, #80 |
+| Fase | Alcance | Issues principales | Estado |
+|---|---|---|---|
+| A · Ingesta real | Conectores INE + MITECO + SETELECO + AEMET, dataset nacional con 101 municipios y 909 observaciones. | #70, #72, #73 | completado |
+| B · Ontología | GeoSPARQL + PROV-O, SHACL ampliado, consultas de referencia. | #74, #75 | completado |
+| C · Endpoints | `/sparql`, `/sparql/catalog`, `/rdf/export`, adaptador Fuseki opcional. | #76, #77, #83 | completado |
+| D · UI/UX v0.2.0 | Ranking nacional, ficha con PROV-O, panel SPARQL, release v0.2.0. | #78, #80, #84, #86 | completado |
 
 El detalle de la Fase D (ranking paginado, ficha con "Ver RDF", panel SPARQL,
 `ProvenanceChip`, `LayerSwitcher` con seis capas) se documenta en
 [`reviews/v0.2.0-release-notes.md`](reviews/v0.2.0-release-notes.md).
 
-Las fases A-C pueden integrarse incrementalmente sin cambios en la UI gracias al
-fallback local del panel SPARQL y del modal "Ver RDF": mientras la API no esté
-publicada, el frontend sigue siendo ejecutable y demostrable.
+---
+
+## M9 · Pulido pixel-perfect y release v0.3.0
+
+**Estado:** `en curso`
+
+Milestone final que cierra el TFG. Cuatro pistas paralelas (A/B/C/D) coordinadas en
+worktrees aislados, sin solapamiento de ficheros:
+
+| Pista | Alcance | Issues principales | Estado |
+|---|---|---|---|
+| A · Pixel-perfect UI | Tokens consolidados, hero, recommendations, trends, dashboard, ranking, territorio y SPARQL al pixel frente a la captura de referencia. | #89 | en curso |
+| B · Motion con GSAP | Timeline GSAP + scroll trigger, fallback `prefers-reduced-motion`. | #90 | en curso |
+| C · Documentación + auditoría | Reescritura del README, sincronización de docs con v0.2.0/v0.3.0, ADR 0004, auditoría completa. | #87, #88 | en curso |
+| D · Capturas + release | Capturas Playwright reales en `docs/screenshots/`, smoke E2E reforzado, release v0.3.0. | #91, #92 | en curso |
+
+Documento de referencia: [`reviews/v0.3.0-audit.md`](reviews/v0.3.0-audit.md) y
+[`adr/0004-pulido-pixel-perfect.md`](adr/0004-pulido-pixel-perfect.md).
 
 ---
 

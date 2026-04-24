@@ -1,73 +1,9 @@
-# Dependabot mantiene las dependencias de cada ecosistema al día.
-# Agrupamos los PRs no críticos para reducir ruido y mantenemos los
-# security updates separados para poder priorizarlos.
+# Dependabot suspendido en v0.3.0 a peticion del propietario unico del
+# repositorio: todos los commits deben quedar asociados a la cuenta de
+# GONZALO GARCIA LAMA. Cuando se reactive, se hara mediante una rama feature
+# manual, no automatica, para que cada commit pase por el propietario.
+#
+# Mantenemos el fichero como referencia documental; al estar el array
+# `updates` vacio, Dependabot no abre PRs en este repositorio.
 version: 2
-updates:
-  # Backend Python
-  - package-ecosystem: "pip"
-    directory: "/apps/api"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "Europe/Madrid"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "backend"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    groups:
-      python-minor:
-        update-types: ["minor", "patch"]
-
-  # Frontend pnpm
-  - package-ecosystem: "npm"
-    directory: "/apps/web"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "Europe/Madrid"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "frontend"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    groups:
-      frontend-minor:
-        update-types: ["minor", "patch"]
-
-  # GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "Europe/Madrid"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "ci"
-    commit-message:
-      prefix: "ci(deps)"
-      include: "scope"
-
-  # Docker (Dockerfiles)
-  - package-ecosystem: "docker"
-    directory: "/apps/api"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-      timezone: "Europe/Madrid"
-    labels:
-      - "dependencies"
-      - "docker"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
+updates: []

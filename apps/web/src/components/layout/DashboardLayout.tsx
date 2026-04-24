@@ -34,25 +34,31 @@ export function DashboardLayout({
 
         <main
           id="contenido-principal"
-          className="flex-1 overflow-x-hidden px-8 pt-6 pb-10"
+          // Padding ajustado al comp: 32px laterales en desktop, 24px en
+          // tablet. El `gap-6` entre columnas reproduce la separación que
+          // se observa en la captura entre mapa y panel lateral.
+          className="flex-1 overflow-x-hidden px-6 pt-6 pb-10 md:px-8"
           aria-label="Panel principal"
         >
           <div
             className={cn(
               'grid w-full gap-6',
-              side ? 'lg:grid-cols-[minmax(0,1fr)_360px]' : 'grid-cols-1'
+              // Panel derecho de 340px en desktop (igual que el comp):
+              // suficiente para HighlightCard + TrendsChart + ActivityFeed
+              // sin desbordar en monitores 1440-1920px.
+              side ? 'lg:grid-cols-[minmax(0,1fr)_340px]' : 'grid-cols-1'
             )}
           >
             <section className="flex min-w-0 flex-col gap-6" aria-label="Contenido principal">
               {hero}
               {footer ? (
-                <section aria-label="Acciones destacadas" className="mt-2">
+                <section aria-label="Acciones destacadas" className="mt-1">
                   {footer}
                 </section>
               ) : null}
             </section>
             {side ? (
-              <aside aria-label="Panel lateral" className="flex flex-col gap-4">
+              <aside aria-label="Panel lateral" className="flex flex-col gap-5">
                 {side}
               </aside>
             ) : null}

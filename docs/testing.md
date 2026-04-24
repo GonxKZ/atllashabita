@@ -17,6 +17,18 @@ flowchart TD
 
 Regla de pulgar: muchas unitarias, algunas de integración, pocas de E2E. Los tiempos de CI deben mantener cada workflow por debajo de 5 minutos.
 
+**Estado real v0.2.0 / v0.3.0 sobre `develop`:**
+
+| Capa | Cantidad | Resultado |
+|---|---|---|
+| Unitarias backend (`pytest`) | 372 tests | 372/372 verde |
+| Cobertura backend (`coverage.py`) | >= 90 % en paquetes críticos | verde |
+| Lint backend (`ruff`) y tipos (`mypy --strict`) | sin warnings | verde |
+| Unitarias frontend (`vitest`) | 41 archivos · 127 tests | 127/127 verde |
+| E2E (`@playwright/test`) | 5 suites (`home`, `profile-flow`, `ranking`, `territory`, `sparql`) | verde |
+| Validación RDF + SHACL (`pyshacl`) | grafo seed | verde |
+| Seguridad (`bandit`, `pip-audit`, `npm audit`, CodeQL, Trivy) | 5 controles | verde |
+
 ---
 
 ## 2. Capas y cómo se ejecutan
@@ -133,9 +145,11 @@ pnpm -C apps/web e2e
 |---|---|---|
 | E2E-001 | Visitar `/`, ver sidebar, topbar con "Nuevo análisis", mapa renderizado y al menos una tarjeta de tendencias. | Elementos visibles. Implementado en `home.spec.ts`. |
 | E2E-002 | Cambiar perfil con controles visibles y verificar cambio en la ranking card. | Cambio observable. Implementado en `profile-flow.spec.ts`. |
-| E2E-003 | Abrir ficha territorial desde el ranking. | Aparecen indicadores, explicación y fuentes. (fase 6) |
-| E2E-004 | Inspeccionar fuente de un indicador. | Panel con título, periodo y fecha. (fase 6) |
-| E2E-005 | Aplicar filtro imposible. | Estado «sin resultados». (fase 6) |
+| E2E-003 | Abrir ficha territorial desde el ranking. | Aparecen indicadores, explicación, chips PROV-O y modal "Ver RDF". Implementado en `territory.spec.ts`. |
+| E2E-004 | Inspeccionar fuente de un indicador con `ProvenanceChip`. | Tooltip con título, licencia, periodo y URL oficial. Implementado en `territory.spec.ts`. |
+| E2E-005 | Aplicar filtros duros (precio, conectividad) en ranking nacional. | Lista filtrada o estado «sin resultados». Implementado en `ranking.spec.ts`. |
+| E2E-006 | Ejecutar consulta del catálogo SPARQL desde el playground. | Tabla con resultados o fallback local visible. Implementado en `sparql.spec.ts`. |
+| E2E-007 (M9) | Capturar pantalla pixel-perfect del dashboard, ranking, territorio y SPARQL. | PNGs reproducibles en `docs/screenshots/`. (en curso, Teammate D) |
 
 Los specs de E2E-001 y E2E-002 están en [`apps/web/tests/e2e/home.spec.ts`](../apps/web/tests/e2e/home.spec.ts) y [`apps/web/tests/e2e/profile-flow.spec.ts`](../apps/web/tests/e2e/profile-flow.spec.ts). Siguen las prácticas:
 

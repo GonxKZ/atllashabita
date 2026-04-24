@@ -127,6 +127,29 @@ El estado de servidor vive en TanStack Query (cache, refetch declarativo); el es
 
 ---
 
+## 5.bis Estado real v0.2.0 / v0.3.0
+
+A partir de la release v0.2.0 (M8) la arquitectura instanciada presenta los siguientes contadores reales sobre `develop`:
+
+| Dimensión | Cifra |
+|---|---|
+| Municipios cubiertos en `data/seed/` | 101 |
+| Provincias representadas | 52 |
+| Comunidades autónomas | 19 (incluye Ceuta y Melilla como CCAA + provincia) |
+| Indicadores semánticos definidos | 9 |
+| Observaciones municipio × indicador | 909 |
+| Perfiles de decisión por defecto | 4 (`remote_work`, `family`, `student`, `retire`) |
+| Fuentes oficiales conectadas | 8 (MIVAU SERPAVI, INE datos abiertos, INE Atlas de Renta, INE DIRCE, MITECO Reto Demográfico demografía y servicios, SETELECO, AEMET) |
+| Conectores de ingesta operativos | 5 (`mivau_serpavi`, `ine_*`, `miteco_*`, `seteleco`, `aemet`) |
+| Endpoints REST publicados | 14 (`/health`, `/profiles*`, `/territories*`, `/rankings*`, `/map/layers*`, `/sources*`, `/rdf/export`, `/sparql`, `/sparql/catalog`, `/quality/reports`) |
+| Pantallas frontend con datos reales | Dashboard, Ranking, Territorio, SPARQL playground |
+| Tests backend verdes | 372/372 |
+| Tests frontend verdes | 127/127 |
+
+La Fase C del M8 incorpora la dualidad SPARQL: el backend rdflib en memoria se complementa con un adaptador Fuseki opcional (`ATLASHABITA_SPARQL_BACKEND=fuseki`) ejecutable vía `make fuseki-up`. El frontend mantiene fallback offline para SPARQL playground y modal "Ver RDF" cuando la API aún no responde, garantizando demos reproducibles aunque el adaptador Fuseki esté apagado.
+
+---
+
 ## 6. Decisiones clave
 
 | ID | Decisión | Estado | Referencia |
@@ -134,10 +157,13 @@ El estado de servidor vive en TanStack Query (cache, refetch declarativo); el es
 | ADR-0001 | Auditoría inicial del repositorio heredado y desbloqueo del flujo. | Aceptado | [adr/0001](adr/0001-auditoria-inicial.md) |
 | ADR-0002 | Arquitectura screaming por dominios en apps/api y apps/web. | Aceptado | [adr/0002](adr/0002-arquitectura-screaming.md) |
 | ADR-0003 | Stack tecnológico: FastAPI, RDFLib, pySHACL, React 19, Tailwind v4, Vite 6, MapLibre. | Aceptado | [adr/0003](adr/0003-stack-tecnologico.md) |
+| ADR-0004 | Pulido pixel-perfect M9: tokens consolidados, motion con GSAP, fallback `prefers-reduced-motion`. | Aceptado | [adr/0004](adr/0004-pulido-pixel-perfect.md) |
 | DA-001 | Separar datos brutos de RDF; el grafo contiene entidades, relaciones, procedencia, indicadores agregados y scores. | Aceptado | [10_ARQUITECTURA_DE_SOFTWARE.md §5](10_ARQUITECTURA_DE_SOFTWARE.md) |
 | DA-002 | Scoring explicable (suma ponderada normalizada) antes que modelo opaco. | Aceptado | [14_MOTOR_DE_RECOMENDACION_Y_DATA_MINING.md](14_MOTOR_DE_RECOMENDACION_Y_DATA_MINING.md) |
 | DA-003 | API como única frontera visible; sin lectura directa de RDF/Parquet desde el frontend. | Aceptado | [15_BACKEND_API_CONTRATOS_Y_SERVICIOS.md](15_BACKEND_API_CONTRATOS_Y_SERVICIOS.md) |
 | DA-004 | Validación antes de publicación (quality gates + SHACL). | Aceptado | [12_INGESTA_ETL_ELT_Y_CALIDAD_DE_DATOS.md](12_INGESTA_ETL_ELT_Y_CALIDAD_DE_DATOS.md) |
+| DA-005 | Alineación con GeoSPARQL y refuerzo PROV-O en Fase B M8. | Aceptado | [11_MODELO_DE_DATOS_RDF_Y_ONTOLOGIA.md](11_MODELO_DE_DATOS_RDF_Y_ONTOLOGIA.md) |
+| DA-006 | `/sparql` whitelist + adaptador Fuseki opcional (Fase C M8). | Aceptado | [api.md §3.10](api.md) |
 
 ---
 
@@ -180,6 +206,7 @@ El estado de servidor vive en TanStack Query (cache, refetch declarativo); el es
 - [ADR 0001 · Auditoría inicial](adr/0001-auditoria-inicial.md)
 - [ADR 0002 · Arquitectura screaming](adr/0002-arquitectura-screaming.md)
 - [ADR 0003 · Stack tecnológico](adr/0003-stack-tecnologico.md)
+- [ADR 0004 · Pulido pixel-perfect](adr/0004-pulido-pixel-perfect.md)
 - [10 · Arquitectura de software (extendido)](10_ARQUITECTURA_DE_SOFTWARE.md)
 - [15 · Backend, API, contratos y servicios](15_BACKEND_API_CONTRATOS_Y_SERVICIOS.md)
 - [16 · Frontend, UX/UI y flujos](16_FRONTEND_UX_UI_Y_FLUJOS.md)
@@ -187,4 +214,6 @@ El estado de servidor vive en TanStack Query (cache, refetch declarativo); el es
 - [data-pipeline.md · Pipeline de datos](data-pipeline.md)
 - [rdf-model.md · Modelo RDF resumido](rdf-model.md)
 - [testing.md · Pirámide de pruebas](testing.md)
-- [roadmap.md · Milestones M0–M7](roadmap.md)
+- [roadmap.md · Milestones M0–M9](roadmap.md)
+- [reviews/v0.2.0-release-notes.md · Notas de la release v0.2.0](reviews/v0.2.0-release-notes.md)
+- [reviews/v0.3.0-audit.md · Auditoría final v0.3.0](reviews/v0.3.0-audit.md)
