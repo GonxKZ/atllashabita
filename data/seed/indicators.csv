@@ -1,0 +1,6 @@
+code,label,unit,direction,description,source_id,min_value,max_value
+rent_median,Alquiler mediano,EUR/m2/mes,lower_is_better,"Precio mediano del alquiler libre en vivienda colectiva según Serpavi.",mivau_serpavi,2.0,25.0
+broadband_coverage,Cobertura de banda ancha,%,higher_is_better,"Porcentaje de viviendas con acceso a banda ancha fija de al menos 100 Mbps.",seteleco_broadband_maps,0.0,100.0
+income_per_capita,Renta neta por persona,EUR,higher_is_better,"Renta neta anual por persona según el Atlas de Renta del INE.",ine_atlas_renta,5000.0,45000.0
+services_score,Índice de servicios básicos,puntos,higher_is_better,"Índice sintético de servicios municipales (sanidad; educación; comercio).",miteco_reto_demografico,0.0,100.0
+climate_comfort,Confort climático,puntos,higher_is_better,"Índice anual de confort térmico basado en horas en rango 18-26 ºC y precipitación.",aemet_opendata,0.0,100.0

@@ -1,0 +1,16 @@
+kind,code,name,parent_code,province_code,autonomous_community_code,lat,lon,population,area_km2
+autonomous_community,01,Andalucía,,,01,37.5443,-4.7278,8575000,87597.0
+autonomous_community,16,País Vasco,,,16,43.0000,-2.5000,2213000,7234.0
+province,41,Sevilla,01,,01,37.3886,-5.9823,1943000,14042.0
+province,29,Málaga,01,,01,36.7213,-4.4213,1695000,7308.0
+province,20,Guipúzcoa,16,,16,43.1775,-2.4836,730000,1980.0
+municipality,41091,Sevilla,41,41,01,37.3886,-5.9823,684234,141.3
+municipality,41038,Dos Hermanas,41,41,01,37.2833,-5.9250,136246,160.9
+municipality,41004,Alcalá de Guadaíra,41,41,01,37.3372,-5.8428,76239,287.4
+municipality,29067,Málaga,29,29,01,36.7213,-4.4213,585406,395.1
+municipality,29069,Marbella,29,29,01,36.5108,-4.8824,154458,117.1
+municipality,29054,Fuengirola,29,29,01,36.5397,-4.6250,81478,10.4
+municipality,20069,Donostia/San Sebastián,20,20,16,43.3183,-1.9812,188102,60.9
+municipality,20036,Irún,20,20,16,43.3384,-1.7886,62746,42.4
+municipality,20038,Hondarribia,20,20,16,43.3600,-1.7956,17250,28.6
+municipality,20071,Tolosa,20,20,16,43.1361,-2.0783,19846,37.4
