@@ -12,6 +12,9 @@
  *  - `/territorio/:id` → `TerritoryDetail` (Sevilla, etc.).
  *  - `/escenarios` → alias del playground SPARQL.
  *  - `/sparql`     → `SparqlPlayground` lazy-loaded.
+ *  - `/login`      → `LoginPage` (sin chrome, layout autocontenido).
+ *  - `/registro`   → `RegisterPage` (sin chrome, layout autocontenido).
+ *  - `/cuenta`     → `AccountPage` protegida con `RequireAuth`.
  *  - `*`           → `NotFound`.
  *
  * Crítico: ya no se renderiza `DashboardShell` por encima del `<Outlet />`,
@@ -27,6 +30,10 @@ import { Topbar } from '../components/layout/Topbar';
 import { NotFound } from './NotFound';
 import { RankingPanel } from '../features/ranking';
 import { TerritoryDetail } from '../features/territory';
+import { AccountPage } from '../features/auth/AccountPage';
+import { LoginPage } from '../features/auth/LoginPage';
+import { RegisterPage } from '../features/auth/RegisterPage';
+import { RequireAuth } from '../features/auth/RequireAuth';
 
 const LazySparqlPlayground = lazy(() =>
   import('../features/sparql/SparqlPlayground').then((module) => ({
@@ -184,7 +191,17 @@ function TerritoryRoute() {
   );
 }
 
+function CuentaRoute() {
+  return (
+    <RequireAuth>
+      <AccountPage />
+    </RequireAuth>
+  );
+}
+
 export const appRouter = createBrowserRouter([
+  { path: '/login', element: <LoginPage /> },
+  { path: '/registro', element: <RegisterPage /> },
   {
     path: '/',
     element: <RootLayout />,
@@ -198,6 +215,7 @@ export const appRouter = createBrowserRouter([
       { path: 'escenarios', element: <SparqlRoute /> },
       { path: 'territorio/:id', element: <TerritoryRoute /> },
       { path: 'sparql', element: <SparqlRoute /> },
+      { path: 'cuenta', element: <CuentaRoute /> },
     ],
   },
   { path: '*', element: <NotFound /> },
@@ -211,4 +229,5 @@ export {
   TerritoryRoute,
   SparqlRoute,
   MapaRoute,
+  CuentaRoute,
 };
