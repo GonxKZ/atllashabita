@@ -29,10 +29,14 @@
   },
   "include": [
     "src",
-    "tests",
-    "playwright.config.ts",
     "vite.config.ts",
-    "vitest.config.ts",
     "vitest.setup.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tests/e2e",
+    "vitest.config.ts",
+    "playwright.config.ts"
   ]
 }

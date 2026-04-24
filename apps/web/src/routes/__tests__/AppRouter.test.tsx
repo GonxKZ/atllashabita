@@ -29,7 +29,9 @@ function renderAt(initialPath: string) {
 describe('AppRouter', () => {
   it('renderiza el dashboard en la raíz', () => {
     renderAt('/');
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/brújula territorial/i);
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
+      /mejor lugar.*vivir en españa/i
+    );
     expect(screen.getByRole('region', { name: 'dashboard' })).toBeInTheDocument();
   });
 
