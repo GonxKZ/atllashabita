@@ -8,19 +8,41 @@ logs/
 .env.*
 !.env.example
 
-# Dependencias
-node_modules/
+# Dependencias Python
 __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
 
-# Build / temporales
+# Dependencias Node
+node_modules/
+apps/web/node_modules/
+apps/web/coverage/
+apps/web/playwright-report/
+apps/web/test-results/
+
+# Builds
 dist/
 build/
 .cache/
 .tmp/
 *.tmp
+apps/web/dist/
+
+# Datos derivados (el seed se versiona tras issue #8)
+data/raw/*
+!data/raw/.gitkeep
+data/interim/
+data/processed/
+data/rdf/
+data/reports/
 
 # Editores / SO
 .vscode/
