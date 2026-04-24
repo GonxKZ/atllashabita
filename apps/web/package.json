@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "screenshots": "tsx scripts/take_screenshots.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -54,6 +55,7 @@
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
     "tailwindcss": "^4.0.0-beta.8",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.3",
     "vitest": "^2.1.8"
