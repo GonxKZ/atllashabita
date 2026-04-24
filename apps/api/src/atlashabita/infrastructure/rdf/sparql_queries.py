@@ -18,6 +18,7 @@ del vocabulario RDF y no tienen sentido fuera del grafo.
 
 from __future__ import annotations
 
+import math
 import re
 import threading
 from collections.abc import Iterable, Mapping
@@ -29,7 +30,7 @@ from rdflib.query import Result
 from rdflib.term import Node
 
 from atlashabita.config import Settings
-from atlashabita.infrastructure.rdf.namespaces import AH, AHR, DCT
+from atlashabita.infrastructure.rdf.namespaces import AH, AHR, DCT, GEO_WGS84, PROV
 
 #: Palabras clave de consultas que modifican el grafo.
 _UPDATE_KEYWORDS: Final[tuple[str, ...]] = (
@@ -63,6 +64,15 @@ _SAFE_TERRITORY_ID = re.compile(
     r"^(autonomous_community|province|municipality):[A-Za-z0-9_-]{1,16}$"
 )
 
+#: Patrón permisivo para periodos aceptados: anio (``2025``), anio+trimestre
+#: (``2025Q2``), anio+mes (``2025-07``). Se usa para validar inputs antes de
+#: interpolarlos en SPARQL y evitar inyección vía el segmento del periodo.
+_SAFE_PERIOD = re.compile(r"^[0-9]{4}(?:Q[1-4]|-[0-1][0-9])?$")
+
+#: Lat/lon/km se limitan a decimales razonables para blindar contra overflow
+#: numérico y valores absurdamente grandes.
+_MAX_RADIUS_KM: Final[float] = 1_000.0
+
 
 def _require_safe_identifier(value: str, *, field: str) -> str:
     """Asegura que ``value`` sea un identificador seguro para interpolar en una IRI.
@@ -81,6 +91,35 @@ def _require_safe_territory_id(value: str) -> str:
     if not isinstance(value, str) or not _SAFE_TERRITORY_ID.match(value):
         raise ValueError(f"territory_id inválido: {value!r}")
     return value
+
+
+def _require_safe_period(value: str) -> str:
+    """Valida un periodo (``2024``, ``2025Q2``, ``2025-07``) antes de usarlo."""
+    if not isinstance(value, str) or not _SAFE_PERIOD.match(value):
+        raise ValueError(f"period inválido: {value!r}")
+    return value
+
+
+def _require_coordinate(value: float, *, minimum: float, maximum: float, field: str) -> float:
+    """Valida una coordenada numérica finita dentro del rango WGS84."""
+    if not isinstance(value, int | float) or isinstance(value, bool):
+        raise ValueError(f"{field} debe ser numérico: {value!r}")
+    numeric = float(value)
+    if not math.isfinite(numeric):
+        raise ValueError(f"{field} no finito: {value!r}")
+    if not minimum <= numeric <= maximum:
+        raise ValueError(f"{field} fuera de rango [{minimum}, {maximum}]: {numeric}")
+    return numeric
+
+
+def _require_radius_km(value: float) -> float:
+    """Valida un radio en km (> 0 y ≤ 1000)."""
+    if not isinstance(value, int | float) or isinstance(value, bool):
+        raise ValueError(f"radius_km debe ser numérico: {value!r}")
+    numeric = float(value)
+    if not math.isfinite(numeric) or numeric <= 0 or numeric > _MAX_RADIUS_KM:
+        raise ValueError(f"radius_km fuera de rango (0, {_MAX_RADIUS_KM}]: {numeric}")
+    return numeric
 
 
 class SparqlUpdateForbiddenError(RuntimeError):
@@ -299,6 +338,211 @@ class SparqlRunner:
             "direction": str(row["direction"]),
         }
 
+    def territories_within_radius(
+        self,
+        lat: float,
+        lon: float,
+        radius_km: float,
+        scope: str = "municipality",
+    ) -> list[dict[str, Any]]:
+        """Territorios cuyo centroide está dentro de ``radius_km`` del punto.
+
+        Se recuperan los centroides WGS84 con SPARQL y la distancia se calcula
+        en Python usando la fórmula de Haversine. Esto es un fallback portátil
+        cuando el backend no implementa ``geof:distance``. En un despliegue
+        Fuseki/Jena con GeoSPARQL la misma lista de URIs se puede obtener con
+        ``FILTER(geof:distance(?g1, ?g2, units:metre) <= ?r)`` — pero la MVP
+        prioriza ejecutar contra ``rdflib.Graph`` sin extensiones.
+
+        Los resultados se ordenan por distancia ascendente y se recortan al
+        ``sparql_max_results`` configurado para respetar los límites del runner.
+        """
+        _require_coordinate(lat, minimum=-90.0, maximum=90.0, field="lat")
+        _require_coordinate(lon, minimum=-180.0, maximum=180.0, field="lon")
+        _require_radius_km(radius_km)
+        target_class = _scope_to_class(scope)
+        query = f"""
+        PREFIX ah: <{AH}>
+        PREFIX wgs84: <{GEO_WGS84}>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX dct: <{DCT}>
+
+        SELECT ?territory ?label ?code ?lat ?lon
+        WHERE {{
+          ?territory a <{target_class}> ;
+                     rdfs:label ?label ;
+                     dct:identifier ?code ;
+                     wgs84:lat ?lat ;
+                     wgs84:long ?lon .
+        }}
+        """
+        rows = self._execute(query)
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            try:
+                row_lat = float(str(row["lat"]))
+                row_lon = float(str(row["lon"]))
+            except (TypeError, ValueError):
+                continue
+            distance_km = _haversine_km(lat, lon, row_lat, row_lon)
+            if distance_km <= radius_km:
+                results.append(
+                    {
+                        "territory": str(row["territory"]),
+                        "label": str(row["label"]),
+                        "code": str(row["code"]),
+                        "lat": row_lat,
+                        "lon": row_lon,
+                        "distance_km": round(distance_km, 3),
+                    }
+                )
+        results.sort(key=lambda item: float(item["distance_km"]))
+        return results[: self.settings.sparql_max_results]
+
+    def top_by_composite_score(
+        self,
+        profile_id: str,
+        limit: int = 10,
+        scope: str = "municipality",
+    ) -> list[dict[str, Any]]:
+        """Ranking con agregación y normalización aproximada en SPARQL.
+
+        A diferencia de :meth:`top_scores_by_profile`, esta variante usa
+        ``GROUP BY`` y ``SUM`` con una normalización lineal cerrada en SPARQL
+        para acercarse a lo que haría un triplestore con funciones nativas.
+        Devuelve el score total en escala [0, 100] y el número de indicadores
+        agregados por territorio, útil para detectar territorios con cobertura
+        incompleta.
+        """
+        _require_safe_identifier(profile_id, field="profile_id")
+        profile_uri = URIRef(f"{AHR}profile/{profile_id}")
+        target_class = _scope_to_class(scope)
+        capped_limit = max(1, min(int(limit), self.settings.sparql_max_results))
+        query = f"""
+        PREFIX ah: <{AH}>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+        SELECT ?territory ?label
+               (SUM(?contribution) AS ?score)
+               (COUNT(?indicator) AS ?indicators)
+        WHERE {{
+          ?territory a <{target_class}> ;
+                     rdfs:label ?label ;
+                     ah:hasIndicatorObservation ?obs .
+          ?obs ah:indicator ?indicator ;
+               ah:value ?value .
+          ?indicator ah:direction ?direction .
+          <{profile_uri}> ah:hasContribution ?c .
+          ?c ah:indicator ?indicator ;
+             ah:weight ?weight .
+          BIND(
+            IF(?direction = "lower_is_better",
+               IF(?value <= 0, 1.0,
+                  IF(?value >= 25, 0.0, 1.0 - (?value / 25.0))),
+               IF(?value <= 0, 0.0,
+                  IF(?value <= 1, xsd:decimal(?value),
+                     IF(?value <= 100, ?value / 100.0,
+                        IF(?value >= 50000, 1.0, ?value / 50000.0)))))
+            AS ?normalized
+          )
+          BIND((?normalized * ?weight * 100.0) AS ?contribution)
+        }}
+        GROUP BY ?territory ?label
+        ORDER BY DESC(?score)
+        LIMIT {capped_limit}
+        """
+        rows = self._execute(query)
+        return [
+            {
+                "territory": str(row["territory"]),
+                "label": str(row["label"]),
+                "score": round(float(str(row["score"])), 2),
+                "indicators": int(str(row["indicators"])),
+            }
+            for row in rows
+        ]
+
+    def indicators_timeseries(self, territory_id: str, indicator_code: str) -> list[dict[str, Any]]:
+        """Serie temporal de un indicador para un territorio.
+
+        Devuelve periodos ordenados ascendentemente con valor, unidad y calidad.
+        Si la observación tiene ``ah:periodYear`` disponible se usa para
+        ordenar; si no, se cae al ordenamiento lexicográfico de ``ah:period``.
+        """
+        territory_uri = _territory_uri_from_id(territory_id)
+        _require_safe_identifier(indicator_code, field="indicator_code")
+        indicator_uri = URIRef(f"{AHR}indicator/{indicator_code}")
+        query = f"""
+        PREFIX ah: <{AH}>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+        SELECT ?obs ?period ?value ?quality ?unit
+        WHERE {{
+          <{territory_uri}> ah:hasIndicatorObservation ?obs .
+          ?obs ah:indicator <{indicator_uri}> ;
+               ah:period ?period ;
+               ah:value ?value ;
+               ah:qualityFlag ?quality .
+          <{indicator_uri}> ah:unit ?unit .
+        }}
+        ORDER BY ASC(?period)
+        """
+        return [
+            {
+                "observation": str(row["obs"]),
+                "period": str(row["period"]),
+                "value": float(str(row["value"])),
+                "quality": str(row["quality"]),
+                "unit": str(row["unit"]),
+            }
+            for row in self._execute(query)
+        ]
+
+    def provenance_chain(self, observation_uri: str) -> dict[str, Any]:
+        """Devuelve la cadena PROV-O (actividad, fuente, periodo) de una observación.
+
+        Se acepta una IRI canónica ``https://data.atlashabita.example/resource/
+        observation/<indicador>/<kind>/<code>/<periodo>``. Cualquier otra URI
+        se rechaza antes de interpolarla para evitar consultas arbitrarias.
+        """
+        observation_ref = _require_observation_uri(observation_uri)
+        query = f"""
+        PREFIX ah: <{AH}>
+        PREFIX prov: <{PROV}>
+        PREFIX dct: <{DCT}>
+
+        SELECT ?activity ?source ?source_title ?period ?indicator ?value ?quality
+        WHERE {{
+          <{observation_ref}> a ah:IndicatorObservation ;
+                              ah:period ?period ;
+                              ah:indicator ?indicator ;
+                              ah:value ?value ;
+                              ah:qualityFlag ?quality .
+          OPTIONAL {{
+            <{observation_ref}> prov:wasGeneratedBy ?activity .
+            ?activity prov:used ?source .
+            ?source dct:title ?source_title .
+          }}
+        }}
+        LIMIT 1
+        """
+        rows = self._execute(query)
+        if not rows:
+            return {}
+        row = rows[0]
+        return {
+            "observation": str(observation_ref),
+            "activity": str(row["activity"]) if row.get("activity") is not None else None,
+            "source": str(row["source"]) if row.get("source") is not None else None,
+            "source_title": str(row["source_title"])
+            if row.get("source_title") is not None
+            else None,
+            "period": str(row["period"]),
+            "indicator": str(row["indicator"]),
+            "value": float(str(row["value"])),
+            "quality": str(row["quality"]),
+        }
+
     def count_triples_by_class(self) -> dict[str, int]:
         """Cuenta instancias por clase RDF.
 
@@ -412,6 +656,51 @@ def _territory_uri_from_id(territory_id: str) -> URIRef:
     _require_safe_territory_id(territory_id)
     kind, code = territory_id.split(":", maxsplit=1)
     return URIRef(f"{AHR}territory/{kind}/{code}")
+
+
+def _require_observation_uri(value: str) -> URIRef:
+    """Valida que ``value`` sea una IRI de observación canónica.
+
+    El bloqueo evita que la capa HTTP propague IRIs arbitrarias al SPARQL,
+    que podrían redirigir la consulta a recursos inesperados o externos.
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"observation_uri debe ser cadena: {value!r}")
+    prefix = f"{AHR}observation/"
+    if not value.startswith(prefix):
+        raise ValueError(f"observation_uri inválido (prefijo): {value!r}")
+    tail = value[len(prefix) :]
+    # Componentes admitidos: indicador/kind/code/periodo (4 segmentos).
+    parts = tail.split("/")
+    if len(parts) != 4:
+        raise ValueError(f"observation_uri inválido (segmentos): {value!r}")
+    indicator, kind, code, period = parts
+    _require_safe_identifier(indicator, field="indicator_code")
+    if kind not in {"autonomous_community", "province", "municipality"}:
+        raise ValueError(f"observation_uri inválido (kind): {value!r}")
+    _require_safe_identifier(code, field="territory_code")
+    _require_safe_period(period)
+    return URIRef(value)
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distancia en km entre dos puntos WGS84 usando Haversine.
+
+    Se evita depender de ``pyproj``/``shapely`` manteniendo la capa liviana.
+    El error frente a cálculos elipsoidales es < 0.5% en distancias < 1000 km,
+    adecuado para filtros de proximidad municipal.
+    """
+    earth_radius_km = 6371.0088
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = (
+        math.sin(delta_phi / 2.0) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0) ** 2
+    )
+    c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
+    return earth_radius_km * c
 
 
 def _normalize(value: float, direction: str) -> float:

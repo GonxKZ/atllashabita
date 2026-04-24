@@ -1,15 +1,20 @@
-@prefix sh:   <http://www.w3.org/ns/shacl#> .
-@prefix ah:   <https://data.atlashabita.example/ontology/> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix dct:  <http://purl.org/dc/terms/> .
-@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-@prefix geo:  <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix sh:    <http://www.w3.org/ns/shacl#> .
+@prefix ah:    <https://data.atlashabita.example/ontology/> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dct:   <http://purl.org/dc/terms/> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix geo:   <http://www.opengis.net/ont/geosparql#> .
+@prefix sf:    <http://www.opengis.net/ont/sf#> .
+@prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
 
 ###############################################################################
-# Shapes SHACL mínimas                                                        #
-# Cubren territorios, observaciones, fuentes, perfiles y scores. No se
-# imponen restricciones opcionales para permitir que el grafo crezca sin que
-# se rompa la validación principal.
+# Shapes SHACL reforzadas (v0.2.0 Fase B M8)                                 #
+# Cubren territorios, observaciones, fuentes, perfiles, scores, geometrías   #
+# GeoSPARQL y actividades de procedencia. Se aplican restricciones estrictas #
+# donde se sabe el formato esperado (p.ej. códigos INE 5 dígitos para        #
+# municipios, periodos xsd:gYear, coordenadas WGS84) y restricciones         #
+# mínimas donde la flexibilidad semántica es necesaria.                     #
 ###############################################################################
 
 ah:TerritoryShape
@@ -18,14 +23,14 @@ ah:TerritoryShape
     sh:property [ sh:path dct:identifier ; sh:minCount 1 ; sh:datatype xsd:string ] ;
     sh:property [ sh:path rdfs:label ; sh:minCount 1 ] ;
     sh:property [
-        sh:path geo:lat ;
+        sh:path wgs84:lat ;
         sh:maxCount 1 ;
         sh:datatype xsd:decimal ;
         sh:minInclusive -90 ;
         sh:maxInclusive 90 ;
     ] ;
     sh:property [
-        sh:path geo:long ;
+        sh:path wgs84:long ;
         sh:maxCount 1 ;
         sh:datatype xsd:decimal ;
         sh:minInclusive -180 ;
@@ -45,6 +50,19 @@ ah:MunicipalityShape
         sh:path ah:belongsTo ;
         sh:minCount 1 ;
         sh:class ah:Province ;
+    ] ;
+    sh:property [
+        sh:path dct:identifier ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^[0-9]{5}$" ;
+        sh:message "El identificador de municipio debe ser un código INE de 5 dígitos."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:hasGeometry ;
+        sh:minCount 1 ;
+        sh:class geo:Geometry ;
+        sh:message "Todo municipio debe tener al menos una geometría GeoSPARQL."@es ;
     ] .
 
 ah:ProvinceShape
@@ -56,12 +74,28 @@ ah:ProvinceShape
         sh:class ah:AutonomousCommunity ;
     ] .
 
+ah:GeometryShape
+    a sh:NodeShape ;
+    sh:targetClass geo:Geometry ;
+    sh:property [
+        sh:path geo:asWKT ;
+        sh:minCount 1 ;
+        sh:datatype geo:wktLiteral ;
+        sh:message "Toda geometría debe exponer una serialización WKT."@es ;
+    ] .
+
 ah:IndicatorObservationShape
     a sh:NodeShape ;
     sh:targetClass ah:IndicatorObservation ;
     sh:property [ sh:path ah:indicator ; sh:minCount 1 ; sh:class ah:Indicator ] ;
     sh:property [ sh:path ah:value ; sh:minCount 1 ; sh:datatype xsd:decimal ] ;
     sh:property [ sh:path ah:period ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [
+        sh:path ah:periodYear ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:gYear ;
+        sh:message "Si se declara, el año del periodo debe ser xsd:gYear."@es ;
+    ] ;
     sh:property [ sh:path ah:providedBy ; sh:minCount 1 ; sh:class ah:DataSource ] ;
     sh:property [ sh:path ah:unit ; sh:datatype xsd:string ] .
 
@@ -105,4 +139,44 @@ ah:ScoreShape
         sh:datatype xsd:decimal ;
         sh:minInclusive 0 ;
         sh:maxInclusive 1 ;
+    ] .
+
+###############################################################################
+# Procedencia: IngestionActivity debe declarar fuente usada y entidad        #
+# generada. Esto formaliza la cadena PROV-O (Activity, used, wasGeneratedBy). #
+###############################################################################
+
+ah:IngestionActivityShape
+    a sh:NodeShape ;
+    sh:targetClass ah:IngestionActivity ;
+    sh:property [
+        sh:path prov:used ;
+        sh:minCount 1 ;
+        sh:message "Toda ingesta debe declarar al menos una fuente usada (prov:used)."@es ;
+    ] ;
+    sh:property [
+        sh:path prov:wasGeneratedBy ;
+        sh:minCount 0 ;
+        sh:nodeKind sh:IRI ;
+    ] ;
+    sh:property [
+        sh:path ah:activityPeriod ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:gYear ;
+    ] .
+
+###############################################################################
+# Inversa práctica: una observación generada por una actividad PROV          #
+# debe encontrarse en el grafo de procedencia. Esta shape se evalúa sólo     #
+# cuando hay al menos una actividad, por lo que es opcional.                 #
+###############################################################################
+
+ah:ObservationProvenanceShape
+    a sh:NodeShape ;
+    sh:targetClass ah:IndicatorObservation ;
+    sh:property [
+        sh:path prov:wasGeneratedBy ;
+        sh:maxCount 1 ;
+        sh:nodeKind sh:IRI ;
+        sh:message "La procedencia de la observación debe apuntar a un IRI de actividad PROV."@es ;
     ] .

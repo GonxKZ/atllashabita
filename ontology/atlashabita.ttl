@@ -1,34 +1,41 @@
-@prefix ah:   <https://data.atlashabita.example/ontology/> .
-@prefix ahr:  <https://data.atlashabita.example/resource/> .
-@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix owl:  <http://www.w3.org/2002/07/owl#> .
-@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-@prefix dct:  <http://purl.org/dc/terms/> .
-@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
-@prefix geo:  <http://www.w3.org/2003/01/geo/wgs84_pos#> .
-@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ah:    <https://data.atlashabita.example/ontology/> .
+@prefix ahr:   <https://data.atlashabita.example/resource/> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix dct:   <http://purl.org/dc/terms/> .
+@prefix skos:  <http://www.w3.org/2004/02/skos/core#> .
+@prefix geo:   <http://www.opengis.net/ont/geosparql#> .
+@prefix sf:    <http://www.opengis.net/ont/sf#> .
+@prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix qb:    <http://purl.org/linked-data/cube#> .
 
 ###############################################################################
-# Ontología AtlasHabita                                                       #
+# Ontología AtlasHabita (v0.2.0 — Fase B M8)                                 #
+# Amplía la base v0.1.0 con alineación GeoSPARQL y PROV-O reforzado.         #
 ###############################################################################
 
 <https://data.atlashabita.example/ontology/>
     a owl:Ontology ;
     dct:title "Ontología AtlasHabita"@es ;
     dct:description
-        "Vocabulario mínimo para representar territorios españoles, indicadores territoriales, fuentes de datos y scores explicables."@es ;
+        "Vocabulario para representar territorios españoles, indicadores, observaciones, fuentes, scores explicables, geometrías GeoSPARQL y procedencia PROV-O."@es ;
     dct:license <https://creativecommons.org/licenses/by/4.0/> ;
-    owl:versionInfo "0.1.0" .
+    owl:versionInfo "0.2.0" ;
+    owl:imports <http://www.opengis.net/ont/geosparql> ,
+                <http://www.w3.org/ns/prov-o> .
 
 ###############################################################################
-# Jerarquía territorial                                                        #
+# Jerarquía territorial (alineada con geo:Feature de GeoSPARQL)              #
 ###############################################################################
 
 ah:Territory
     a owl:Class ;
     rdfs:label "Territorio"@es ;
-    rdfs:comment "Entidad territorial administrativa con identidad y geometría."@es .
+    rdfs:comment "Entidad territorial administrativa con identidad y geometría."@es ;
+    rdfs:subClassOf geo:Feature .
 
 ah:AutonomousCommunity
     a owl:Class ;
@@ -43,7 +50,7 @@ ah:Province
 ah:Municipality
     a owl:Class ;
     rdfs:label "Municipio"@es ;
-    rdfs:subClassOf ah:Territory .
+    rdfs:subClassOf ah:Territory , geo:Feature .
 
 ah:belongsTo
     a owl:ObjectProperty ;
@@ -64,7 +71,30 @@ ah:area
     rdfs:range xsd:decimal .
 
 ###############################################################################
-# Indicadores y observaciones                                                  #
+# Geometrías GeoSPARQL                                                       #
+# `ah:hasGeometry` es subpropiedad de `geo:hasGeometry` y `ah:wktLiteral` es #
+# subpropiedad de `geo:asWKT`. Permiten serializar puntos (centroides) y,   #
+# cuando se disponga de cartografía, polígonos administrativos completos.   #
+###############################################################################
+
+ah:hasGeometry
+    a owl:ObjectProperty ;
+    rdfs:label "geometría"@es ;
+    rdfs:comment "Relaciona un territorio (geo:Feature) con su geometría."@es ;
+    rdfs:subPropertyOf geo:hasGeometry ;
+    rdfs:domain ah:Territory ;
+    rdfs:range geo:Geometry .
+
+ah:wktLiteral
+    a owl:DatatypeProperty ;
+    rdfs:label "WKT"@es ;
+    rdfs:comment "Serialización WKT de una geometría (CRS por defecto CRS84)."@es ;
+    rdfs:subPropertyOf geo:asWKT ;
+    rdfs:domain geo:Geometry ;
+    rdfs:range geo:wktLiteral .
+
+###############################################################################
+# Indicadores y observaciones                                                #
 ###############################################################################
 
 ah:Indicator
@@ -75,7 +105,8 @@ ah:Indicator
 ah:IndicatorObservation
     a owl:Class ;
     rdfs:label "Observación"@es ;
-    rdfs:comment "Valor observado de un indicador para un territorio y un periodo."@es .
+    rdfs:comment "Valor observado de un indicador para un territorio y un periodo."@es ;
+    rdfs:subClassOf prov:Entity .
 
 ah:hasIndicatorObservation
     a owl:ObjectProperty ;
@@ -105,7 +136,15 @@ ah:period
     a owl:DatatypeProperty ;
     rdfs:label "periodo"@es ;
     rdfs:domain ah:IndicatorObservation ;
-    rdfs:range xsd:string .
+    rdfs:range xsd:string ;
+    rdfs:comment "Identificador textual del periodo. Para anios se recomienda usar `ah:periodYear`."@es .
+
+ah:periodYear
+    a owl:DatatypeProperty ;
+    rdfs:label "año del periodo"@es ;
+    rdfs:comment "Periodo tipado como xsd:gYear para consultas temporales nativas."@es ;
+    rdfs:domain ah:IndicatorObservation ;
+    rdfs:range xsd:gYear .
 
 ah:direction
     a owl:DatatypeProperty ;
@@ -121,13 +160,27 @@ ah:qualityFlag
     rdfs:range xsd:string .
 
 ###############################################################################
-# Fuentes y procedencia                                                        #
+# Clase auxiliar ah:Period (xsd:gYear)                                       #
+###############################################################################
+
+ah:Period
+    a owl:Class ;
+    rdfs:label "Periodo"@es ;
+    rdfs:comment "Representación mínima de un periodo anual (xsd:gYear)."@es ;
+    owl:equivalentClass [
+        a owl:Restriction ;
+        owl:onProperty ah:periodYear ;
+        owl:someValuesFrom xsd:gYear
+    ] .
+
+###############################################################################
+# Fuentes y procedencia (alineado con PROV-O)                                #
 ###############################################################################
 
 ah:DataSource
     a owl:Class ;
     rdfs:label "Fuente de datos"@es ;
-    rdfs:subClassOf prov:Agent .
+    rdfs:subClassOf prov:Agent , prov:Entity .
 
 ah:providedBy
     a owl:ObjectProperty ;
@@ -149,7 +202,40 @@ ah:periodicity
     rdfs:range xsd:string .
 
 ###############################################################################
-# Perfiles de decisión y scoring                                               #
+# Procedencia detallada: actividad de ingesta (PROV-O)                       #
+# Cada observación del grafo puede trazarse a una actividad de ingesta       #
+# concreta, que a su vez registra la fuente usada y la observación producida.#
+###############################################################################
+
+ah:IngestionActivity
+    a owl:Class ;
+    rdfs:label "Actividad de ingesta"@es ;
+    rdfs:comment "Actividad PROV-O que captura una ejecución concreta de ingesta."@es ;
+    rdfs:subClassOf prov:Activity .
+
+ah:ingestedFrom
+    a owl:ObjectProperty ;
+    rdfs:label "ingerido desde"@es ;
+    rdfs:comment "Fuente consumida durante la actividad (subPropertyOf prov:used)."@es ;
+    rdfs:subPropertyOf prov:used ;
+    rdfs:domain ah:IngestionActivity ;
+    rdfs:range ah:DataSource .
+
+ah:produced
+    a owl:ObjectProperty ;
+    rdfs:label "producido por"@es ;
+    rdfs:comment "Observación generada por la actividad (subPropertyOf prov:wasGeneratedBy inverso)."@es ;
+    rdfs:domain ah:IngestionActivity ;
+    rdfs:range ah:IndicatorObservation .
+
+ah:activityPeriod
+    a owl:DatatypeProperty ;
+    rdfs:label "periodo de la actividad"@es ;
+    rdfs:domain ah:IngestionActivity ;
+    rdfs:range xsd:gYear .
+
+###############################################################################
+# Perfiles de decisión y scoring                                             #
 ###############################################################################
 
 ah:DecisionProfile
@@ -158,7 +244,8 @@ ah:DecisionProfile
 
 ah:Score
     a owl:Class ;
-    rdfs:label "Score"@es .
+    rdfs:label "Score"@es ;
+    rdfs:subClassOf prov:Entity .
 
 ah:ScoreContribution
     a owl:Class ;
