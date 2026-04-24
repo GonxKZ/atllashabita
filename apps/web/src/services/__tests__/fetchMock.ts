@@ -14,9 +14,7 @@ export type FetchMock = Mock<(...args: FetchArgs) => Promise<Response>>;
 /**
  * Instala un mock de `fetch` que siempre devuelve la respuesta indicada.
  */
-export function installFetchMock(
-  factory: (...args: FetchArgs) => Promise<Response>
-): FetchMock {
+export function installFetchMock(factory: (...args: FetchArgs) => Promise<Response>): FetchMock {
   const fetchFn = vi.fn(factory);
   globalThis.fetch = fetchFn as unknown as typeof fetch;
   return fetchFn;
