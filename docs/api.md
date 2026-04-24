@@ -32,9 +32,9 @@ Catálogo operativo de endpoints expuestos por `apps/api` (FastAPI). Alinea el c
 | GET | `/map/layers/{layer_id}` | ready | GeoJSON simplificado de una capa. |
 | GET | `/sources` | ready | Catálogo de fuentes y estado. |
 | GET | `/sources/{id}` | ready | Detalle de una fuente (licencia, periodicidad, cobertura). |
-| GET | `/rdf/export` | **completado** | Exportación RDF limitada (Turtle/TriG/JSON-LD/NT). |
-| POST | `/sparql` | **completado** | Ejecuta una consulta del catálogo controlado. |
-| GET | `/sparql/catalog` | **completado** | Firmas de las consultas disponibles. |
+| GET | `/rdf/export` | **completado** | Exportación RDF (Turtle/JSON-LD/NT/TriG) con streaming y tope de 16 MB. |
+| POST | `/sparql` | **completado** | Ejecuta una consulta del catálogo con `{query_id, bindings}`; devuelve filas, variables y `elapsed_ms`. |
+| GET | `/sparql/catalog` | **completado** | Firmas (`query_id`, bindings esperados, descripción en español) de las consultas disponibles. |
 | GET | `/quality/reports` | ready | Reportes de calidad por fuente y ejecución. |
 
 Los estados siguen el roadmap: **completado** = implementado en `develop`; **ready** = especificado y pendiente de implementación en la fase 4 ([`roadmap.md`](roadmap.md)).
