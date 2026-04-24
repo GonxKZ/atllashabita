@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
-import { DashboardShell } from './features/dashboard/DashboardShell';
+import { RouterProvider } from 'react-router-dom';
+import { appRouter } from './routes/AppRouter';
 
 export function App() {
   const [client] = useState(
@@ -18,7 +19,7 @@ export function App() {
 
   return (
     <QueryClientProvider client={client}>
-      <DashboardShell />
+      <RouterProvider router={appRouter} />
     </QueryClientProvider>
   );
 }
