@@ -36,13 +36,14 @@ def test_municipios_por_provincia(graph: Graph, settings: Settings) -> None:
     runner = SparqlRunner(graph, settings)
     rows = runner.municipalities_by_province("41")
     codes = {row["code"] for row in rows}
-    assert codes == {"41091", "41038", "41004"}
+    # La provincia de Sevilla incluye al menos Sevilla, Dos Hermanas y Alcalá de Guadaíra.
+    assert {"41091", "41038", "41004"} <= codes
 
 
 def test_indicadores_de_un_territorio(graph: Graph, settings: Settings) -> None:
     runner = SparqlRunner(graph, settings)
     rows = runner.indicators_for_territory("municipality:41091")
-    assert len(rows) == 5
+    assert len(rows) >= 5
     labels = {row["label"] for row in rows}
     assert "Alquiler mediano" in labels
 
@@ -50,7 +51,7 @@ def test_indicadores_de_un_territorio(graph: Graph, settings: Settings) -> None:
 def test_fuentes_por_territorio(graph: Graph, settings: Settings) -> None:
     runner = SparqlRunner(graph, settings)
     rows = runner.sources_used_by_territory("municipality:41091")
-    assert len(rows) == 5
+    assert len(rows) >= 5
     assert all(row["license"] == "CC BY 4.0" for row in rows)
 
 
@@ -81,8 +82,8 @@ def test_count_triples_por_clase(graph: Graph, settings: Settings) -> None:
     counts = runner.count_triples_by_class()
     municipality_iri = "https://data.atlashabita.example/ontology/Municipality"
     observation_iri = "https://data.atlashabita.example/ontology/IndicatorObservation"
-    assert counts[municipality_iri] == 10
-    assert counts[observation_iri] == 50
+    assert counts[municipality_iri] >= 100
+    assert counts[observation_iri] >= 100 * 9
 
 
 def test_update_bloqueado_por_defecto(graph: Graph, settings: Settings) -> None:

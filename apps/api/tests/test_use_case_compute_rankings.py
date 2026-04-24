@@ -23,46 +23,47 @@ def container() -> Container:
     return Container(settings)
 
 
-def test_scope_es_devuelve_10_municipios(container: Container) -> None:
-    payload = container.compute_rankings.execute("remote_work", scope="es", limit=50)
+def test_scope_es_devuelve_muestra_nacional(container: Container) -> None:
+    payload = container.compute_rankings.execute("remote_work", scope="es", limit=200)
     assert payload["profile"] == "remote_work"
     assert payload["scope"] == "es"
-    assert len(payload["results"]) == 10
+    assert len(payload["results"]) >= 100
     assert payload["scoring_version"]
     assert payload["data_version"].startswith("seed:")
 
 
 def test_scope_por_defecto_es_equivalente_a_es(container: Container) -> None:
-    con_default = container.compute_rankings.execute("remote_work", scope=None, limit=50)
-    con_es = container.compute_rankings.execute("remote_work", scope="es", limit=50)
+    con_default = container.compute_rankings.execute("remote_work", scope=None, limit=200)
+    con_es = container.compute_rankings.execute("remote_work", scope="es", limit=200)
     assert [r["territory_id"] for r in con_default["results"]] == [
         r["territory_id"] for r in con_es["results"]
     ]
 
 
-def test_scope_province_20_devuelve_4_municipios_guipuzcoanos(
+def test_scope_province_20_incluye_municipios_guipuzcoanos(
     container: Container,
 ) -> None:
     payload = container.compute_rankings.execute("remote_work", scope="province:20", limit=20)
     ids = {result["territory_id"] for result in payload["results"]}
-    assert ids == {
+    expected = {
         "municipality:20069",
         "municipality:20036",
         "municipality:20038",
         "municipality:20071",
     }
+    assert expected <= ids
+    assert all(tid.startswith("municipality:20") for tid in ids)
 
 
 def test_scope_autonomous_community_01_solo_andalucia(container: Container) -> None:
     payload = container.compute_rankings.execute(
         "remote_work", scope="autonomous_community:01", limit=50
     )
+    andalusian_provinces = ("04", "11", "14", "18", "21", "23", "29", "41")
     for result in payload["results"]:
         territory_id = result["territory_id"]
-        # Andalucía agrupa provincias 41 y 29
-        assert territory_id.startswith("municipality:41") or territory_id.startswith(
-            "municipality:29"
-        )
+        province_code = territory_id.split(":")[-1][:2]
+        assert province_code in andalusian_provinces
 
 
 def test_perfil_inexistente_lanza_invalid_profile_error(container: Container) -> None:

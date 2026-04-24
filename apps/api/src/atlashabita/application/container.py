@@ -12,6 +12,8 @@ import hashlib
 from functools import cached_property
 from typing import Final
 
+from rdflib import Graph
+
 from atlashabita.application.scoring import ScoringService
 from atlashabita.application.use_cases import (
     ComputeRankingsUseCase,
@@ -23,9 +25,17 @@ from atlashabita.application.use_cases import (
     ListSourcesUseCase,
     SearchTerritoriesUseCase,
 )
+from atlashabita.application.use_cases.export_rdf import ExportRdfUseCase
+from atlashabita.application.use_cases.run_sparql_query import (
+    RunSparqlQueryUseCase,
+    SparqlRunnerProtocol,
+)
 from atlashabita.config import Settings
 from atlashabita.domain.territories import Territory
 from atlashabita.infrastructure.ingestion import SeedDataset, SeedLoader
+from atlashabita.infrastructure.rdf.graph_builder import GraphBuilder
+from atlashabita.infrastructure.rdf.runner_factory import get_sparql_runner
+from atlashabita.infrastructure.rdf.uri_builder import URIBuilder
 
 _DATA_VERSION_PREFIX: Final[str] = "seed:"
 
@@ -128,3 +138,33 @@ class Container:
             dataset=self.dataset,
             data_version=self.data_version,
         )
+
+    @cached_property
+    def graph(self) -> Graph:
+        """Grafo RDF aplanado construido a partir del seed actual.
+
+        Se emplea ``build_graph`` (no ``build``) para que las consultas SPARQL
+        operen sobre el grafo por defecto sin necesidad de declarar named
+        graphs. La ontología canónica (si existe) se añade a la misma
+        estructura para habilitar resolución de etiquetas contra el TBox.
+        El valor se cachea a nivel de contenedor: construir el grafo recorre
+        toda la semilla y emitir tripletas no es barato.
+        """
+        builder = GraphBuilder(URIBuilder(self._settings.rdf_graph_base_uri))
+        ontology_path = self._settings.ontology_root / "atlashabita.ttl"
+        return builder.build_graph(self.dataset, ontology_path=ontology_path)
+
+    @cached_property
+    def sparql_runner(self) -> SparqlRunnerProtocol:
+        """Runner SPARQL cuya implementación depende de ``sparql_backend``."""
+        return get_sparql_runner(self.graph, self._settings)
+
+    @cached_property
+    def run_sparql_query(self) -> RunSparqlQueryUseCase:
+        """Caso de uso que expone el catálogo controlado de consultas SPARQL."""
+        return RunSparqlQueryUseCase(runner=self.sparql_runner, settings=self._settings)
+
+    @cached_property
+    def export_rdf(self) -> ExportRdfUseCase:
+        """Caso de uso de exportación del grafo RDF en distintos formatos."""
+        return ExportRdfUseCase(graph=self.graph, settings=self._settings)

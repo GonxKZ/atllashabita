@@ -5,19 +5,19 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 
-def test_ranking_remote_work_ordena_diez_municipios(api_client: TestClient) -> None:
-    response = api_client.get("/rankings", params={"profile": "remote_work"})
+def test_ranking_remote_work_ordena_municipios(api_client: TestClient) -> None:
+    response = api_client.get("/rankings", params={"profile": "remote_work", "limit": 20})
 
     assert response.status_code == 200
     body = response.json()
     assert body["profile"] == "remote_work"
     assert body["scope"] == "es"
     results = body["results"]
-    assert len(results) == 10
+    assert len(results) == 20
     scores = [entry["score"] for entry in results]
     assert scores == sorted(scores, reverse=True)
     assert results[0]["rank"] == 1
-    assert results[-1]["rank"] == 10
+    assert results[-1]["rank"] == 20
 
 
 def test_ranking_perfil_inexistente_devuelve_400(api_client: TestClient) -> None:
