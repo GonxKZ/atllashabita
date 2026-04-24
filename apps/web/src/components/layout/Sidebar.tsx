@@ -8,6 +8,7 @@ import {
   Map as MapIcon,
   SlidersHorizontal,
 } from 'lucide-react';
+import { MotionStagger } from '../motion';
 import { cn } from '../ui/cn';
 import { LayersPanel, type LayerOption } from './LayersPanel';
 import { UserCard } from './UserCard';
@@ -90,7 +91,13 @@ export function Sidebar({
       </a>
 
       <nav aria-label="Navegación principal">
-        <ul className="flex flex-col gap-1">
+        <MotionStagger
+          as="ul"
+          className="flex flex-col gap-1"
+          duration={0.45}
+          stagger={0.05}
+          y={12}
+        >
           {navItems.map((item) => {
             const isActive = item.id === activeNavId;
             return (
@@ -122,7 +129,7 @@ export function Sidebar({
               </li>
             );
           })}
-        </ul>
+        </MotionStagger>
       </nav>
 
       <LayersPanel

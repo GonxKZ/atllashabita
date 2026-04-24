@@ -1,4 +1,8 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+import { resolveDuration } from '@/animations';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { cn } from '../ui/cn';
@@ -28,8 +32,31 @@ export function UserCard({
   action,
   className,
 }: UserCardProps) {
+  const rootRef = useRef<HTMLElement | null>(null);
+
+  // Animación de entrada con un leve "pop" + fade. La combinación es
+  // barata (solo transform + opacity) y respeta prefers-reduced-motion.
+  useGSAP(
+    () => {
+      const node = rootRef.current;
+      if (!node) return;
+      gsap.from(node, {
+        opacity: 0,
+        scale: 0.96,
+        duration: resolveDuration(0.45),
+        delay: 0.15,
+        ease: 'back.out(1.2)',
+        clearProps: 'transform,opacity',
+      });
+    },
+    { scope: rootRef }
+  );
+
   return (
     <div
+      ref={(node) => {
+        rootRef.current = node;
+      }}
       // Tarjeta blanca con borde sutil y sombra suave: sigue el diseño del
       // comp donde la card del usuario flota sobre el fondo `surface-soft`.
       className={cn(

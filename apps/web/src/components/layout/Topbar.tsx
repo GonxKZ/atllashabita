@@ -1,5 +1,9 @@
-import { useId, type ReactNode } from 'react';
+import { useId, useRef, type ReactNode } from 'react';
 import { ArrowRight, Bell, MessageCircle, Search } from 'lucide-react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+import { resolveDuration } from '@/animations';
 import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { cn } from '../ui/cn';
@@ -22,9 +26,30 @@ export function Topbar({
   className,
 }: TopbarProps) {
   const inputId = useId();
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  // Entrada suave del topbar desde arriba. Se cancela solo cuando el
+  // usuario solicita reducir el movimiento.
+  useGSAP(
+    () => {
+      const node = headerRef.current;
+      if (!node) return;
+      gsap.from(node, {
+        y: -18,
+        opacity: 0,
+        duration: resolveDuration(0.5),
+        ease: 'power2.out',
+        clearProps: 'transform,opacity',
+      });
+    },
+    { scope: headerRef }
+  );
 
   return (
     <header
+      ref={(node) => {
+        headerRef.current = node;
+      }}
       // h-16 + borde inferior coincide con la franja "topbar" del comp.
       // El contenedor es horizontal, con buscador a la izquierda y CTAs a
       // la derecha (Feedback + notificaciones + "Nuevo análisis").
