@@ -1,7 +1,16 @@
-import { useCallback, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react';
 import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
+import { resolveDuration } from '@/animations';
 import { MapLegend, type MapLegendStop } from './MapLegend';
 import { MapTooltip } from './MapTooltip';
 import type { MapPoint } from '@/data/mock';
@@ -100,6 +109,7 @@ export function SpainMap({
   offline = false,
 }: SpainMapProps) {
   const [hovered, setHovered] = useState<HoveredState | null>(null);
+  const containerRef = useRef<HTMLElement | null>(null);
 
   const legendStops = useMemo(() => buildLegendStops(), []);
 
@@ -111,6 +121,33 @@ export function SpainMap({
         radius: 10 + Math.round((point.score / 100) * 14),
       })),
     [points]
+  );
+
+  /*
+   * Animación de entrada de los marcadores al montar (o cuando cambian los
+   * puntos). Usamos `gsap.from` sobre `.maplibregl-marker` para que cada pin
+   * aparezca con un leve "pop" escalonado. Respeta `prefers-reduced-motion`.
+   */
+  useGSAP(
+    () => {
+      const container = containerRef.current;
+      if (!container) return;
+      const targets = container.querySelectorAll('.maplibregl-marker');
+      if (targets.length === 0) return;
+      gsap.from(targets, {
+        scale: 0,
+        opacity: 0,
+        duration: resolveDuration(0.45),
+        stagger: 0.04,
+        ease: 'back.out(1.5)',
+        transformOrigin: '50% 50%',
+        clearProps: 'transform,opacity',
+      });
+    },
+    {
+      scope: containerRef,
+      dependencies: [markers.length],
+    }
   );
 
   const handleEnter = useCallback(
@@ -142,6 +179,9 @@ export function SpainMap({
 
   return (
     <section
+      ref={(node) => {
+        containerRef.current = node;
+      }}
       data-spain-map
       aria-label={ariaLabel}
       className={[

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   Area,
   AreaChart,
@@ -8,7 +8,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 
+import { resolveDuration } from '@/animations';
 import type { TrendPoint } from '@/data/mock';
 
 export type TrendsChartProps = {
@@ -31,6 +34,40 @@ export function TrendsChart({
   subtitle = 'Score medio de los últimos 12 meses en los territorios seleccionados.',
   className,
 }: TrendsChartProps) {
+  const containerRef = useRef<HTMLElement | null>(null);
+
+  /*
+   * Revelamos el chart de izquierda a derecha con un clip-path inset, en
+   * lugar de depender del plugin DrawSVG (comercial). Como fallback barato
+   * acompaña un fade del bloque contenedor. El efecto se cancela si el
+   * usuario prefiere reducir el movimiento.
+   */
+  useGSAP(
+    () => {
+      const node = containerRef.current;
+      if (!node) return;
+      gsap.from(node, {
+        opacity: 0,
+        duration: resolveDuration(0.5),
+        ease: 'power2.out',
+      });
+      gsap.fromTo(
+        node,
+        { clipPath: 'inset(0 100% 0 0)' },
+        {
+          clipPath: 'inset(0 0% 0 0)',
+          duration: resolveDuration(1.2),
+          ease: 'power3.out',
+          clearProps: 'clipPath',
+        }
+      );
+    },
+    {
+      scope: containerRef,
+      dependencies: [data.length],
+    }
+  );
+
   const domain = useMemo<[number, number]>(() => {
     if (data.length === 0) return [0, 100];
     const values = data.map((point) => point.score);
@@ -41,6 +78,9 @@ export function TrendsChart({
 
   return (
     <section
+      ref={(node) => {
+        containerRef.current = node;
+      }}
       className={['rounded-2xl bg-white p-6 shadow-[var(--shadow-card)]', className ?? '']
         .filter(Boolean)
         .join(' ')}

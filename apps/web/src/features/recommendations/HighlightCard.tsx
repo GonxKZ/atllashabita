@@ -1,6 +1,7 @@
 import { ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
 
+import { MotionScale } from '@/components/motion';
 import type { Highlight } from '@/data/mock';
 
 export type HighlightCardProps = {
@@ -48,7 +49,11 @@ function HighlightMedia({ imageSrc, name }: { imageSrc?: string; name: string })
  */
 export function HighlightCard({ highlight, imageSrc, onOpen, className }: HighlightCardProps) {
   return (
-    <article
+    <MotionScale
+      as="article"
+      popOnMount
+      scale={1.01}
+      duration={0.3}
       aria-label={`Recomendación destacada: ${highlight.name}`}
       className={[
         'flex flex-col gap-4 overflow-hidden rounded-2xl bg-white p-4 shadow-[var(--shadow-card)] md:flex-row',
@@ -98,7 +103,7 @@ export function HighlightCard({ highlight, imageSrc, onOpen, className }: Highli
           </button>
         </div>
       </div>
-    </article>
+    </MotionScale>
   );
 }
 

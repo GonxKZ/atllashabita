@@ -7,7 +7,11 @@ import {
   TrendingUp,
   type LucideIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+import { resolveDuration } from '@/animations';
 
 export type HeroChip = {
   id: string;
@@ -45,6 +49,24 @@ export function HeroBanner({
   className,
 }: HeroBannerProps) {
   const [selected, setSelected] = useState(initialSelectedChipId);
+  const rootRef = useRef<HTMLElement | null>(null);
+
+  // Entrada del hero: fade + ligero slide vertical. Se limpia solo al
+  // desmontar gracias a `useGSAP` y respeta `prefers-reduced-motion`.
+  useGSAP(
+    () => {
+      const node = rootRef.current;
+      if (!node) return;
+      gsap.from(node, {
+        opacity: 0,
+        y: 24,
+        duration: resolveDuration(0.7),
+        ease: 'power2.out',
+        clearProps: 'transform,opacity',
+      });
+    },
+    { scope: rootRef }
+  );
 
   const handleSelect = (chipId: string) => {
     setSelected(chipId);
@@ -53,6 +75,9 @@ export function HeroBanner({
 
   return (
     <section
+      ref={(node) => {
+        rootRef.current = node;
+      }}
       aria-label="Buscador principal de AtlasHabita"
       className={[
         'relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--color-brand-50)] via-white to-[var(--color-brand-100)] p-8 shadow-[var(--shadow-card)]',

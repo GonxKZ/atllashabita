@@ -14,6 +14,7 @@ import { ActionCards, type ActionCardItem } from '@/components/layout/ActionCard
 import { ChipFilters, type ChipFilterOption } from '@/components/layout/ChipFilters';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { OpportunityIndex } from '@/components/layout/OpportunityIndex';
+import { MotionFadeIn, MotionStagger } from '@/components/motion';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Tag } from '@/components/ui/Tag';
@@ -72,72 +73,75 @@ export function DashboardShell() {
 
   const hero = useMemo(
     () => (
-      <section
-        aria-labelledby="dashboard-title"
-        className="from-brand-500 via-brand-500 to-brand-600 relative overflow-hidden rounded-3xl bg-gradient-to-br p-8 text-white shadow-[var(--shadow-elevated)]"
-      >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-24 -right-20 h-64 w-64 rounded-full bg-white/20 blur-3xl"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-32 -left-10 h-80 w-80 rounded-full bg-emerald-300/30 blur-3xl"
-        />
-        <div className="relative flex flex-col gap-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <Tag tone="brand" size="md" className="border-transparent bg-white/15 text-white">
-              <Sparkles size={14} aria-hidden="true" />
-              Demo con datos abiertos
-            </Tag>
-            <Badge tone="success" className="border border-white/20 bg-white/15 text-white">
-              Modelo explicable
-            </Badge>
-          </div>
-          <div className="flex flex-col gap-3">
-            <h1
-              id="dashboard-title"
-              className="font-display max-w-3xl text-3xl leading-tight font-bold sm:text-4xl"
-            >
-              Descubre el <span className="text-emerald-100">mejor lugar</span> para vivir en España
-            </h1>
-            <p className="max-w-xl text-base text-white/80">
-              Explora, compara y encuentra tu lugar ideal con datos abiertos y tecnología semántica.
-              Todo con explicaciones claras, sin cajas negras.
-            </p>
-          </div>
-          <ChipFilters
-            options={CHIP_OPTIONS}
-            value={activeChips}
-            tone="onBrand"
-            onToggle={(id) =>
-              setActiveChips((prev) =>
-                prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-              )
-            }
+      <MotionFadeIn as="div" duration={0.75} y={32}>
+        <section
+          aria-labelledby="dashboard-title"
+          className="from-brand-500 via-brand-500 to-brand-600 relative overflow-hidden rounded-3xl bg-gradient-to-br p-8 text-white shadow-[var(--shadow-elevated)]"
+        >
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-24 -right-20 h-64 w-64 rounded-full bg-white/20 blur-3xl"
           />
-          <Card
-            tone="base"
-            padding="none"
-            className="text-ink-500 mt-2 flex min-h-72 items-center justify-center overflow-hidden"
-          >
-            <div className="flex w-full flex-col items-center gap-2 p-10 text-center">
-              <MapIcon aria-hidden="true" size={28} className="text-brand-500" />
-              <p className="text-ink-700 text-sm font-medium">Mapa interactivo en preparación</p>
-              <p className="text-ink-500 text-xs">
-                El slot del mapa y el ranking se enchufa desde otros módulos. Esta vista renderiza
-                el shell, los tokens y las primitivas.
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-32 -left-10 h-80 w-80 rounded-full bg-emerald-300/30 blur-3xl"
+          />
+          <div className="relative flex flex-col gap-6">
+            <div className="flex flex-wrap items-center gap-3">
+              <Tag tone="brand" size="md" className="border-transparent bg-white/15 text-white">
+                <Sparkles size={14} aria-hidden="true" />
+                Demo con datos abiertos
+              </Tag>
+              <Badge tone="success" className="border border-white/20 bg-white/15 text-white">
+                Modelo explicable
+              </Badge>
+            </div>
+            <div className="flex flex-col gap-3">
+              <h1
+                id="dashboard-title"
+                className="font-display max-w-3xl text-3xl leading-tight font-bold sm:text-4xl"
+              >
+                Descubre el <span className="text-emerald-100">mejor lugar</span> para vivir en
+                España
+              </h1>
+              <p className="max-w-xl text-base text-white/80">
+                Explora, compara y encuentra tu lugar ideal con datos abiertos y tecnología
+                semántica. Todo con explicaciones claras, sin cajas negras.
               </p>
             </div>
-          </Card>
-        </div>
-      </section>
+            <ChipFilters
+              options={CHIP_OPTIONS}
+              value={activeChips}
+              tone="onBrand"
+              onToggle={(id) =>
+                setActiveChips((prev) =>
+                  prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                )
+              }
+            />
+            <Card
+              tone="base"
+              padding="none"
+              className="text-ink-500 mt-2 flex min-h-72 items-center justify-center overflow-hidden"
+            >
+              <div className="flex w-full flex-col items-center gap-2 p-10 text-center">
+                <MapIcon aria-hidden="true" size={28} className="text-brand-500" />
+                <p className="text-ink-700 text-sm font-medium">Mapa interactivo en preparación</p>
+                <p className="text-ink-500 text-xs">
+                  El slot del mapa y el ranking se enchufa desde otros módulos. Esta vista renderiza
+                  el shell, los tokens y las primitivas.
+                </p>
+              </div>
+            </Card>
+          </div>
+        </section>
+      </MotionFadeIn>
     ),
     [activeChips]
   );
 
   const side = (
-    <>
+    <MotionStagger duration={0.55} stagger={0.1} y={18} className="contents">
       <Card tone="base" padding="md" className="flex flex-col gap-4">
         <CardHeader
           title="Recomendación destacada"
@@ -185,8 +189,18 @@ export function DashboardShell() {
           </li>
         </ul>
       </Card>
-    </>
+    </MotionStagger>
   );
 
-  return <DashboardLayout hero={hero} side={side} footer={<ActionCards items={ACTION_ITEMS} />} />;
+  return (
+    <DashboardLayout
+      hero={hero}
+      side={side}
+      footer={
+        <MotionStagger duration={0.5} stagger={0.08} y={16} selector="li">
+          <ActionCards items={ACTION_ITEMS} />
+        </MotionStagger>
+      }
+    />
+  );
 }

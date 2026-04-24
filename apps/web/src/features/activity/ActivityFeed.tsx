@@ -7,6 +7,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { MotionStagger } from '@/components/motion';
 import type { ActivityItem } from '@/data/mock';
 
 export type ActivityFeedProps = {
@@ -46,7 +47,7 @@ export function ActivityFeed({
           Ver todo
         </button>
       </header>
-      <ul className="flex flex-col gap-4">
+      <MotionStagger as="ul" className="flex flex-col gap-4" duration={0.5} stagger={0.07} y={12}>
         {items.map((item) => {
           const Icon = ICONS[item.icon];
           return (
@@ -65,7 +66,7 @@ export function ActivityFeed({
             </li>
           );
         })}
-      </ul>
+      </MotionStagger>
     </section>
   );
 }

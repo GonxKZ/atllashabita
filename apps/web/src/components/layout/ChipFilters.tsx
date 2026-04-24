@@ -1,4 +1,8 @@
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+import { resolveDuration } from '@/animations';
 import { cn } from '../ui/cn';
 
 export interface ChipFilterOption {
@@ -26,8 +30,40 @@ export function ChipFilters({
   'aria-label': ariaLabel = 'Filtros rápidos',
   className,
 }: ChipFiltersProps) {
+  const groupRef = useRef<HTMLElement | null>(null);
+
+  /*
+   * Animación de entrada en cascada para los chips al montar el grupo.
+   * Usamos `node.children` para evitar combinators `>` que algunos
+   * entornos (JSDOM) no toleran en querySelectorAll.
+   */
+  useGSAP(
+    () => {
+      const node = groupRef.current;
+      if (!node) return;
+      const targets = Array.from(node.children);
+      if (targets.length === 0) return;
+      gsap.from(targets, {
+        opacity: 0,
+        y: 10,
+        duration: resolveDuration(0.35),
+        stagger: 0.05,
+        ease: 'power2.out',
+        clearProps: 'transform,opacity',
+      });
+    },
+    { scope: groupRef }
+  );
+
   return (
-    <div role="group" aria-label={ariaLabel} className={cn('flex flex-wrap gap-2', className)}>
+    <div
+      ref={(node) => {
+        groupRef.current = node;
+      }}
+      role="group"
+      aria-label={ariaLabel}
+      className={cn('flex flex-wrap gap-2', className)}
+    >
       {options.map((option) => {
         const isActive = value.includes(option.id);
         return (
