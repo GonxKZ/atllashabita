@@ -145,12 +145,9 @@ def test_modo_invalido_rompe_shacl(dataset: SeedDataset) -> None:
     assert "modo" in messages.lower() or "transit" in messages.lower() or "GTFS" in messages
 
 
-@pytest.mark.skipif(
-    not (SEED_DIR / "transit_stops.csv").exists(),
-    reason=(
-        "TODO(M11/TM1): activar cuando el seed extendido contenga "
-        "transit_stops.csv producido por TM1."
-    ),
-)
-def test_seed_extendido_contiene_paradas(dataset: SeedDataset) -> None:  # pragma: no cover
-    raise AssertionError("Activar al integrar transit_stops.csv")
+def test_seed_extendido_contiene_paradas() -> None:
+    """El seed extendido publicado por TM1 incluye las paradas CRTM."""
+    csv_path = SEED_DIR / "transit_stops.csv"
+    assert csv_path.exists(), "TM1 ya debería haber publicado transit_stops.csv"
+    rows = csv_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(rows) > 1, "El CSV debe contener al menos una parada"

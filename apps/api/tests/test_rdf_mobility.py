@@ -146,14 +146,9 @@ def test_origen_o_destino_sin_kind_se_ignora(dataset: SeedDataset) -> None:
     assert not list(graph.subjects(RDF.type, AH.MobilityFlow))
 
 
-@pytest.mark.skipif(
-    not (SEED_DIR / "mobility_flows.csv").exists(),
-    reason=(
-        "TODO(M11/TM1): activar cuando el seed extendido contenga "
-        "mobility_flows.csv. La integración con SeedLoader vendrá en una "
-        "iteración posterior."
-    ),
-)
-def test_seed_extendido_contiene_flujos(dataset: SeedDataset) -> None:  # pragma: no cover
-    """Marcador para reconectar con TM1 cuando el seed real esté disponible."""
-    raise AssertionError("Activar prueba al integrar mobility_flows.csv")
+def test_seed_extendido_contiene_flujos() -> None:
+    """El seed extendido publicado por TM1 incluye los flujos MITMA."""
+    csv_path = SEED_DIR / "mobility_flows.csv"
+    assert csv_path.exists(), "TM1 ya debería haber publicado mobility_flows.csv"
+    rows = csv_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(rows) > 1, "El CSV debe contener al menos una fila de datos"
