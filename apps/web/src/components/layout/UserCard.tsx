@@ -30,9 +30,11 @@ export function UserCard({
 }: UserCardProps) {
   return (
     <div
+      // Tarjeta blanca con borde sutil y sombra suave: sigue el diseño del
+      // comp donde la card del usuario flota sobre el fondo `surface-soft`.
       className={cn(
-        'bg-surface-soft flex flex-col gap-3 rounded-2xl p-3',
-        'border border-[color:var(--color-line-soft)]',
+        'flex flex-col gap-3 rounded-2xl bg-white p-3',
+        'border border-[color:var(--color-line-soft)] shadow-[var(--shadow-card)]',
         className
       )}
     >
@@ -43,7 +45,13 @@ export function UserCard({
           {subtitle ? <p className="text-ink-500 truncate text-xs">{subtitle}</p> : null}
         </div>
         {indicator ? (
-          <span className="bg-brand-50 text-brand-700 rounded-full px-2 py-0.5 text-xs font-semibold">
+          // El badge "74" del comp es un círculo verde claro con número
+          // verde oscuro; usamos `aria-label` para que el lector de pantalla
+          // anuncie también la etiqueta semántica del indicador.
+          <span
+            aria-label={`${indicator.label}: ${indicator.value}`}
+            className="bg-brand-100 text-brand-700 rounded-full px-2 py-0.5 text-xs font-bold tabular-nums"
+          >
             {indicator.value}
           </span>
         ) : null}

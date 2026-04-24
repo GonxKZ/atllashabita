@@ -20,4 +20,18 @@ describe('Topbar', () => {
     await user.type(input, 'Madrid{enter}');
     expect(onSearch).toHaveBeenCalledWith('Madrid');
   });
+
+  it('dispara los callbacks de Feedback y "Nuevo análisis" al hacer clic', async () => {
+    const onFeedback = vi.fn();
+    const onNewAnalysis = vi.fn();
+    const user = userEvent.setup();
+
+    render(<Topbar onFeedback={onFeedback} onNewAnalysis={onNewAnalysis} />);
+
+    await user.click(screen.getByRole('button', { name: /Feedback/i }));
+    expect(onFeedback).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: /Nuevo análisis/i }));
+    expect(onNewAnalysis).toHaveBeenCalledTimes(1);
+  });
 });
