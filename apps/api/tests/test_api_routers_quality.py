@@ -9,9 +9,13 @@ def test_reporte_de_calidad_resume_datasets(api_client: TestClient) -> None:
     response = api_client.get("/quality/reports")
     assert response.status_code == 200
     body = response.json()
-    assert body["generated_at"]
-    datasets = {row["dataset"] for row in body["rows"]}
-    assert {"observations", "territories", "sources"}.issubset(datasets)
-    observations_row = next(row for row in body["rows"] if row["dataset"] == "observations")
-    assert observations_row["total_rows"] == 50
-    assert observations_row["quality_ok"] == 50
+    assert body["data_version"].startswith("seed:")
+    assert body["tables"]["observations"] == 50
+    assert body["tables"]["indicators"] == 5
+    assert body["tables"]["sources"] == 5
+    assert body["tables"]["municipalities"] == 10
+    assert body["observations_by_quality"]["ok"] == 50
+    assert body["coverage"]["expected_observations"] == 50
+    assert body["coverage"]["actual_observations"] == 50
+    assert body["coverage"]["ratio"] == 1.0
+    assert isinstance(body["warnings"], list)

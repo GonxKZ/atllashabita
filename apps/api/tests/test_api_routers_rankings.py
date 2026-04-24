@@ -11,7 +11,7 @@ def test_ranking_remote_work_ordena_diez_municipios(api_client: TestClient) -> N
     assert response.status_code == 200
     body = response.json()
     assert body["profile"] == "remote_work"
-    assert body["scope"] == "spain"
+    assert body["scope"] == "es"
     results = body["results"]
     assert len(results) == 10
     scores = [entry["score"] for entry in results]
@@ -48,7 +48,7 @@ def test_ranking_rechaza_scope_invalido(api_client: TestClient) -> None:
 def test_ranking_custom_usa_pesos_personalizados(api_client: TestClient) -> None:
     payload = {
         "profile": "remote_work",
-        "scope": "spain",
+        "scope": "es",
         "weights": {"broadband_coverage": 0.9, "rent_median": 0.1},
         "limit": 5,
     }

@@ -48,3 +48,18 @@ def get_logger(name: str | None = None, **initial: Any) -> structlog.stdlib.Boun
     if initial:
         logger = logger.bind(**initial)
     return logger
+
+
+def bind_context(**context: Any) -> None:
+    """Alias fino sobre :func:`structlog.contextvars.bind_contextvars`.
+
+    Pensado para que capas no-HTTP (workers, scripts CLI) enlacen metadatos
+    transversales (por ejemplo, ``job_id`` o ``scoring_version``) sin tener
+    que importar structlog directamente.
+    """
+    structlog.contextvars.bind_contextvars(**context)
+
+
+def clear_context() -> None:
+    """Limpia todo el contexto vinculado al scope actual."""
+    structlog.contextvars.clear_contextvars()

@@ -21,7 +21,7 @@ ContainerDep = Annotated[Container, Depends(get_container)]
     summary="Listar perfiles de decisión disponibles",
 )
 def list_profiles(container: ContainerDep) -> list[ProfileRead]:
-    profiles = container.list_profiles().execute()
+    profiles = container.list_profiles.execute()
     return [
         ProfileRead(
             id=profile.id,
