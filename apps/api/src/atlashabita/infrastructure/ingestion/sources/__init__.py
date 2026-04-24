@@ -102,6 +102,54 @@ _REGISTRY: Final[dict[str, SourceMetadata]] = {
         fixture_name="miteco_services.json",
         processed_filename="miteco_services.csv",
     ),
+    "mitma_movilidad": SourceMetadata(
+        id="mitma_movilidad",
+        title="Estudio de movilidad MITMA con big data",
+        publisher="Ministerio de Transportes y Movilidad Sostenible",
+        landing_url="https://movilidad-opendata.mitma.es/",
+        license="CC BY 4.0",
+        periodicity="diaria",
+        description=(
+            "Flujos origen-destino agregados a partir de telefonía móvil "
+            "anonimizada (estudio MITMA de movilidad cotidiana)."
+        ),
+        indicators=("mobility_flow",),
+        fixture_name="mitma_movilidad.json",
+        processed_filename="mitma_movilidad.csv",
+    ),
+    "dgt_accidentes": SourceMetadata(
+        id="dgt_accidentes",
+        title="DGT - Anuario estadístico de accidentes",
+        publisher="Dirección General de Tráfico",
+        landing_url=(
+            "https://www.dgt.es/menusecundario/dgt-en-cifras/"
+            "dgt-en-cifras-resultados/dgt-en-cifras-detalle/"
+        ),
+        license="CC BY 4.0",
+        periodicity="mensual",
+        description=(
+            "Accidentes con víctimas por municipio y mes, distinguiendo "
+            "fallecidos, heridos graves y heridos leves."
+        ),
+        indicators=("accident_rate",),
+        fixture_name="dgt_accidentes.csv",
+        processed_filename="dgt_accidentes.csv",
+    ),
+    "crtm_gtfs": SourceMetadata(
+        id="crtm_gtfs",
+        title="CRTM Madrid - GTFS multimodal",
+        publisher="Consorcio Regional de Transportes de Madrid",
+        landing_url=("https://datos.crtm.es/datasets/1a25440bf66f499bae2657ec7fb40144"),
+        license="CC BY 4.0",
+        periodicity="continua",
+        description=(
+            "Paradas y rutas multimodales (Metro, Cercanías, Metro Ligero, "
+            "EMT, autobuses interurbanos) en formato GTFS."
+        ),
+        indicators=("transit_score",),
+        fixture_name="crtm_gtfs.json",
+        processed_filename="crtm_transit.csv",
+    ),
 }
 
 SOURCE_REGISTRY: Final[MappingProxyType[str, SourceMetadata]] = MappingProxyType(_REGISTRY)
