@@ -1,0 +1,4 @@
+id,label,description,weights
+remote_work,Teletrabajo,"Prioriza conectividad estable y alquiler razonable sin sacrificar servicios básicos ni entorno.","{""broadband_coverage"":0.35,""rent_median"":0.25,""services_score"":0.2,""climate_comfort"":0.1,""income_per_capita"":0.1}"
+family,Familia,"Equilibra servicios educativos y sanitarios con coste de vida y entorno amable.","{""services_score"":0.35,""rent_median"":0.2,""income_per_capita"":0.25,""climate_comfort"":0.15,""broadband_coverage"":0.05}"
+student,Estudiante,"Minimiza coste y distancia a servicios esenciales sin olvidar la conectividad para aprender y socializar.","{""rent_median"":0.4,""services_score"":0.25,""broadband_coverage"":0.2,""income_per_capita"":0.1,""climate_comfort"":0.05}"
