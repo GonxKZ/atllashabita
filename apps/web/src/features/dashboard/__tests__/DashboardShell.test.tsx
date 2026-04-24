@@ -1,8 +1,10 @@
 import { render, screen } from '@testing-library/react';
-import { beforeAll, describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { DashboardShell } from '../DashboardShell';
+import { useMapLayerStore } from '@/state/mapLayer';
 
 const wrap = (node: ReactNode) => <MemoryRouter>{node}</MemoryRouter>;
 
@@ -62,6 +64,12 @@ beforeAll(() => {
 });
 
 describe('DashboardShell', () => {
+  beforeEach(() => {
+    useMapLayerStore.getState().resetActiveLayer();
+    /* eslint-disable-next-line no-undef -- localStorage es global del navegador. */
+    localStorage.clear();
+  });
+
   it('muestra el hero con el titular principal de AtlasHabita', () => {
     render(wrap(<DashboardShell />));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
@@ -73,5 +81,16 @@ describe('DashboardShell', () => {
     render(wrap(<DashboardShell />));
     expect(screen.queryByRole('navigation', { name: 'Navegación principal' })).toBeNull();
     expect(screen.queryByRole('searchbox', { name: 'Buscar en AtlasHabita' })).toBeNull();
+  });
+
+  it('expone el mini-LayerSwitcher de capas y lo sincroniza con el store', async () => {
+    const user = userEvent.setup();
+    render(wrap(<DashboardShell />));
+    const group = screen.getByRole('radiogroup', { name: /capa activa del mapa/i });
+    expect(group).toBeInTheDocument();
+    const broadband = screen.getByRole('radio', { name: /banda ancha/i });
+    await user.click(broadband);
+    expect(useMapLayerStore.getState().activeLayerId).toBe('broadband');
+    expect(broadband).toHaveAttribute('aria-checked', 'true');
   });
 });

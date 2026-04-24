@@ -1,172 +1,137 @@
 /**
- * Panel de capas del mapa con multi-select y leyenda por indicador.
+ * Selector reactivo de capa activa para el mapa multi-métrica.
  *
- * Ofrece >=6 capas (score por perfil, rent, broadband, income, services,
- * climate) activables a la vez. Cada capa declara su gradiente y unidad, con
- * lo que el consumidor puede renderizar una leyenda coherente sin lógica
- * extra.
+ * Renderiza un grupo de radios accesible donde cada opción muestra:
+ *  - una rampa cromática preview con la paleta de la capa,
+ *  - su etiqueta principal,
+ *  - su descripción larga,
+ *  - la unidad asociada (en mayúsculas para que sea legible como sufijo).
+ *
+ * El componente es totalmente controlado: el padre proporciona `activeLayerId`
+ * y `onChange`. Esto permite al store global (`state/mapLayer.ts`) mantener
+ * la sincronía entre la home y la página `/mapa`. La lista de capas y los
+ * metadatos provienen del catálogo (`features/map/layers/catalog.ts`) para
+ * evitar duplicaciones.
+ *
+ * Accesibilidad:
+ *  - `role="radiogroup"` con `aria-label` describe el grupo.
+ *  - Cada opción es un `<input type="radio">` etiquetado con su descripción.
+ *  - Los cambios disparan un anuncio "polite" via `aria-live` para lectores
+ *    de pantalla, satisfaciendo el criterio AA del issue.
  */
 
-import { Layers } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
-import { Card, CardHeader } from '../../../components/ui/Card';
-import { Tag } from '../../../components/ui/Tag';
-import { Toggle } from '../../../components/ui/Toggle';
+import { useId, useMemo } from 'react';
+
 import { cn } from '../../../components/ui/cn';
-import type { IndicatorId } from '../../../data/national_mock';
-
-export type MapLayerId = 'score' | IndicatorId;
-
-export interface MapLayerDefinition {
-  readonly id: MapLayerId;
-  readonly label: string;
-  readonly description: string;
-  readonly unit: string;
-  readonly ramp: readonly string[];
-  readonly defaultActive?: boolean;
-}
-
-export const DEFAULT_LAYER_DEFINITIONS: readonly MapLayerDefinition[] = [
-  {
-    id: 'score',
-    label: 'Score por perfil',
-    description: 'Agregado ponderado del perfil activo.',
-    unit: '/100',
-    ramp: ['#065f46', '#047857', '#059669', '#10b981', '#34d399'],
-    defaultActive: true,
-  },
-  {
-    id: 'rent_price',
-    label: 'Precio alquiler',
-    description: 'Alquiler medio residencial.',
-    unit: ' €/mes',
-    ramp: ['#3f6212', '#4d7c0f', '#84cc16', '#bef264', '#ecfccb'],
-  },
-  {
-    id: 'broadband',
-    label: 'Banda ancha',
-    description: 'Cobertura de fibra FTTH y cable.',
-    unit: ' %',
-    ramp: ['#0c4a6e', '#075985', '#0369a1', '#38bdf8', '#e0f2fe'],
-  },
-  {
-    id: 'income',
-    label: 'Renta por hogar',
-    description: 'Renta disponible bruta.',
-    unit: ' €',
-    ramp: ['#4c1d95', '#6d28d9', '#8b5cf6', '#c4b5fd', '#ede9fe'],
-  },
-  {
-    id: 'services',
-    label: 'Servicios sanitarios',
-    description: 'Centros por 10.000 habitantes.',
-    unit: ' ratio',
-    ramp: ['#7c2d12', '#9a3412', '#ea580c', '#fb923c', '#fed7aa'],
-  },
-  {
-    id: 'climate',
-    label: 'Clima',
-    description: 'Temperatura media anual.',
-    unit: ' °C',
-    ramp: ['#1e3a8a', '#1d4ed8', '#3b82f6', '#93c5fd', '#dbeafe'],
-  },
-];
+import { MAP_LAYER_CATALOG, type MapLayerDefinition, type MapLayerId } from './catalog';
 
 export interface LayerSwitcherProps {
+  /** Lista de capas a mostrar. Por defecto el catálogo completo. */
   readonly layers?: readonly MapLayerDefinition[];
-  readonly activeLayers?: readonly MapLayerId[];
-  readonly onChange?: (active: readonly MapLayerId[]) => void;
-  readonly legendSlot?: ReactNode;
+  /** Identificador de la capa actualmente activa. */
+  readonly activeLayerId: MapLayerId;
+  /** Callback al cambiar de capa. */
+  readonly onChange: (id: MapLayerId) => void;
+  /** Si `true`, muestra una versión compacta sin descripción larga. */
+  readonly compact?: boolean;
+  /** Etiqueta accesible del grupo de radios. */
+  readonly ariaLabel?: string;
   readonly className?: string;
 }
 
-export function LayerSwitcher({
-  layers = DEFAULT_LAYER_DEFINITIONS,
-  activeLayers,
-  onChange,
-  legendSlot,
-  className,
-}: LayerSwitcherProps) {
-  const [internalActive, setInternalActive] = useState<readonly MapLayerId[]>(() => {
-    if (activeLayers) return activeLayers;
-    return layers.filter((layer) => layer.defaultActive).map((layer) => layer.id);
-  });
-  const active = activeLayers ?? internalActive;
-
-  const handleToggle = (layerId: MapLayerId, checked: boolean) => {
-    const next = checked
-      ? Array.from(new Set([...active, layerId]))
-      : active.filter((id) => id !== layerId);
-    if (!activeLayers) setInternalActive(next);
-    onChange?.(next);
-  };
-
-  const activeDefs = layers.filter((layer) => active.includes(layer.id));
-
+/**
+ * Renderiza la rampa cromática (5 stops) como un degradado lineal horizontal.
+ * Es puramente decorativo y se oculta a tecnologías asistivas.
+ */
+function LayerRampPreview({ palette }: { palette: readonly string[] }) {
+  // Reverseamos visualmente para mostrar bajo→alto (left → right). La paleta
+  // se declara alto→bajo, así que aquí invertimos el orden visual.
+  const reversed = palette.slice().reverse();
   return (
-    <Card
-      tone="base"
-      padding="md"
-      className={cn('flex flex-col gap-4', className)}
-      aria-label="Panel de capas del mapa"
-      data-feature="layer-switcher"
-    >
-      <CardHeader
-        title="Capas del mapa"
-        subtitle="Activa múltiples capas para comparar dimensiones."
-        action={
-          <Tag tone="info" icon={<Layers size={12} aria-hidden="true" />}>
-            {active.length} activas
-          </Tag>
-        }
-      />
-      <ul className="flex flex-col gap-2" role="group" aria-label="Capas disponibles">
-        {layers.map((layer) => {
-          const checked = active.includes(layer.id);
-          return (
-            <li
-              key={layer.id}
-              className={cn(
-                'rounded-2xl border px-3 py-2 transition-colors',
-                checked
-                  ? 'border-brand-200 bg-brand-50'
-                  : 'bg-surface-soft border-[color:var(--color-line-soft)]'
-              )}
-            >
-              <Toggle
-                label={layer.label}
-                helper={layer.description}
-                checked={checked}
-                onCheckedChange={(value) => handleToggle(layer.id, value)}
-              />
-              {checked ? (
-                <div className="mt-2 flex items-center gap-2" aria-hidden="true">
-                  {layer.ramp.map((color, idx) => (
-                    <span
-                      key={`${layer.id}-${idx}`}
-                      className="h-2 flex-1 rounded-full"
-                      style={{ backgroundColor: color }}
-                    />
-                  ))}
-                  <span className="text-ink-500 text-[10px] font-semibold tracking-wide uppercase">
-                    {layer.unit}
-                  </span>
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
-      {legendSlot ? (
-        <section aria-label="Leyenda combinada" className="flex flex-col gap-2">
-          {legendSlot}
-        </section>
-      ) : null}
-      {activeDefs.length === 0 ? (
-        <p className="text-ink-500 rounded-xl bg-amber-50 p-3 text-xs" role="status">
-          Activa al menos una capa para visualizarla en el mapa.
-        </p>
-      ) : null}
-    </Card>
+    <span
+      aria-hidden="true"
+      className="block h-1.5 w-full rounded-full"
+      style={{
+        backgroundImage: `linear-gradient(to right, ${reversed.join(', ')})`,
+      }}
+    />
   );
 }
+
+export function LayerSwitcher({
+  layers = MAP_LAYER_CATALOG,
+  activeLayerId,
+  onChange,
+  compact = false,
+  ariaLabel = 'Capa activa del mapa',
+  className,
+}: LayerSwitcherProps) {
+  const groupId = useId();
+  const activeLayer = useMemo(
+    () => layers.find((layer) => layer.id === activeLayerId) ?? layers[0],
+    [layers, activeLayerId]
+  );
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      data-feature="layer-switcher"
+      className={cn('flex flex-col gap-2', className)}
+    >
+      {layers.map((layer) => {
+        const isActive = layer.id === activeLayerId;
+        const inputId = `${groupId}-${layer.id}`;
+        return (
+          <label
+            key={layer.id}
+            htmlFor={inputId}
+            className={cn(
+              'group relative flex cursor-pointer flex-col gap-1.5 rounded-2xl border px-3 py-2.5 transition-colors',
+              'focus-within:ring-brand-300 focus-within:ring-2 focus-within:ring-offset-2',
+              isActive
+                ? 'border-brand-300 bg-brand-50 shadow-sm'
+                : 'border-[color:var(--color-line-soft)] bg-white hover:bg-[var(--color-surface-muted)]'
+            )}
+          >
+            <span className="flex items-start justify-between gap-3">
+              <span className="flex flex-col gap-0.5">
+                <span className="text-ink-900 text-sm font-semibold tracking-tight">
+                  {layer.label}
+                </span>
+                {!compact ? (
+                  <span className="text-ink-500 text-xs leading-snug">{layer.description}</span>
+                ) : null}
+              </span>
+              <input
+                id={inputId}
+                type="radio"
+                name={`map-layer-${groupId}`}
+                value={layer.id}
+                checked={isActive}
+                onChange={() => onChange(layer.id)}
+                className="text-brand-500 focus:ring-brand-300 mt-0.5 h-4 w-4 cursor-pointer accent-[var(--color-brand-500)]"
+                aria-describedby={`${inputId}-meta`}
+              />
+            </span>
+            <span className="flex items-center gap-2">
+              <LayerRampPreview palette={layer.palette} />
+              <span
+                id={`${inputId}-meta`}
+                className="text-ink-500 shrink-0 text-[10px] font-medium tracking-wider uppercase"
+              >
+                {layer.unit.trim() === '' ? '0–100' : layer.unit.trim()}
+              </span>
+            </span>
+          </label>
+        );
+      })}
+      <p className="sr-only" aria-live="polite">
+        Capa activa: {activeLayer.label}. {activeLayer.description}
+      </p>
+    </div>
+  );
+}
+
+export { MAP_LAYER_CATALOG } from './catalog';
+export type { MapLayerDefinition, MapLayerId } from './catalog';
