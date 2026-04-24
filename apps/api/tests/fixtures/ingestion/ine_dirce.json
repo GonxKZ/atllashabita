@@ -1,0 +1,18 @@
+{
+  "source": "INE - Directorio Central de Empresas (DIRCE)",
+  "landing": "https://www.ine.es/dyngs/INEbase/operacion.htm?c=Estadistica_C&cid=1254736160707&idp=1254735576550&menu=ultiDatos",
+  "license": "CC BY 4.0",
+  "period": "2024",
+  "rows": [
+    {"municipality_code": "28079", "name": "Madrid", "active_enterprises": 313800, "enterprises_per_1k": 95.0},
+    {"municipality_code": "08019", "name": "Barcelona", "active_enterprises": 141125, "enterprises_per_1k": 85.0},
+    {"municipality_code": "46250", "name": "València", "active_enterprises": 57061, "enterprises_per_1k": 72.0},
+    {"municipality_code": "41091", "name": "Sevilla", "active_enterprises": 41054, "enterprises_per_1k": 60.0},
+    {"municipality_code": "50297", "name": "Zaragoza", "active_enterprises": 47731, "enterprises_per_1k": 70.0},
+    {"municipality_code": "29067", "name": "Málaga", "active_enterprises": 36355, "enterprises_per_1k": 62.0},
+    {"municipality_code": "30030", "name": "Murcia", "active_enterprises": 28705, "enterprises_per_1k": 62.0},
+    {"municipality_code": "07040", "name": "Palma", "active_enterprises": 33285, "enterprises_per_1k": 80.0},
+    {"municipality_code": "35016", "name": "Las Palmas de Gran Canaria", "active_enterprises": 25750, "enterprises_per_1k": 68.0},
+    {"municipality_code": "48020", "name": "Bilbao", "active_enterprises": 27665, "enterprises_per_1k": 80.0}
+  ]
+}

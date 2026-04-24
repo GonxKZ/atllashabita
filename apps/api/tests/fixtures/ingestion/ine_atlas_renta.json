@@ -1,0 +1,18 @@
+{
+  "source": "INE Atlas de Distribución de Renta de los Hogares",
+  "landing": "https://www.ine.es/dynt3/inebase/index.htm?capsel=5650&padre=12385",
+  "license": "CC BY 4.0",
+  "period": "2024",
+  "rows": [
+    {"municipality_code": "28079", "name": "Madrid", "net_income_per_capita": 18500, "gini": 32.1},
+    {"municipality_code": "08019", "name": "Barcelona", "net_income_per_capita": 16800, "gini": 33.4},
+    {"municipality_code": "46250", "name": "València", "net_income_per_capita": 14200, "gini": 31.2},
+    {"municipality_code": "41091", "name": "Sevilla", "net_income_per_capita": 13420, "gini": 33.6},
+    {"municipality_code": "50297", "name": "Zaragoza", "net_income_per_capita": 15100, "gini": 30.4},
+    {"municipality_code": "29067", "name": "Málaga", "net_income_per_capita": 13870, "gini": 32.7},
+    {"municipality_code": "30030", "name": "Murcia", "net_income_per_capita": 12800, "gini": 31.8},
+    {"municipality_code": "07040", "name": "Palma", "net_income_per_capita": 15000, "gini": 31.1},
+    {"municipality_code": "35016", "name": "Las Palmas de Gran Canaria", "net_income_per_capita": 13200, "gini": 33.5},
+    {"municipality_code": "48020", "name": "Bilbao", "net_income_per_capita": 18800, "gini": 28.9}
+  ]
+}

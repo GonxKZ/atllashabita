@@ -22,15 +22,19 @@ def container() -> Container:
     return Container(settings)
 
 
-def test_lista_fuentes_contiene_las_cinco_del_seed(container: Container) -> None:
+def test_lista_fuentes_contiene_las_fuentes_oficiales(container: Container) -> None:
     sources = container.list_sources.execute()
-    assert {source.id for source in sources} == {
+    ids = {source.id for source in sources}
+    assert {
         "mivau_serpavi",
         "seteleco_broadband_maps",
         "ine_atlas_renta",
-        "miteco_reto_demografico",
+        "miteco_reto_demografico_servicios",
+        "miteco_reto_demografico_demografia",
+        "ine_datosabiertos",
+        "ine_dirce",
         "aemet_opendata",
-    }
+    } <= ids
 
 
 def test_fuentes_ordenadas_alfabeticamente_por_titulo(container: Container) -> None:
