@@ -29,6 +29,8 @@ from atlashabita.infrastructure.rdf.namespaces import (
     QB,
     SF,
     SKOS,
+    SOSA,
+    SSN,
     bind_all,
 )
 from atlashabita.infrastructure.rdf.serializer import SerializationFormat, serialize, write
@@ -56,6 +58,8 @@ __all__ = [
     "QB",
     "SF",
     "SKOS",
+    "SOSA",
+    "SSN",
     "GraphBuilder",
     "SerializationFormat",
     "ShaclValidator",
