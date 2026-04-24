@@ -1,0 +1,38 @@
+{
+  "source": "Consorcio Regional de Transportes de Madrid (GTFS multimodal)",
+  "landing": "https://datos.crtm.es/datasets/1a25440bf66f499bae2657ec7fb40144",
+  "license": "CC BY 4.0",
+  "agency_id": "crtm",
+  "stops": [
+    {"stop_id": "MAD-SOL", "name": "Sol", "lat": 40.4170, "lon": -3.7038, "mode": "metro", "municipality_code": "28079"},
+    {"stop_id": "MAD-ATO", "name": "Atocha-Cercanías", "lat": 40.4068, "lon": -3.6906, "mode": "rail", "municipality_code": "28079"},
+    {"stop_id": "MAD-CHM", "name": "Chamartín", "lat": 40.4729, "lon": -3.6826, "mode": "rail", "municipality_code": "28079"},
+    {"stop_id": "MAD-NM", "name": "Nuevos Ministerios", "lat": 40.4462, "lon": -3.6927, "mode": "metro", "municipality_code": "28079"},
+    {"stop_id": "MAD-MOC", "name": "Moncloa", "lat": 40.4350, "lon": -3.7193, "mode": "metro", "municipality_code": "28079"},
+    {"stop_id": "MAD-PRI", "name": "Príncipe Pío", "lat": 40.4202, "lon": -3.7196, "mode": "rail", "municipality_code": "28079"},
+    {"stop_id": "MAD-COL", "name": "Colón", "lat": 40.4253, "lon": -3.6916, "mode": "metro", "municipality_code": "28079"},
+    {"stop_id": "MAD-AEP", "name": "Aeropuerto T4", "lat": 40.4961, "lon": -3.5926, "mode": "metro", "municipality_code": "28079"},
+    {"stop_id": "MOS-CTR", "name": "Móstoles Central", "lat": 40.3227, "lon": -3.8649, "mode": "rail", "municipality_code": "28092"},
+    {"stop_id": "MOS-ESL", "name": "Móstoles El Soto", "lat": 40.3094, "lon": -3.8783, "mode": "metro", "municipality_code": "28092"},
+    {"stop_id": "ALC-LH", "name": "Alcalá La Garena", "lat": 40.4762, "lon": -3.3798, "mode": "rail", "municipality_code": "28005"},
+    {"stop_id": "ALC-UV", "name": "Alcalá Universidad", "lat": 40.4985, "lon": -3.3580, "mode": "rail", "municipality_code": "28005"},
+    {"stop_id": "FUE-CTR", "name": "Fuenlabrada Central", "lat": 40.2842, "lon": -3.7941, "mode": "rail", "municipality_code": "28065"},
+    {"stop_id": "FUE-LOR", "name": "Fuenlabrada-La Serna", "lat": 40.2931, "lon": -3.8043, "mode": "rail", "municipality_code": "28065"},
+    {"stop_id": "LEG-CTR", "name": "Leganés Central", "lat": 40.3267, "lon": -3.7636, "mode": "rail", "municipality_code": "28074"},
+    {"stop_id": "LEG-ZAR", "name": "Zarzaquemada", "lat": 40.3210, "lon": -3.7592, "mode": "rail", "municipality_code": "28074"},
+    {"stop_id": "ALCB-CTR", "name": "Alcobendas-Marqués", "lat": 40.5408, "lon": -3.6406, "mode": "metro", "municipality_code": "28006"},
+    {"stop_id": "COS-CTR", "name": "Coslada Central", "lat": 40.4239, "lon": -3.5574, "mode": "rail", "municipality_code": "28058"},
+    {"stop_id": "BOA-CTR", "name": "Boadilla del Monte", "lat": 40.4056, "lon": -3.8761, "mode": "metro", "municipality_code": "28049"}
+  ],
+  "routes": [
+    {"route_id": "C1", "short_name": "C-1", "long_name": "Príncipe Pío - Aeropuerto T4", "mode": "rail", "stop_ids": ["MAD-PRI", "MAD-NM", "MAD-CHM", "MAD-AEP"]},
+    {"route_id": "C3", "short_name": "C-3", "long_name": "Aranjuez - Chamartín", "mode": "rail", "stop_ids": ["MAD-ATO", "MAD-CHM"]},
+    {"route_id": "C5", "short_name": "C-5", "long_name": "Móstoles - Humanes", "mode": "rail", "stop_ids": ["MOS-CTR", "FUE-CTR", "FUE-LOR"]},
+    {"route_id": "C5B", "short_name": "C-5", "long_name": "Móstoles - Atocha", "mode": "rail", "stop_ids": ["MOS-CTR", "LEG-CTR", "LEG-ZAR", "MAD-ATO"]},
+    {"route_id": "C7", "short_name": "C-7", "long_name": "Alcalá - Príncipe Pío", "mode": "rail", "stop_ids": ["ALC-UV", "ALC-LH", "COS-CTR", "MAD-CHM", "MAD-PRI"]},
+    {"route_id": "ML2", "short_name": "ML-2", "long_name": "Colonia Jardín - Aravaca", "mode": "tram", "stop_ids": ["MAD-MOC"]},
+    {"route_id": "M9", "short_name": "L9", "long_name": "Mirasierra - Arganda", "mode": "metro", "stop_ids": ["MAD-COL", "MAD-NM", "ALCB-CTR"]},
+    {"route_id": "M10", "short_name": "L10", "long_name": "Hospital del Norte - Puerta del Sur", "mode": "metro", "stop_ids": ["MAD-NM", "MAD-PRI", "BOA-CTR"]},
+    {"route_id": "M12", "short_name": "L12", "long_name": "MetroSur", "mode": "metro", "stop_ids": ["MOS-ESL", "FUE-CTR", "LEG-CTR"]}
+  ]
+}

@@ -30,7 +30,9 @@ Resumen ejecutivo del Knowledge Graph construido en [`ontology/atlashabita.ttl`]
 | `sf:` | `http://www.opengis.net/ont/sf#` | Simple Features (`sf:Point`). |
 | `wgs84:` | `http://www.w3.org/2003/01/geo/wgs84_pos#` | Coordenadas históricas (`wgs84:lat`, `wgs84:long`). |
 | `prov:` | `http://www.w3.org/ns/prov#` | Procedencia (PROV-O). |
-| `qb:` | `http://purl.org/linked-data/cube#` | Data Cube (reservado). |
+| `qb:` | `http://purl.org/linked-data/cube#` | Data Cube (flujos MITMA como observaciones multidimensionales). |
+| `sosa:` | `http://www.w3.org/ns/sosa/` | Sensor / Observation / Sample / Actuator. |
+| `ssn:` | `http://www.w3.org/ns/ssn/` | Semantic Sensor Network. |
 | `sh:` | `http://www.w3.org/ns/shacl#` | Shapes SHACL. |
 
 ---
@@ -55,6 +57,11 @@ ah:IngestionActivity      rdfs:subClassOf prov:Activity .
 ah:DecisionProfile        a owl:Class .
 ah:Score                  rdfs:subClassOf prov:Entity .
 ah:ScoreContribution      a owl:Class .
+
+ah:MobilityFlow           rdfs:subClassOf prov:Entity , sosa:Observation , qb:Observation .
+ah:RoadAccident           rdfs:subClassOf prov:Entity , geo:Feature .
+ah:TransitStop            rdfs:subClassOf geo:Feature .
+ah:TransitRoute           a owl:Class .
 ```
 
 ---
@@ -367,7 +374,144 @@ El modelo RDF se considera aceptable si:
 
 ---
 
-## 12. Consumo RDF desde la UI (v0.2.0)
+## 12. Datasets M11: movilidad, accidentes y transporte público
+
+La versión 0.3.0 (milestone M11) extiende la ontología con cuatro nuevas
+clases consumidas por el mapa multi-métrica y los recomendadores
+contextuales. La compatibilidad con la versión anterior se mantiene: las
+nuevas tripletas viven en sus propios named graphs (`mobility`, `accidents`,
+`transit`) y la validación SHACL del seed clásico no cambia.
+
+### 12.1 Flujos de movilidad (`ah:MobilityFlow`)
+
+Origen-destino por periodo y modo (datos MITMA OD). Se modela como
+`sosa:Observation` y `qb:Observation` para integrarse con herramientas
+estándar de cubos de datos y observaciones sensoriales.
+
+```turtle
+@prefix ah:    <https://data.atlashabita.example/ontology/> .
+@prefix ahr:   <https://data.atlashabita.example/resource/> .
+@prefix sosa:  <http://www.w3.org/ns/sosa/> .
+@prefix qb:    <http://purl.org/linked-data/cube#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+ahr:flow/41091/41038/2024/all
+    a ah:MobilityFlow, sosa:Observation, qb:Observation, prov:Entity ;
+    ah:flowOrigin ahr:territory/municipality/41091 ;
+    sosa:hasFeatureOfInterest ahr:territory/municipality/41091 ;
+    ah:flowDestination ahr:territory/municipality/41038 ;
+    ah:flowTrips "12500"^^xsd:decimal ;
+    sosa:hasSimpleResult "12500"^^xsd:decimal ;
+    ah:flowMode "all" ;
+    ah:flowDistanceKm "12.4"^^xsd:decimal ;
+    ah:period "2024" ;
+    ah:periodYear "2024"^^xsd:gYear ;
+    ah:providedBy ahr:source/mitma_om .
+```
+
+### 12.2 Accidentes viales (`ah:RoadAccident`)
+
+Registros DGT con localización puntual, severidad acotada por SHACL al
+enum {`fatal`, `serious`, `slight`} y atributos de víctimas. La
+geometría sigue la convención GeoSPARQL del resto del grafo.
+
+```turtle
+@prefix ah:    <https://data.atlashabita.example/ontology/> .
+@prefix ahr:   <https://data.atlashabita.example/resource/> .
+@prefix dct:   <http://purl.org/dc/terms/> .
+@prefix geo:   <http://www.opengis.net/ont/geosparql#> .
+@prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+ahr:accident/dgt_2024_000001
+    a ah:RoadAccident, geo:Feature, prov:Entity ;
+    dct:identifier "dgt-2024-000001" ;
+    ah:accidentDate "2024-05-12"^^xsd:date ;
+    ah:accidentYear "2024"^^xsd:gYear ;
+    ah:accidentSeverity "serious" ;
+    ah:accidentVictims 2 ;
+    ah:accidentFatalities 0 ;
+    ah:accidentRoadType "urbana" ;
+    ah:occursIn ahr:territory/municipality/41091 ;
+    wgs84:lat "37.3886"^^xsd:decimal ;
+    wgs84:long "-5.9823"^^xsd:decimal ;
+    ah:hasGeometry ahr:geometry/accident/dgt_2024_000001 ;
+    geo:hasGeometry ahr:geometry/accident/dgt_2024_000001 ;
+    ah:providedBy ahr:source/dgt_accidentes .
+
+ahr:geometry/accident/dgt_2024_000001
+    a geo:Geometry, geo:Point ;
+    geo:asWKT "<http://www.opengis.net/def/crs/OGC/1.3/CRS84> POINT(-5.9823 37.3886)"^^geo:wktLiteral .
+```
+
+### 12.3 Transporte público (`ah:TransitStop`, `ah:TransitRoute`)
+
+Paradas y rutas alineadas con CRTM/GTFS. La identidad es
+`agency_id + stop_id` / `agency_id + route_id` para evitar colisiones al
+federar varios operadores.
+
+```turtle
+@prefix ah:    <https://data.atlashabita.example/ontology/> .
+@prefix ahr:   <https://data.atlashabita.example/resource/> .
+@prefix dct:   <http://purl.org/dc/terms/> .
+@prefix geo:   <http://www.opengis.net/ont/geosparql#> .
+@prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+ahr:transit_stop/emt_madrid/1001
+    a ah:TransitStop, geo:Feature ;
+    dct:identifier "emt_madrid:1001" ;
+    rdfs:label "Plaza de Cibeles"@es ;
+    ah:stopName "Plaza de Cibeles" ;
+    ah:stopCode "C1" ;
+    ah:operator "emt_madrid" ;
+    wgs84:lat "40.4193"^^xsd:decimal ;
+    wgs84:long "-3.6929"^^xsd:decimal ;
+    ah:hasGeometry ahr:geometry/transit_stop/emt_madrid/1001 ;
+    geo:hasGeometry ahr:geometry/transit_stop/emt_madrid/1001 ;
+    ah:locatedIn ahr:territory/municipality/28079 ;
+    ah:providedBy ahr:source/emt_gtfs .
+
+ahr:transit_route/emt_madrid/L27
+    a ah:TransitRoute ;
+    dct:identifier "emt_madrid:L27" ;
+    rdfs:label "Plaza de Cibeles - Atocha"@es ;
+    ah:routeShortName "27" ;
+    ah:routeLongName "Plaza de Cibeles - Atocha" ;
+    ah:transitMode "bus" ;
+    ah:operator "emt_madrid" ;
+    ah:servesStop ahr:transit_stop/emt_madrid/1001 ,
+                  ahr:transit_stop/emt_madrid/1002 ;
+    ah:providedBy ahr:source/emt_gtfs .
+```
+
+### 12.4 Consultas SPARQL del catálogo
+
+| `query_id` | Descripción | Bindings |
+|---|---|---|
+| `mobility_flow_between` | Flujos MITMA entre dos territorios para un periodo. | `origin_code`, `destination_code`, `period`. |
+| `accidents_in_radius` | Accidentes DGT dentro de `km` km del centro indicado. | `lat`, `lon`, `km`; `year` opcional. |
+| `transit_stops_in_municipality` | Paradas de transporte público en un municipio. | `municipality_code`. |
+| `risk_index` | Indice compuesto accidentes/flujos para un municipio. | `municipality_code`. |
+
+Todas las consultas se exponen vía `RunSparqlQueryUseCase` con la misma
+política de salvaguardas (`_require_safe_*`, LIMIT defensivo y timeout
+blando) que el resto del catálogo.
+
+### 12.5 Named graphs adicionales
+
+| Named graph | URI | Contenido |
+|---|---|---|
+| Movilidad | `https://data.atlashabita.example/graph/mobility` | `ah:MobilityFlow` (MITMA OD). |
+| Accidentes | `https://data.atlashabita.example/graph/accidents` | `ah:RoadAccident` (DGT). |
+| Tránsito | `https://data.atlashabita.example/graph/transit` | `ah:TransitStop` y `ah:TransitRoute` (CRTM/GTFS). |
+
+---
+
+## 13. Consumo RDF desde la UI (v0.2.0)
 
 La Fase D añade tres superficies en el frontend que ejercitan el grafo:
 

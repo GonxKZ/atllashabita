@@ -1,9 +1,12 @@
 import { useId, useRef, type ReactNode } from 'react';
-import { ArrowRight, Bell, MessageCircle, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Bell, LogIn, LogOut, MessageCircle, Search, UserCircle } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
 import { resolveDuration } from '@/animations';
+import { useAuthStore } from '../../state/auth';
+import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { IconButton } from '../ui/IconButton';
 import { cn } from '../ui/cn';
@@ -27,6 +30,8 @@ export function Topbar({
 }: TopbarProps) {
   const inputId = useId();
   const headerRef = useRef<HTMLElement | null>(null);
+  const user = useAuthStore((state) => state.user);
+  const signOut = useAuthStore((state) => state.signOut);
 
   // Entrada suave del topbar desde arriba. Se cancela solo cuando el
   // usuario solicita reducir el movimiento.
@@ -112,6 +117,45 @@ export function Topbar({
           variant="secondary"
           size="md"
         />
+        {user ? (
+          <div className="flex items-center gap-2">
+            <Link
+              to="/cuenta"
+              aria-label={`Ir a mi cuenta de ${user.name}`}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-full border border-[color:var(--color-line-soft)] bg-white px-2 py-1 pr-3',
+                'text-ink-700 hover:text-brand-700 hover:border-brand-300 transition-colors',
+                'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:outline-none'
+              )}
+            >
+              <Avatar name={user.name} src={user.avatarUrl} size="sm" />
+              <span className="max-w-[8rem] truncate text-sm font-medium">
+                {user.name.split(' ')[0]}
+              </span>
+            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              leadingIcon={<LogOut size={16} />}
+              onClick={() => signOut()}
+            >
+              Cerrar sesión
+            </Button>
+          </div>
+        ) : (
+          <Link
+            to="/login"
+            aria-label="Iniciar sesión"
+            className={cn(
+              'inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors',
+              'text-ink-700 hover:border-brand-300 hover:text-brand-700 border border-[color:var(--color-line-soft)] bg-white',
+              'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:ring-offset-2'
+            )}
+          >
+            <LogIn aria-hidden="true" size={16} />
+            <span>Iniciar sesión</span>
+          </Link>
+        )}
         <Button
           variant="primary"
           size="md"
@@ -127,3 +171,8 @@ export function Topbar({
     </header>
   );
 }
+
+// Mantengo `UserCircle` re-exportado en caso de futuras vistas que reutilicen
+// el icono. Sirve también para que tree-shaking no descarte el lucide cuando
+// otras vistas lo necesiten.
+export const TopbarUserIcon = UserCircle;

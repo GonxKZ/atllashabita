@@ -20,9 +20,12 @@ from atlashabita.application.use_cases import (
     GetMapLayerUseCase,
     GetQualityReportUseCase,
     GetTerritoryDetailUseCase,
+    ListAccidentsUseCase,
     ListMapLayersUseCase,
+    ListMobilityUseCase,
     ListProfilesUseCase,
     ListSourcesUseCase,
+    ListTransitUseCase,
     SearchTerritoriesUseCase,
 )
 from atlashabita.application.use_cases.export_rdf import ExportRdfUseCase
@@ -168,3 +171,21 @@ class Container:
     def export_rdf(self) -> ExportRdfUseCase:
         """Caso de uso de exportación del grafo RDF en distintos formatos."""
         return ExportRdfUseCase(graph=self.graph, settings=self._settings)
+
+    @cached_property
+    def list_mobility(self) -> ListMobilityUseCase:
+        """Lectura del CSV de flujos de movilidad MITMA."""
+        return ListMobilityUseCase(seed_dir=self._settings.data_zone("seed"))
+
+    @cached_property
+    def list_accidents(self) -> ListAccidentsUseCase:
+        """Lectura del CSV de accidentes DGT y cálculo de riesgo."""
+        return ListAccidentsUseCase(
+            seed_dir=self._settings.data_zone("seed"),
+            dataset=self.dataset,
+        )
+
+    @cached_property
+    def list_transit(self) -> ListTransitUseCase:
+        """Lectura del CSV de paradas de transporte público."""
+        return ListTransitUseCase(seed_dir=self._settings.data_zone("seed"))

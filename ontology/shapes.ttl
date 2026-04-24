@@ -7,6 +7,7 @@
 @prefix sf:    <http://www.opengis.net/ont/sf#> .
 @prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
 @prefix prov:  <http://www.w3.org/ns/prov#> .
+@prefix sosa:  <http://www.w3.org/ns/sosa/> .
 
 ###############################################################################
 # Shapes SHACL reforzadas (v0.2.0 Fase B M8)                                 #
@@ -179,4 +180,162 @@ ah:ObservationProvenanceShape
         sh:maxCount 1 ;
         sh:nodeKind sh:IRI ;
         sh:message "La procedencia de la observación debe apuntar a un IRI de actividad PROV."@es ;
+    ] .
+
+###############################################################################
+# Movilidad / accidentes / transporte (M11)                                  #
+###############################################################################
+
+ah:MobilityFlowShape
+    a sh:NodeShape ;
+    sh:targetClass ah:MobilityFlow ;
+    sh:property [
+        sh:path ah:flowOrigin ;
+        sh:minCount 1 ;
+        sh:class ah:Territory ;
+        sh:message "Todo flujo de movilidad debe declarar un origen territorial."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:flowDestination ;
+        sh:minCount 1 ;
+        sh:class ah:Territory ;
+        sh:message "Todo flujo de movilidad debe declarar un destino territorial."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:flowTrips ;
+        sh:minCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0 ;
+        sh:message "El número de viajes debe ser un decimal no negativo."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:period ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path ah:periodYear ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:gYear ;
+    ] ;
+    sh:property [
+        sh:path ah:flowMode ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path ah:flowDistanceKm ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0 ;
+    ] .
+
+ah:RoadAccidentShape
+    a sh:NodeShape ;
+    sh:targetClass ah:RoadAccident ;
+    sh:property [
+        sh:path dct:identifier ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path ah:accidentSeverity ;
+        sh:minCount 1 ;
+        sh:in ( "fatal" "serious" "slight" ) ;
+        sh:message "La severidad del accidente debe ser fatal, serious o slight."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:accidentYear ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:gYear ;
+    ] ;
+    sh:property [
+        sh:path ah:accidentVictims ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 0 ;
+    ] ;
+    sh:property [
+        sh:path ah:accidentFatalities ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 0 ;
+    ] ;
+    sh:property [
+        sh:path ah:hasGeometry ;
+        sh:minCount 1 ;
+        sh:class geo:Geometry ;
+        sh:message "Todo accidente debe tener al menos una geometría puntual GeoSPARQL."@es ;
+    ] ;
+    sh:property [
+        sh:path wgs84:lat ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive -90 ;
+        sh:maxInclusive 90 ;
+    ] ;
+    sh:property [
+        sh:path wgs84:long ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive -180 ;
+        sh:maxInclusive 180 ;
+    ] .
+
+ah:TransitStopShape
+    a sh:NodeShape ;
+    sh:targetClass ah:TransitStop ;
+    sh:property [
+        sh:path dct:identifier ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:minCount 1 ;
+    ] ;
+    sh:property [
+        sh:path ah:hasGeometry ;
+        sh:minCount 1 ;
+        sh:class geo:Geometry ;
+        sh:message "Toda parada de transporte debe tener una geometría puntual."@es ;
+    ] ;
+    sh:property [
+        sh:path wgs84:lat ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive -90 ;
+        sh:maxInclusive 90 ;
+    ] ;
+    sh:property [
+        sh:path wgs84:long ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive -180 ;
+        sh:maxInclusive 180 ;
+    ] .
+
+ah:TransitRouteShape
+    a sh:NodeShape ;
+    sh:targetClass ah:TransitRoute ;
+    sh:property [
+        sh:path dct:identifier ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path ah:transitMode ;
+        sh:minCount 1 ;
+        sh:in ( "bus" "metro" "tram" "rail" "ferry" "cable" "funicular" ) ;
+        sh:message "El modo de transporte debe ser uno de los modos GTFS soportados."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:routeShortName ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path ah:routeLongName ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
     ] .

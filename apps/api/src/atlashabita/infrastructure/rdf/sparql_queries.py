@@ -543,6 +543,239 @@ class SparqlRunner:
             "quality": str(row["quality"]),
         }
 
+    def mobility_flow_between(
+        self,
+        origin_code: str,
+        destination_code: str,
+        period: str,
+    ) -> list[dict[str, Any]]:
+        """Devuelve los flujos de movilidad MITMA entre dos territorios.
+
+        Se aceptan distintos modos cuando el dataset los desagrega: la
+        consulta no filtra por modo y la lista resultante puede contener
+        varias filas (una por modo). El periodo se valida estrictamente para
+        evitar interpolación maliciosa.
+        """
+        _require_safe_identifier(origin_code, field="origin_code")
+        _require_safe_identifier(destination_code, field="destination_code")
+        _require_safe_period(period)
+        # Aceptamos cualquier kind administrativo; la consulta filtra por
+        # ``dct:identifier`` con el código provisto y delega la disambiguación
+        # al grafo (origen/destino son territorios cualquiera). Comparamos
+        # los literales con ``STR`` para ser robustos frente a tipados
+        # mixtos (xsd:string vs literal plano).
+        query = f"""
+        PREFIX ah: <{AH}>
+        PREFIX dct: <{DCT}>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+        SELECT ?flow ?origin ?destination ?trips ?mode ?distance ?period
+        WHERE {{
+          ?flow a ah:MobilityFlow ;
+                ah:flowOrigin ?origin ;
+                ah:flowDestination ?destination ;
+                ah:flowTrips ?trips ;
+                ah:period ?period .
+          ?origin dct:identifier ?origin_code .
+          ?destination dct:identifier ?destination_code .
+          FILTER(STR(?period) = "{period}")
+          FILTER(STR(?origin_code) = "{origin_code}")
+          FILTER(STR(?destination_code) = "{destination_code}")
+          OPTIONAL {{ ?flow ah:flowMode ?mode . }}
+          OPTIONAL {{ ?flow ah:flowDistanceKm ?distance . }}
+        }}
+        ORDER BY DESC(?trips)
+        """
+        rows = self._execute(query)
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            results.append(
+                {
+                    "flow": str(row["flow"]),
+                    "origin": str(row["origin"]),
+                    "destination": str(row["destination"]),
+                    "trips": float(str(row["trips"])),
+                    "mode": str(row["mode"]) if row.get("mode") is not None else None,
+                    "distance_km": float(str(row["distance"]))
+                    if row.get("distance") is not None
+                    else None,
+                    "period": str(row["period"]) if row.get("period") is not None else period,
+                }
+            )
+        return results[: self.settings.sparql_max_results]
+
+    def accidents_in_radius(
+        self,
+        lat: float,
+        lon: float,
+        km: float,
+        year: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """Accidentes DGT cuya geometría puntual cae dentro del radio dado.
+
+        Igual que :meth:`territories_within_radius`, se computa Haversine en
+        Python para no depender de extensiones GeoSPARQL. ``year`` es opcional;
+        cuando se pasa, se filtra por ``ah:accidentYear`` (xsd:gYear) en la
+        propia consulta SPARQL.
+        """
+        _require_coordinate(lat, minimum=-90.0, maximum=90.0, field="lat")
+        _require_coordinate(lon, minimum=-180.0, maximum=180.0, field="lon")
+        _require_radius_km(km)
+        year_filter = ""
+        if year is not None:
+            if not isinstance(year, int) or isinstance(year, bool):
+                raise ValueError(f"year debe ser entero: {year!r}")
+            if not 1900 <= year <= 2100:
+                raise ValueError(f"year fuera de rango razonable: {year}")
+            # Comparar año con ``STR`` blinda contra mixto de gYear/xsd:string
+            # cuando rdflib emite literales con datatype específico.
+            year_filter = f'  ?accident ah:accidentYear ?year .\n  FILTER(STR(?year) = "{year}")'
+
+        query = f"""
+        PREFIX ah: <{AH}>
+        PREFIX wgs84: <{GEO_WGS84}>
+        PREFIX dct: <{DCT}>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+        SELECT ?accident ?id ?lat ?lon ?severity ?date
+        WHERE {{
+          ?accident a ah:RoadAccident ;
+                    dct:identifier ?id ;
+                    wgs84:lat ?lat ;
+                    wgs84:long ?lon ;
+                    ah:accidentSeverity ?severity ;
+                    ah:accidentDate ?date .
+        {year_filter}
+        }}
+        """
+        rows = self._execute(query)
+        results: list[dict[str, Any]] = []
+        for row in rows:
+            try:
+                row_lat = float(str(row["lat"]))
+                row_lon = float(str(row["lon"]))
+            except (TypeError, ValueError):
+                continue
+            distance_km = _haversine_km(lat, lon, row_lat, row_lon)
+            if distance_km <= km:
+                results.append(
+                    {
+                        "accident": str(row["accident"]),
+                        "id": str(row["id"]),
+                        "lat": row_lat,
+                        "lon": row_lon,
+                        "severity": str(row["severity"]),
+                        "date": str(row["date"]),
+                        "distance_km": round(distance_km, 3),
+                    }
+                )
+        results.sort(key=lambda item: float(item["distance_km"]))
+        return results[: self.settings.sparql_max_results]
+
+    def transit_stops_in_municipality(self, municipality_code: str) -> list[dict[str, Any]]:
+        """Paradas de transporte CRTM ubicadas en un municipio.
+
+        Se confía en la propiedad ``ah:locatedIn`` cuando el dataset la
+        provee; cuando no exista (paradas sin asignar), no se devuelven en
+        esta consulta para mantener la respuesta determinista.
+        """
+        _require_safe_identifier(municipality_code, field="municipality_code")
+        municipality_uri = URIRef(f"{AHR}territory/municipality/{municipality_code}")
+        query = f"""
+        PREFIX ah: <{AH}>
+        PREFIX wgs84: <{GEO_WGS84}>
+        PREFIX dct: <{DCT}>
+        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+        SELECT ?stop ?id ?label ?lat ?lon ?operator ?code
+        WHERE {{
+          ?stop a ah:TransitStop ;
+                dct:identifier ?id ;
+                rdfs:label ?label ;
+                wgs84:lat ?lat ;
+                wgs84:long ?lon ;
+                ah:operator ?operator ;
+                ah:locatedIn <{municipality_uri}> .
+          OPTIONAL {{ ?stop ah:stopCode ?code . }}
+        }}
+        ORDER BY ?label
+        """
+        rows = self._execute(query)
+        return [
+            {
+                "stop": str(row["stop"]),
+                "id": str(row["id"]),
+                "label": str(row["label"]),
+                "lat": float(str(row["lat"])),
+                "lon": float(str(row["lon"])),
+                "operator": str(row["operator"]),
+                "code": str(row["code"]) if row.get("code") is not None else None,
+            }
+            for row in rows
+        ]
+
+    def risk_index(self, municipality_code: str) -> dict[str, Any]:
+        """Indice compuesto de riesgo movilidad-accidentes para un municipio.
+
+        Combina dos señales sencillas y trazables:
+
+        * **Total de accidentes** registrados en el municipio (``ah:occursIn``).
+        * **Total de viajes salientes** desde el municipio (``ah:flowOrigin``).
+
+        El indice ``risk_per_1000_trips`` es accidentes / max(1, viajes/1000),
+        una aproximación robusta cuando no hay datos: si no hay flujos, el
+        denominador es 1 y el indice queda en accidentes absolutos. Es una
+        primera iteración que el motor de scoring podrá refinar.
+        """
+        _require_safe_identifier(municipality_code, field="municipality_code")
+        municipality_uri = URIRef(f"{AHR}territory/municipality/{municipality_code}")
+
+        accidents_query = f"""
+        PREFIX ah: <{AH}>
+
+        SELECT (COUNT(?accident) AS ?total)
+               (SUM(?fatalities) AS ?fatalities)
+               (SUM(?victims) AS ?victims)
+        WHERE {{
+          ?accident a ah:RoadAccident ;
+                    ah:occursIn <{municipality_uri}> .
+          OPTIONAL {{ ?accident ah:accidentFatalities ?fatalities . }}
+          OPTIONAL {{ ?accident ah:accidentVictims ?victims . }}
+        }}
+        """
+
+        flows_query = f"""
+        PREFIX ah: <{AH}>
+
+        SELECT (COUNT(?flow) AS ?flows) (SUM(?trips) AS ?trips)
+        WHERE {{
+          ?flow a ah:MobilityFlow ;
+                ah:flowOrigin <{municipality_uri}> ;
+                ah:flowTrips ?trips .
+        }}
+        """
+
+        accidents_rows = self._execute(accidents_query)
+        flows_rows = self._execute(flows_query)
+        accidents_total = _safe_int(accidents_rows[0].get("total")) if accidents_rows else 0
+        fatalities_total = _safe_int(accidents_rows[0].get("fatalities")) if accidents_rows else 0
+        victims_total = _safe_int(accidents_rows[0].get("victims")) if accidents_rows else 0
+        flows_total = _safe_int(flows_rows[0].get("flows")) if flows_rows else 0
+        trips_total = _safe_float(flows_rows[0].get("trips")) if flows_rows else 0.0
+
+        denominator = max(1.0, trips_total / 1000.0)
+        risk_per_1000_trips = round(accidents_total / denominator, 4)
+        return {
+            "municipality": str(municipality_uri),
+            "code": municipality_code,
+            "accidents": accidents_total,
+            "fatalities": fatalities_total,
+            "victims": victims_total,
+            "outbound_flows": flows_total,
+            "outbound_trips": trips_total,
+            "risk_per_1000_trips": risk_per_1000_trips,
+        }
+
     def count_triples_by_class(self) -> dict[str, int]:
         """Cuenta instancias por clase RDF.
 
@@ -701,6 +934,31 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     )
     c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
     return earth_radius_km * c
+
+
+def _safe_int(value: Any) -> int:
+    """Coerciona un valor SPARQL a entero, devolviendo 0 cuando no aplique.
+
+    Las agregaciones ``COUNT``/``SUM`` devuelven ``Literal`` con datatypes
+    que rdflib no siempre castea de forma transparente. Esta función blinda
+    la conversión sin propagar excepciones a la capa SPARQL.
+    """
+    if value is None:
+        return 0
+    try:
+        return int(float(str(value)))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _safe_float(value: Any) -> float:
+    """Coerciona un valor SPARQL a ``float`` con fallback a 0.0."""
+    if value is None:
+        return 0.0
+    try:
+        return float(str(value))
+    except (TypeError, ValueError):
+        return 0.0
 
 
 def _normalize(value: float, direction: str) -> float:

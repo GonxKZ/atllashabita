@@ -1,14 +1,21 @@
 import { useRef, type ReactNode } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
 import { resolveDuration } from '@/animations';
+import { useAuthStore } from '../../state/auth';
 import { Avatar } from '../ui/Avatar';
 import { Button } from '../ui/Button';
 import { cn } from '../ui/cn';
 
 export interface UserCardProps {
-  name: string;
+  /**
+   * Nombre del usuario. Si se omite y existe sesión, se usa el del store.
+   * Esto permite reutilizar el componente en stories pasando un nombre fijo.
+   */
+  name?: string;
   subtitle?: string;
   avatarUrl?: string;
   indicator?: {
@@ -24,6 +31,8 @@ export interface UserCardProps {
   className?: string;
 }
 
+const FALLBACK_NAME = 'Invitado';
+
 export function UserCard({
   name,
   subtitle,
@@ -33,6 +42,16 @@ export function UserCard({
   className,
 }: UserCardProps) {
   const rootRef = useRef<HTMLElement | null>(null);
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const signOut = useAuthStore((state) => state.signOut);
+
+  // Si el llamador no fija un nombre fijo, derivamos del usuario en sesión.
+  // El subtitle por defecto comunica el estado de la sesión: "Cuenta personal"
+  // si hay sesión activa, "Inicia sesión" si no.
+  const resolvedName = name ?? user?.name ?? FALLBACK_NAME;
+  const resolvedSubtitle = subtitle ?? (user ? 'Cuenta personal' : 'Inicia sesión');
+  const resolvedAvatar = avatarUrl ?? user?.avatarUrl;
 
   // Animación de entrada con un leve "pop" + fade. La combinación es
   // barata (solo transform + opacity) y respeta prefers-reduced-motion.
@@ -66,10 +85,14 @@ export function UserCard({
       )}
     >
       <div className="flex items-center gap-3">
-        <Avatar name={name} src={avatarUrl} size="md" />
+        <Avatar name={resolvedName} src={resolvedAvatar} size="md" />
         <div className="min-w-0 flex-1">
-          <p className="text-ink-900 truncate text-sm font-semibold">Hola, {name.split(' ')[0]}</p>
-          {subtitle ? <p className="text-ink-500 truncate text-xs">{subtitle}</p> : null}
+          <p className="text-ink-900 truncate text-sm font-semibold">
+            Hola, {resolvedName.split(' ')[0]}
+          </p>
+          {resolvedSubtitle ? (
+            <p className="text-ink-500 truncate text-xs">{resolvedSubtitle}</p>
+          ) : null}
         </div>
         {indicator ? (
           // El badge "74" del comp es un círculo verde claro con número
@@ -94,6 +117,31 @@ export function UserCard({
           {action.label}
         </Button>
       ) : null}
+      {user ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          fullWidth
+          leadingIcon={<LogOut size={14} />}
+          onClick={() => {
+            signOut();
+            navigate('/');
+          }}
+        >
+          Cerrar sesión
+        </Button>
+      ) : (
+        <Link
+          to="/login"
+          className={cn(
+            'inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors',
+            'bg-brand-50 text-brand-700 hover:bg-brand-100 active:bg-brand-200',
+            'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:outline-none'
+          )}
+        >
+          Iniciar sesión
+        </Link>
+      )}
     </div>
   );
 }

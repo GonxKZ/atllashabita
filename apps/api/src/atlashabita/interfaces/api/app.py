@@ -21,8 +21,10 @@ from atlashabita.interfaces.api.middleware import (
     SecurityHeadersMiddleware,
 )
 from atlashabita.interfaces.api.routers import (
+    accidents,
     health,
     map_layers,
+    mobility,
     profiles,
     quality,
     rankings,
@@ -30,6 +32,7 @@ from atlashabita.interfaces.api.routers import (
     sources,
     sparql,
     territories,
+    transit,
 )
 from atlashabita.observability import configure_logging, get_logger
 from atlashabita.observability.errors import DomainError
@@ -97,3 +100,6 @@ def _register_routers(app: FastAPI) -> None:
     app.include_router(quality.router)
     app.include_router(sparql.router)
     app.include_router(rdf_export.router)
+    app.include_router(mobility.router)
+    app.include_router(accidents.router)
+    app.include_router(transit.router)
