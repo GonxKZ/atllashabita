@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS base
+FROM python:3.14-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -12,7 +12,7 @@ RUN python -m pip install --upgrade pip \
       "pydantic>=2.9" "pydantic-settings>=2.6" "rdflib>=7.1" "pyshacl>=0.27" \
       "httpx>=0.28" "tenacity>=9.0" "structlog>=24.4" "orjson>=3.10" "python-slugify>=8.0"
 
-FROM python:3.12-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
