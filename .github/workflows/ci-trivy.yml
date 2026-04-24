@@ -25,7 +25,19 @@ jobs:
       - name: Clonar repositorio
         uses: actions/checkout@v4
 
-      - name: Ejecutar Trivy en modo filesystem (SARIF)
+      - name: Ejecutar Trivy (tabla · gating CRITICAL/HIGH)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+
+      - name: Ejecutar Trivy (SARIF · para GitHub Security)
+        if: always()
+        continue-on-error: true
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: fs
@@ -36,19 +48,10 @@ jobs:
           severity: CRITICAL,HIGH,MEDIUM
           exit-code: '0'
 
-      - name: Publicar resultados en GitHub Security
-        if: always()
+      - name: Publicar resultados SARIF (omitido si no hay GHAS)
+        if: hashFiles('trivy-results.sarif') != ''
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
           category: trivy-fs
-
-      - name: Ejecutar Trivy en modo resumen (tabla)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: table
-          severity: CRITICAL,HIGH
-          exit-code: '1'
-          ignore-unfixed: true
