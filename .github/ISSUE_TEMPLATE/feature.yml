@@ -1,0 +1,45 @@
+name: Funcionalidad
+description: Proponer una nueva funcionalidad alineada con el PRD.
+title: "[Feature] <título breve>"
+labels: ["tipo:feature", "estado:ready"]
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Necesidad, usuarios y documentos relacionados (RF-xxx).
+    validations:
+      required: true
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo
+      description: Resultado observable esperado.
+    validations:
+      required: true
+  - type: textarea
+    id: alcance
+    attributes:
+      label: Alcance
+      description: Qué entra. Qué queda fuera explícitamente.
+    validations:
+      required: true
+  - type: textarea
+    id: tareas
+    attributes:
+      label: Tareas técnicas
+      description: Lista ordenada de pasos.
+    validations:
+      required: true
+  - type: textarea
+    id: aceptacion
+    attributes:
+      label: Criterios de aceptación
+      description: Comprobaciones objetivas. Incluir comandos si aplica.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencias
+    attributes:
+      label: Dependencias
+      description: Issues bloqueadoras o decisiones previas.

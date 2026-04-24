@@ -1,0 +1,21 @@
+# Propiedad por defecto del repositorio
+*       @GonxKZ
+
+# Documentación
+/docs/  @GonxKZ
+
+# Ontología y RDF
+/ontology/                        @GonxKZ
+/apps/api/src/atlashabita/infrastructure/rdf/      @GonxKZ
+/apps/api/src/atlashabita/domain/knowledge_graph/  @GonxKZ
+
+# Backend
+/apps/api/    @GonxKZ
+
+# Frontend
+/apps/web/    @GonxKZ
+
+# Infraestructura
+/.github/     @GonxKZ
+/scripts/     @GonxKZ
+Makefile      @GonxKZ
