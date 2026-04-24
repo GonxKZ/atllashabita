@@ -1,0 +1,76 @@
+name: ci-frontend
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [develop, main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/ci-frontend.yml'
+  push:
+    branches: [develop, main]
+    paths:
+      - 'apps/web/**'
+      - '.github/workflows/ci-frontend.yml'
+
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  calidad:
+    name: Lint, tipos y pruebas unitarias del frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Preparar pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Preparar Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Instalar dependencias del frontend
+        working-directory: apps/web
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            pnpm install --frozen-lockfile
+          else
+            pnpm install --no-frozen-lockfile
+          fi
+
+      - name: Comprobar formato (prettier)
+        working-directory: apps/web
+        run: pnpm format:check
+
+      - name: Lint (eslint)
+        working-directory: apps/web
+        run: pnpm lint
+
+      - name: Tipos (tsc)
+        working-directory: apps/web
+        run: pnpm typecheck
+
+      - name: Pruebas unitarias (vitest)
+        working-directory: apps/web
+        run: pnpm test
+
+      - name: Publicar cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura-frontend-${{ github.run_id }}
+          path: apps/web/coverage
+          if-no-files-found: ignore
+          retention-days: 14

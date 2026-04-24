@@ -1,0 +1,72 @@
+name: ci-quality
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  conventional-commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validar mensajes de commit de la PR
+        run: |
+          set -euo pipefail
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+          # --no-merges evita inspeccionar commits de fusión generados por GitHub
+          # cuando se mergean PR intermedias hacia develop/main.
+          commits=$(git log --no-merges --format="%s" "${base_sha}..${head_sha}")
+          if [ -z "${commits}" ]; then
+            echo "Sin commits nuevos tras descartar los de fusión"
+            exit 0
+          fi
+          invalid=0
+          patron='^(feat|fix|refactor|perf|test|docs|chore|ci|build|style|revert)(\([a-z0-9-]+\))?!?: .+'
+          merge_pattern='^Merge (PR|branch|pull request|remote-tracking) '
+          while IFS= read -r mensaje; do
+            if [[ "${mensaje}" =~ ${merge_pattern} ]]; then
+              continue
+            fi
+            if ! [[ "${mensaje}" =~ ${patron} ]]; then
+              echo "::error title=Commit inválido::${mensaje}"
+              invalid=1
+            fi
+          done <<<"${commits}"
+          exit ${invalid}
+
+  no-claude-attribution:
+    name: Sin atribución a asistentes
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verificar ausencia de firmas de IA en los commits
+        run: |
+          set -euo pipefail
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+          bad=$(git log "${base_sha}..${head_sha}" --format='%B' \
+                | grep -iE 'co-authored-by|claude|anthropic|generated with|🤖' || true)
+          if [ -n "${bad}" ]; then
+            echo "::error::Commits con atribución prohibida"
+            echo "${bad}"
+            exit 1
+          fi

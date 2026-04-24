@@ -1,0 +1,108 @@
+@prefix sh:   <http://www.w3.org/ns/shacl#> .
+@prefix ah:   <https://data.atlashabita.example/ontology/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix dct:  <http://purl.org/dc/terms/> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix geo:  <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+
+###############################################################################
+# Shapes SHACL mínimas                                                        #
+# Cubren territorios, observaciones, fuentes, perfiles y scores. No se
+# imponen restricciones opcionales para permitir que el grafo crezca sin que
+# se rompa la validación principal.
+###############################################################################
+
+ah:TerritoryShape
+    a sh:NodeShape ;
+    sh:targetClass ah:Territory ;
+    sh:property [ sh:path dct:identifier ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] ;
+    sh:property [
+        sh:path geo:lat ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive -90 ;
+        sh:maxInclusive 90 ;
+    ] ;
+    sh:property [
+        sh:path geo:long ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive -180 ;
+        sh:maxInclusive 180 ;
+    ] ;
+    sh:property [
+        sh:path ah:population ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:integer ;
+        sh:minInclusive 0 ;
+    ] .
+
+ah:MunicipalityShape
+    a sh:NodeShape ;
+    sh:targetClass ah:Municipality ;
+    sh:property [
+        sh:path ah:belongsTo ;
+        sh:minCount 1 ;
+        sh:class ah:Province ;
+    ] .
+
+ah:ProvinceShape
+    a sh:NodeShape ;
+    sh:targetClass ah:Province ;
+    sh:property [
+        sh:path ah:belongsTo ;
+        sh:minCount 1 ;
+        sh:class ah:AutonomousCommunity ;
+    ] .
+
+ah:IndicatorObservationShape
+    a sh:NodeShape ;
+    sh:targetClass ah:IndicatorObservation ;
+    sh:property [ sh:path ah:indicator ; sh:minCount 1 ; sh:class ah:Indicator ] ;
+    sh:property [ sh:path ah:value ; sh:minCount 1 ; sh:datatype xsd:decimal ] ;
+    sh:property [ sh:path ah:period ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path ah:providedBy ; sh:minCount 1 ; sh:class ah:DataSource ] ;
+    sh:property [ sh:path ah:unit ; sh:datatype xsd:string ] .
+
+ah:IndicatorShape
+    a sh:NodeShape ;
+    sh:targetClass ah:Indicator ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] ;
+    sh:property [
+        sh:path ah:direction ;
+        sh:minCount 1 ;
+        sh:in ( "higher_is_better" "lower_is_better" ) ;
+    ] .
+
+ah:DataSourceShape
+    a sh:NodeShape ;
+    sh:targetClass ah:DataSource ;
+    sh:property [ sh:path dct:title ; sh:minCount 1 ] ;
+    sh:property [ sh:path ah:license ; sh:minCount 1 ] ;
+    sh:property [ sh:path ah:periodicity ; sh:minCount 1 ] .
+
+ah:DecisionProfileShape
+    a sh:NodeShape ;
+    sh:targetClass ah:DecisionProfile ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+ah:ScoreShape
+    a sh:NodeShape ;
+    sh:targetClass ah:Score ;
+    sh:property [ sh:path ah:forProfile ; sh:minCount 1 ; sh:class ah:DecisionProfile ] ;
+    sh:property [
+        sh:path ah:scoreValue ;
+        sh:minCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 100 ;
+    ] ;
+    sh:property [ sh:path ah:scoringVersion ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [
+        sh:path ah:confidence ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 1 ;
+    ] .

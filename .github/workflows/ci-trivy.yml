@@ -1,0 +1,35 @@
+name: ci-trivy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+  schedule:
+    - cron: '43 6 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trivy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  filesystem-scan:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Ejecutar Trivy (tabla · reporte informativo)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+          exit-code: '0'

@@ -1,0 +1,57 @@
+# Logs
+logs/
+*.log
+*-audit.json
+
+# Entornos
+.env
+.env.*
+!.env.example
+
+# Dependencias Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
+
+# Dependencias Node
+node_modules/
+apps/web/node_modules/
+apps/web/coverage/
+apps/web/playwright-report/
+apps/web/test-results/
+
+# Builds
+dist/
+build/
+.cache/
+.tmp/
+*.tmp
+apps/web/dist/
+
+# Datos derivados. El seed se versiona como contrato reproducible.
+data/raw/*
+!data/raw/.gitkeep
+data/interim/
+data/processed/
+data/rdf/
+data/reports/
+# data/seed/* permanece versionado deliberadamente
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Claude / MCP locales
+.claude/
+.mcp.json
