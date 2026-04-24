@@ -15,27 +15,9 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { OpportunityIndex } from '@/components/layout/OpportunityIndex';
 import { ActivityFeed } from '@/features/activity';
 import { HighlightCard } from '@/features/recommendations';
+import { SpainMap } from '@/features/map/SpainMap';
 import { TrendsChart } from '@/features/trends';
 import { mockActivity, mockHighlight, mockPoints, mockTrends } from '@/data/mock';
-
-/**
- * Rampa cromática y umbrales del score territorial. Replica la lógica
- * declarada en `features/map/SpainMap.tsx` para que la previsualización
- * estática de la home y el mapa interactivo de `/mapa` compartan paleta
- * sin que la home tenga que importar maplibre-gl (cuya carga rompe
- * jsdom porque depende de `window.URL.createObjectURL`).
- */
-const SCORE_RAMP = ['#065f46', '#047857', '#059669', '#10b981', '#34d399'] as const;
-const SCORE_BREAKS = [80, 65, 50, 35, 0] as const;
-
-function scoreToColor(score: number): string {
-  for (let index = 0; index < SCORE_BREAKS.length; index += 1) {
-    if (score >= SCORE_BREAKS[index]) {
-      return SCORE_RAMP[index];
-    }
-  }
-  return SCORE_RAMP[SCORE_RAMP.length - 1];
-}
 
 /**
  * Filtros rápidos del hero. Igualan los chips visibles en la captura
@@ -62,7 +44,7 @@ const ACTION_ITEMS: ActionCardItem[] = [
     description: 'Recorre el mapa y descubre municipios que encajan con tu perfil.',
     icon: <MapIcon size={20} strokeWidth={2.25} />,
     accent: 'brand',
-    href: '#mapa',
+    href: '/mapa',
   },
   {
     id: 'recommend',
@@ -70,7 +52,7 @@ const ACTION_ITEMS: ActionCardItem[] = [
     description: 'Obtén sugerencias personalizadas con explicaciones claras.',
     icon: <Sparkles size={20} strokeWidth={2.25} />,
     accent: 'emerald',
-    href: '#recomendador',
+    href: '/ranking',
   },
   {
     id: 'compare',
@@ -78,7 +60,7 @@ const ACTION_ITEMS: ActionCardItem[] = [
     description: 'Pon dos o más territorios cara a cara con indicadores medibles.',
     icon: <GitCompareArrows size={20} strokeWidth={2.25} />,
     accent: 'sky',
-    href: '#comparador',
+    href: '/comparador',
   },
   {
     id: 'analyze',
@@ -86,7 +68,7 @@ const ACTION_ITEMS: ActionCardItem[] = [
     description: 'Entra al modo técnico para SPARQL, SHACL y reportes avanzados.',
     icon: <BarChart3 size={20} strokeWidth={2.25} />,
     accent: 'amber',
-    href: '#modo-tecnico',
+    href: '/sparql',
   },
 ];
 
@@ -101,166 +83,9 @@ const ACTION_ITEMS: ActionCardItem[] = [
  *  ofreciendo en `/mapa` (ver `routes/AppRouter.tsx`); aquí mostramos una
  *  versión estática pixel-perfect del comp `atlashabita-main.png`.
  */
-const MAP_BOUNDS = {
-  minLon: -10,
-  maxLon: 4.5,
-  minLat: 35.5,
-  maxLat: 44.5,
-} as const;
-
-const MAP_VIEW = {
-  width: 760,
-  height: 480,
-} as const;
-
-function projectToSvg(lon: number, lat: number): { x: number; y: number } {
-  const { minLon, maxLon, minLat, maxLat } = MAP_BOUNDS;
-  const x = ((lon - minLon) / (maxLon - minLon)) * MAP_VIEW.width;
-  const y = MAP_VIEW.height - ((lat - minLat) / (maxLat - minLat)) * MAP_VIEW.height;
-  return { x, y };
-}
-
-/**
- * Mapa decorativo y estático para el shell del dashboard. Reproduce la silueta
- * estilizada de la captura sin depender de tiles ni WebGL: el contorno
- * peninsular es un trazo aproximado y los marcadores son círculos coloreados
- * con el score numérico.
- *
- * Al ser SVG puro:
- *  - Se renderiza igual en SSR/jsdom (los tests no necesitan polyfills).
- *  - Sigue siendo accesible: cada marcador expone `aria-label` con score y
- *    nombre del municipio, y la silueta se anuncia como `img` con `aria-label`.
- */
-function HomeMapPreview({
-  points,
-  ariaLabel = 'Mapa territorial de España con municipios destacados',
-}: {
-  readonly points: typeof mockPoints;
-  readonly ariaLabel?: string;
-}) {
-  return (
-    <div className="relative h-full min-h-[380px] w-full overflow-hidden rounded-[20px] bg-gradient-to-br from-[#eaf3ee] via-[#eef4f0] to-[#e3eee8]">
-      <svg
-        role="img"
-        aria-label={ariaLabel}
-        viewBox={`0 0 ${MAP_VIEW.width} ${MAP_VIEW.height}`}
-        preserveAspectRatio="xMidYMid meet"
-        className="h-full w-full"
-      >
-        <defs>
-          <linearGradient id="land-gradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f5faf6" />
-            <stop offset="100%" stopColor="#dde9e1" />
-          </linearGradient>
-          <linearGradient id="sea-gradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ecf2ee" />
-            <stop offset="100%" stopColor="#dde6e1" />
-          </linearGradient>
-          <radialGradient id="marker-glow" cx="30%" cy="30%" r="80%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.6)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-          </radialGradient>
-        </defs>
-        <rect width={MAP_VIEW.width} height={MAP_VIEW.height} fill="url(#sea-gradient)" />
-
-        {/*
-         * Silueta peninsular muy simplificada (NO un mapa cartográfico real).
-         * Sirve como "papel pintado" para que los marcadores tengan contexto
-         * geográfico sin descargar tiles. El path está construido a mano para
-         * encajar con los bounds proyectados arriba.
-         */}
-        <path
-          d="M 305 120 L 360 100 L 420 95 L 490 105 L 560 130 L 600 175 L 615 230 L 610 280 L 580 330 L 530 360 L 460 390 L 380 405 L 310 405 L 250 395 L 195 365 L 155 320 L 130 270 L 130 220 L 165 175 L 215 145 L 270 125 Z"
-          fill="url(#land-gradient)"
-          stroke="#bfd1c5"
-          strokeWidth={1.2}
-        />
-
-        {/* Mar Mediterráneo: islas Baleares estilizadas. */}
-        <ellipse cx={650} cy={285} rx={28} ry={9} fill="#dde7e1" />
-        <ellipse cx={685} cy={295} rx={12} ry={5} fill="#dde7e1" />
-
-        {/* Etiquetas geográficas neutras (texto pequeño, decorativo). */}
-        <text
-          x={205}
-          y={250}
-          fill="#94a3b8"
-          fontSize={13}
-          fontFamily="Inter, sans-serif"
-          fontWeight={500}
-          aria-hidden="true"
-        >
-          Portugal
-        </text>
-        <text
-          x={395}
-          y={260}
-          fill="#94a3b8"
-          fontSize={14}
-          fontFamily="Inter, sans-serif"
-          fontWeight={600}
-          aria-hidden="true"
-        >
-          España
-        </text>
-
-        {points.map((point) => {
-          const { x, y } = projectToSvg(point.lon, point.lat);
-          const radius = 14 + Math.round((point.score / 100) * 14);
-          const color = scoreToColor(point.score);
-          return (
-            <g
-              key={point.id}
-              role="button"
-              tabIndex={-1}
-              aria-label={`${point.name}: score ${point.score}`}
-            >
-              <circle cx={x} cy={y} r={radius + 4} fill={color} opacity={0.18} />
-              <circle cx={x} cy={y} r={radius} fill={color} stroke="white" strokeWidth={2.5} />
-              <circle cx={x} cy={y} r={radius} fill="url(#marker-glow)" opacity={0.7} />
-              <text
-                x={x}
-                y={y + 4}
-                textAnchor="middle"
-                fill="white"
-                fontSize={Math.max(10, radius * 0.6)}
-                fontFamily="Inter, sans-serif"
-                fontWeight={700}
-              >
-                {point.score}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-
-      {/*
-       * Leyenda coherente con la del SpainMap interactivo: misma rampa de
-       * cinco tramos verde para que la transición entre la home (estática)
-       * y `/mapa` (interactiva) sea visualmente consistente.
-       */}
-      <figure
-        aria-label="Leyenda: Score territorial"
-        className="pointer-events-auto absolute bottom-4 left-4 rounded-xl bg-white/95 px-3 py-2 shadow-[var(--shadow-card)] backdrop-blur"
-      >
-        <figcaption className="text-ink-700 text-[11px] font-semibold tracking-wide uppercase">
-          Score territorial
-        </figcaption>
-        <div className="mt-2 flex items-center gap-1.5">
-          {(['#34d399', '#10b981', '#059669', '#047857', '#065f46'] as const).map((color) => (
-            <span
-              key={color}
-              aria-hidden="true"
-              className="h-2.5 w-7 rounded-sm"
-              style={{ backgroundColor: color }}
-            />
-          ))}
-          <span className="text-ink-500 ml-1 text-[10px] tabular-nums">0 — 100</span>
-        </div>
-      </figure>
-    </div>
-  );
-}
+// La home renderiza ahora el componente `SpainMap` interactivo (MapLibre +
+// OpenFreeMap). En entornos jsdom (vitest) el mock de `vitest.setup.ts`
+// devuelve un wrapper accesible para que los tests sigan siendo deterministas.
 
 /**
  * Dashboard principal de AtlasHabita.
@@ -326,12 +151,18 @@ export function DashboardShell() {
         </div>
 
         {/*
-         * Mapa estático pixel-perfect del comp. La ruta `/mapa` ofrece la
-         * versión interactiva con maplibre + OpenFreeMap; aquí prima la
-         * fidelidad visual y un render que no depende de WebGL.
+         * Mapa interactivo MapLibre con tiles reales (OpenFreeMap Liberty).
+         * En entornos jsdom (vitest) `vitest.setup.ts` mockea `maplibre-gl`
+         * para evitar `URL.createObjectURL`, lo cual deja el árbol DOM
+         * estable durante los tests.
          */}
-        <div className="relative rounded-3xl bg-white p-3 shadow-[var(--shadow-card)] ring-1 ring-[color:var(--color-line-soft)]">
-          <HomeMapPreview points={mockPoints} />
+        <div className="relative h-[400px] overflow-hidden rounded-3xl bg-white shadow-[var(--shadow-card)] ring-1 ring-[color:var(--color-line-soft)]">
+          <SpainMap
+            points={mockPoints}
+            ariaLabel="Mapa territorial de España con municipios destacados"
+            className="h-full"
+            layerLabel="Score territorial"
+          />
         </div>
 
         <OpportunityIndex
@@ -360,5 +191,12 @@ export function DashboardShell() {
     </>
   );
 
-  return <DashboardLayout hero={hero} side={side} footer={<ActionCards items={ACTION_ITEMS} />} />;
+  return (
+    <DashboardLayout
+      embedded
+      hero={hero}
+      side={side}
+      footer={<ActionCards items={ACTION_ITEMS} />}
+    />
+  );
 }
