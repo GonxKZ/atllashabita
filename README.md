@@ -45,6 +45,20 @@ AtlasHabita resuelve la pregunta **«¿dónde me conviene vivir, estudiar, telet
 
 Los flujos principales y los textos de explicación están descritos en [`docs/16_FRONTEND_UX_UI_Y_FLUJOS.md`](docs/16_FRONTEND_UX_UI_Y_FLUJOS.md). Las capturas esperadas para pruebas E2E se documentan en [`apps/web/tests/e2e/fixtures/screenshots.md`](apps/web/tests/e2e/fixtures/screenshots.md).
 
+### Pantallas v0.2.0 (Fase D)
+
+La versión **v0.2.0** amplía la cobertura de producto con datos nacionales mock (>=100 municipios) y tres nuevas rutas:
+
+| Ruta | Descripción |
+|---|---|
+| `/ranking` | Panel nacional con filtros duros (precio máximo, conectividad mínima), paginación 20 por página y badge de confianza por municipio. |
+| `/territorio/:id` | Ficha territorial completa con cabecera, tabla de indicadores, chips PROV-O de procedencia y modal "Ver RDF" con Turtle paginado. |
+| `/sparql` | Panel técnico con catálogo de consultas y ejecutor de bindings tipados. Cae en modo *fallback* local si `/sparql` aún no está disponible. |
+
+El panel SPARQL se carga con `React.lazy`; el chunk resultante se emite como artefacto separado (`SparqlPlayground-*.js`) para mantener un bundle inicial bajo el presupuesto definido en `docs/roadmap.md`.
+
+Detalles y rationale en [`docs/reviews/v0.2.0-release-notes.md`](docs/reviews/v0.2.0-release-notes.md).
+
 ---
 
 ## Arquitectura

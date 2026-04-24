@@ -33,6 +33,9 @@ Catálogo operativo de endpoints expuestos por `apps/api` (FastAPI). Alinea el c
 | GET | `/sources` | ready | Catálogo de fuentes y estado. |
 | GET | `/sources/{id}` | ready | Detalle de una fuente (licencia, periodicidad, cobertura). |
 | GET | `/rdf/export` | ready | Exportación RDF limitada (Turtle/TriG/JSON-LD). |
+| POST | `/rdf/export` | ready (fase D) | Exportación RDF paginada por territorio (`{territory_id, format, chunk_bytes, page}`). |
+| GET | `/sparql/catalog` | ready (fase D) | Catálogo de consultas SPARQL predefinidas con bindings tipados. |
+| POST | `/sparql` | ready (fase D) | Ejecuta una consulta del catálogo con `{id, bindings}` y devuelve filas + variables + `took_ms`. |
 | GET | `/quality/reports` | ready | Reportes de calidad por fuente y ejecución. |
 
 Los estados siguen el roadmap: **completado** = implementado en `develop`; **ready** = especificado y pendiente de implementación en la fase 4 ([`roadmap.md`](roadmap.md)).

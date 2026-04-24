@@ -198,6 +198,31 @@ Issues asociadas:
 
 ---
 
+## M8 · Ingesta real, SPARQL y release v0.2.0
+
+**Estado:** `en curso`
+
+La milestone M8 descompone el salto desde el demo con 10 municipios a una plataforma
+demostrable a nivel nacional en cuatro fases independientes (A/B/C/D) que se han
+trabajado en worktrees aislados para reducir acoplamiento.
+
+| Fase | Alcance | Issues principales |
+|---|---|---|
+| A · Ingesta real | Conectores INE + MITECO, dataset nacional con >=100 municipios. | #72, #73 |
+| B · Ontología | GeoSPARQL + PROV-O, SHACL ampliado, consultas de referencia. | #74, #75 |
+| C · Endpoints | `/sparql`, `/sparql/catalog`, `/rdf/export` (POST con paginación). | #76, #77 |
+| D · UI/UX v0.2.0 | Ranking nacional, ficha con PROV-O, panel SPARQL, release v0.2.0. | #78, #80 |
+
+El detalle de la Fase D (ranking paginado, ficha con "Ver RDF", panel SPARQL,
+`ProvenanceChip`, `LayerSwitcher` con seis capas) se documenta en
+[`reviews/v0.2.0-release-notes.md`](reviews/v0.2.0-release-notes.md).
+
+Las fases A-C pueden integrarse incrementalmente sin cambios en la UI gracias al
+fallback local del panel SPARQL y del modal "Ver RDF": mientras la API no esté
+publicada, el frontend sigue siendo ejecutable y demostrable.
+
+---
+
 ## Futuro (fuera del MVP)
 
 | Tema | Descripción |
