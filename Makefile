@@ -77,6 +77,10 @@ build: build-web ## Build de producción del frontend
 e2e: ## Playwright smoke
 	cd apps/web && pnpm e2e
 
+.PHONY: screenshots
+screenshots: ## Genera capturas reales del frontend en docs/screenshots/
+	cd apps/web && npx tsx scripts/take_screenshots.ts
+
 .PHONY: clean
 clean: ## Borra artefactos locales
 	rm -rf $(VENV) apps/web/node_modules apps/web/dist apps/web/playwright-report apps/web/test-results
