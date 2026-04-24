@@ -80,3 +80,23 @@ e2e: ## Playwright smoke
 .PHONY: clean
 clean: ## Borra artefactos locales
 	rm -rf $(VENV) apps/web/node_modules apps/web/dist apps/web/playwright-report apps/web/test-results
+
+.PHONY: fuseki-up
+fuseki-up: ## Arranca Fuseki (compose profile fuseki)
+	docker compose --profile fuseki up -d fuseki
+
+.PHONY: fuseki-down
+fuseki-down: ## Detiene Fuseki y conserva el volumen de datos
+	docker compose --profile fuseki down
+
+.PHONY: fuseki-load
+fuseki-load: ## Carga los ficheros data/rdf/*.ttl en el dataset de Fuseki
+	@if [ ! -d data/rdf ]; then echo "data/rdf/ no existe; nada que cargar" >&2; exit 1; fi
+	for f in data/rdf/*.ttl data/rdf/*.nt data/rdf/*.trig; do \
+	  [ -e "$$f" ] || continue; \
+	  echo "Cargando $$f"; \
+	  curl -sS -u admin:admin \
+	    -H "Content-Type: text/turtle" \
+	    --data-binary @$$f \
+	    http://127.0.0.1:3030/atlashabita/data?default ; \
+	done

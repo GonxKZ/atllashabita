@@ -32,7 +32,9 @@ Catálogo operativo de endpoints expuestos por `apps/api` (FastAPI). Alinea el c
 | GET | `/map/layers/{layer_id}` | ready | GeoJSON simplificado de una capa. |
 | GET | `/sources` | ready | Catálogo de fuentes y estado. |
 | GET | `/sources/{id}` | ready | Detalle de una fuente (licencia, periodicidad, cobertura). |
-| GET | `/rdf/export` | ready | Exportación RDF limitada (Turtle/TriG/JSON-LD). |
+| GET | `/rdf/export` | **completado** | Exportación RDF (Turtle/JSON-LD/NT/TriG) con streaming y tope de 16 MB. |
+| POST | `/sparql` | **completado** | Ejecuta una consulta del catálogo con `{query_id, bindings}`; devuelve filas, variables y `elapsed_ms`. |
+| GET | `/sparql/catalog` | **completado** | Firmas (`query_id`, bindings esperados, descripción en español) de las consultas disponibles. |
 | GET | `/quality/reports` | ready | Reportes de calidad por fuente y ejecución. |
 
 Los estados siguen el roadmap: **completado** = implementado en `develop`; **ready** = especificado y pendiente de implementación en la fase 4 ([`roadmap.md`](roadmap.md)).
@@ -266,11 +268,108 @@ Validaciones:
 
 | Parámetro | Tipo | Obligatorio | Descripción |
 |---|---|---|---|
-| `graph` | string | no | Named graph (`territories`, `housing`, `scores`, ...). |
 | `format` | enum | no | `turtle` (por defecto), `trig`, `json-ld`, `nt`. |
-| `limit` | int | no | Máximo de triples (≤ 50000). |
 
-La respuesta adjunta `Content-Type` apropiado (`text/turtle`, `application/trig`, `application/ld+json`).
+La respuesta adjunta `Content-Type` apropiado según el formato solicitado:
+
+| Formato | `Content-Type` |
+|---|---|
+| `turtle` | `text/turtle; charset=utf-8` |
+| `json-ld` | `application/ld+json` |
+| `nt` | `application/n-triples` |
+| `trig` | `application/trig` |
+
+La respuesta se emite en streaming (`StreamingResponse`) dividiendo el payload
+en chunks de 64 KB. rdflib no ofrece serialización incremental cuando el
+grafo está en memoria, por lo que el payload se materializa completo y luego
+se trocea. Existe un tope defensivo de 16 MB: si se supera, el servidor
+devuelve `413 PAYLOAD_TOO_LARGE` en lugar de bloquear el proceso.
+
+---
+
+### 3.10 `POST /sparql`
+
+Ejecuta una consulta **de catálogo** (whitelist). El cuerpo JSON es:
+
+```json
+{
+  "query_id": "top_scores_by_profile",
+  "bindings": { "profile_id": "remote_work", "limit": 10 }
+}
+```
+
+`query_id` admite los valores:
+
+- `top_scores_by_profile` (bindings: `profile_id`, opcionales `scope`, `limit`).
+- `municipalities_by_province` (bindings: `province_code`).
+- `indicators_for_territory` (bindings: `territory_id`).
+- `sources_used_by_territory` (bindings: `territory_id`).
+- `count_triples_by_class` (sin bindings).
+- `indicator_definition` (bindings: `indicator_code`).
+
+**Response 200**
+
+```json
+{
+  "query_id": "top_scores_by_profile",
+  "rows": [
+    { "territory": "https://.../municipality/41091", "score": 82.1 }
+  ],
+  "elapsed_ms": 12
+}
+```
+
+**Errores**
+
+- `INVALID_QUERY` (400): `query_id` fuera del catálogo. `details.allowed`
+  enumera las opciones válidas.
+- `INVALID_BINDINGS` (400): falta un binding obligatorio o su tipo no encaja.
+
+La ejecución respeta `settings.sparql_max_results` y
+`settings.sparql_timeout_seconds`. El backend concreto (rdflib en memoria o
+Fuseki remoto) se selecciona con `ATLASHABITA_SPARQL_BACKEND`.
+
+---
+
+### 3.11 `GET /sparql/catalog`
+
+Devuelve la descripción pública de cada consulta disponible:
+
+```json
+{
+  "queries": [
+    {
+      "query_id": "top_scores_by_profile",
+      "description": "Top territorios por perfil...",
+      "required": ["profile_id"],
+      "optional": ["scope", "limit"]
+    }
+  ]
+}
+```
+
+Este endpoint es el contrato mínimo que deben consultar los clientes antes
+de invocar `POST /sparql`, permitiendo validar localmente que el `query_id`
+y los bindings están soportados por la versión actual del backend.
+
+---
+
+### 3.12 Adaptador Fuseki (opcional)
+
+El backend soporta delegar `POST /sparql` en un servidor [Apache Jena
+Fuseki](https://jena.apache.org/documentation/fuseki2/) configurando:
+
+```env
+ATLASHABITA_SPARQL_BACKEND=fuseki
+ATLASHABITA_FUSEKI_BASE_URL=http://localhost:3030
+ATLASHABITA_FUSEKI_DATASET=atlashabita
+```
+
+El stack Docker Compose incluye un servicio opcional (`docker compose
+--profile fuseki up`) con imagen propia definida en `docker/fuseki/`. Los
+comandos `make fuseki-up`, `make fuseki-down` y `make fuseki-load` orquestan
+el ciclo de vida local. Las URLs de las consultas siguen las convenciones
+de SPARQL 1.1 HTTP Protocol (`POST /<dataset>/query`).
 
 ---
 
@@ -305,6 +404,10 @@ Todas las respuestas de error siguen el esquema:
 | `SOURCE_UNAVAILABLE` | 503 | Fuente no disponible en la versión actual. |
 | `QUALITY_BLOCKED` | 409 | Resultado bloqueado por validación de calidad. |
 | `RATE_LIMITED` | 429 | Exceso de peticiones. |
+| `INVALID_QUERY` | 400 | `query_id` desconocido en `POST /sparql`. |
+| `INVALID_BINDINGS` | 400 | Bindings faltantes o con tipo incorrecto. |
+| `INVALID_FORMAT` | 400 | Formato RDF no soportado en `GET /rdf/export`. |
+| `PAYLOAD_TOO_LARGE` | 413 | La exportación supera el tope defensivo. |
 | `INTERNAL_ERROR` | 500 | Error inesperado (registrado con `request_id`). |
 
 El mapeo se implementa vía `DomainError` en [`apps/api/src/atlashabita/observability/errors.py`](../apps/api/src/atlashabita/observability/errors.py) y el manejador global en [`apps/api/src/atlashabita/interfaces/api/app.py`](../apps/api/src/atlashabita/interfaces/api/app.py).

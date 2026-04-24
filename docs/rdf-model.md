@@ -26,8 +26,11 @@ Resumen ejecutivo del Knowledge Graph construido en [`ontology/atlashabita.ttl`]
 | `xsd:` | `http://www.w3.org/2001/XMLSchema#` | Tipos literales. |
 | `dct:` | `http://purl.org/dc/terms/` | Metadatos Dublin Core. |
 | `skos:` | `http://www.w3.org/2004/02/skos/core#` | Taxonomías. |
-| `geo:` | `http://www.w3.org/2003/01/geo/wgs84_pos#` | Coordenadas. |
-| `prov:` | `http://www.w3.org/ns/prov#` | Procedencia. |
+| `geo:` | `http://www.opengis.net/ont/geosparql#` | GeoSPARQL (OGC): `geo:Feature`, `geo:hasGeometry`, `geo:asWKT`. |
+| `sf:` | `http://www.opengis.net/ont/sf#` | Simple Features (`sf:Point`). |
+| `wgs84:` | `http://www.w3.org/2003/01/geo/wgs84_pos#` | Coordenadas históricas (`wgs84:lat`, `wgs84:long`). |
+| `prov:` | `http://www.w3.org/ns/prov#` | Procedencia (PROV-O). |
+| `qb:` | `http://purl.org/linked-data/cube#` | Data Cube (reservado). |
 | `sh:` | `http://www.w3.org/ns/shacl#` | Shapes SHACL. |
 
 ---
@@ -37,17 +40,20 @@ Resumen ejecutivo del Knowledge Graph construido en [`ontology/atlashabita.ttl`]
 Extraídas directamente de `ontology/atlashabita.ttl`:
 
 ```turtle
-ah:Territory              a owl:Class .
+ah:Territory              a owl:Class ;
+                          rdfs:subClassOf geo:Feature .
 ah:AutonomousCommunity    rdfs:subClassOf ah:Territory .
 ah:Province               rdfs:subClassOf ah:Territory .
-ah:Municipality           rdfs:subClassOf ah:Territory .
+ah:Municipality           rdfs:subClassOf ah:Territory , geo:Feature .
 
 ah:Indicator              a owl:Class .
-ah:IndicatorObservation   a owl:Class .
-ah:DataSource             rdfs:subClassOf prov:Agent .
+ah:IndicatorObservation   rdfs:subClassOf prov:Entity .
+ah:DataSource             rdfs:subClassOf prov:Agent , prov:Entity .
+
+ah:IngestionActivity      rdfs:subClassOf prov:Activity .
 
 ah:DecisionProfile        a owl:Class .
-ah:Score                  a owl:Class .
+ah:Score                  rdfs:subClassOf prov:Entity .
 ah:ScoreContribution      a owl:Class .
 ```
 
@@ -70,6 +76,12 @@ ah:ScoreContribution      a owl:Class .
 | `ah:qualityFlag` | `ah:IndicatorObservation` | `xsd:string` | `ok`, `warning`, `imputed`. |
 | `ah:license` | `ah:DataSource` | `xsd:string` | Licencia de uso. |
 | `ah:periodicity` | `ah:DataSource` | `xsd:string` | Frecuencia de actualización. |
+| `ah:hasGeometry` | `ah:Territory` | `geo:Geometry` | Geometría GeoSPARQL del territorio (subproperty de `geo:hasGeometry`). |
+| `ah:wktLiteral` | `geo:Geometry` | `geo:wktLiteral` | Serialización WKT con CRS84 (subproperty de `geo:asWKT`). |
+| `ah:periodYear` | `ah:IndicatorObservation` | `xsd:gYear` | Año del periodo tipado para consultas temporales. |
+| `ah:ingestedFrom` | `ah:IngestionActivity` | `ah:DataSource` | Fuente usada (subproperty de `prov:used`). |
+| `ah:produced` | `ah:IngestionActivity` | `ah:IndicatorObservation` | Observación generada (alias de `prov:generated`). |
+| `ah:activityPeriod` | `ah:IngestionActivity` | `xsd:gYear` | Anio cubierto por la actividad. |
 | `ah:hasScore` | `ah:Territory` | `ah:Score` | Resultado por perfil. |
 | `ah:forProfile` | `ah:Score` | `ah:DecisionProfile` | Perfil aplicado. |
 | `ah:hasContribution` | `ah:Score` | `ah:ScoreContribution` | Explicación parcial. |
@@ -88,10 +100,12 @@ ah:ScoreContribution      a owl:Class .
 https://data.atlashabita.example/resource/territory/autonomous_community/{id_ccaa}
 https://data.atlashabita.example/resource/territory/province/{codigo_provincia}
 https://data.atlashabita.example/resource/territory/municipality/{codigo_ine}
+https://data.atlashabita.example/resource/geometry/{kind}/{codigo}
 https://data.atlashabita.example/resource/indicator/{codigo_indicador}
 https://data.atlashabita.example/resource/source/{id_fuente}
 https://data.atlashabita.example/resource/profile/{id_perfil}
 https://data.atlashabita.example/resource/observation/{indicador}/{territorio}/{periodo}
+https://data.atlashabita.example/resource/activity/{id_fuente}/{periodo}
 https://data.atlashabita.example/resource/score/{scoring_version}/{perfil}/{territorio}
 ```
 
@@ -100,34 +114,51 @@ https://data.atlashabita.example/resource/score/{scoring_version}/{perfil}/{terr
 ## 6. Ejemplo Turtle
 
 ```turtle
-@prefix ah:   <https://data.atlashabita.example/ontology/> .
-@prefix ahr:  <https://data.atlashabita.example/resource/> .
-@prefix dct:  <http://purl.org/dc/terms/> .
-@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
-@prefix geo:  <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix ah:    <https://data.atlashabita.example/ontology/> .
+@prefix ahr:   <https://data.atlashabita.example/resource/> .
+@prefix dct:   <http://purl.org/dc/terms/> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix geo:   <http://www.opengis.net/ont/geosparql#> .
+@prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix prov:  <http://www.w3.org/ns/prov#> .
 
 ahr:territory/municipality/41091
-    a ah:Municipality ;
+    a ah:Municipality, geo:Feature ;
     dct:identifier "41091" ;
     rdfs:label "Sevilla"@es ;
-    geo:lat "37.3886"^^xsd:decimal ;
-    geo:long "-5.9823"^^xsd:decimal ;
+    wgs84:lat "37.3886"^^xsd:decimal ;
+    wgs84:long "-5.9823"^^xsd:decimal ;
+    ah:hasGeometry ahr:geometry/municipality/41091 ;
+    geo:hasGeometry ahr:geometry/municipality/41091 ;
     ah:population 684025 ;
     ah:belongsTo ahr:territory/province/41 ;
-    ah:hasIndicatorObservation ahr:observation/rent_median/41091/2025 .
+    ah:hasIndicatorObservation ahr:observation/rent_median/municipality/41091/2025 .
 
-ahr:observation/rent_median/41091/2025
-    a ah:IndicatorObservation ;
+ahr:geometry/municipality/41091
+    a geo:Geometry, geo:Point ;
+    geo:asWKT "<http://www.opengis.net/def/crs/OGC/1.3/CRS84> POINT(-5.9823 37.3886)"^^geo:wktLiteral .
+
+ahr:observation/rent_median/municipality/41091/2025
+    a ah:IndicatorObservation, prov:Entity ;
     ah:indicator ahr:indicator/rent_median ;
     ah:value "10.8"^^xsd:decimal ;
     ah:unit "EUR_M2_MONTH" ;
     ah:period "2025" ;
+    ah:periodYear "2025"^^xsd:gYear ;
     ah:qualityFlag "ok" ;
-    ah:providedBy ahr:source/mivau_serpavi .
+    ah:providedBy ahr:source/mivau_serpavi ;
+    prov:wasGeneratedBy ahr:activity/mivau_serpavi/2025 .
+
+ahr:activity/mivau_serpavi/2025
+    a ah:IngestionActivity, prov:Activity ;
+    prov:used ahr:source/mivau_serpavi ;
+    ah:ingestedFrom ahr:source/mivau_serpavi ;
+    prov:generated ahr:observation/rent_median/municipality/41091/2025 ;
+    ah:activityPeriod "2025"^^xsd:gYear .
 
 ahr:source/mivau_serpavi
-    a ah:DataSource ;
+    a ah:DataSource, prov:Agent ;
     dct:title "Sistema Estatal de Referencia del Precio del Alquiler de Vivienda"@es ;
     ah:license "CC BY 4.0" ;
     ah:periodicity "anual" .
@@ -232,7 +263,55 @@ WHERE {
 ORDER BY DESC(?impacto)
 ```
 
-### 8.4 Jerarquía administrativa
+### 8.4 Territorios dentro de un radio (GeoSPARQL / fallback Haversine)
+
+```sparql
+PREFIX ah:    <https://data.atlashabita.example/ontology/>
+PREFIX wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+PREFIX rdfs:  <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?territory ?label ?lat ?lon
+WHERE {
+  ?territory a ah:Municipality ;
+             rdfs:label ?label ;
+             wgs84:lat ?lat ;
+             wgs84:long ?lon .
+}
+```
+
+En backends con GeoSPARQL activo, equivale a:
+
+```sparql
+PREFIX geo:  <http://www.opengis.net/ont/geosparql#>
+PREFIX geof: <http://www.opengis.net/def/function/geosparql/>
+PREFIX units: <http://www.opengis.net/def/uom/OGC/1.0/>
+
+SELECT ?municipio (geof:distance(?centro, ?g, units:metre) AS ?distancia)
+WHERE {
+  ?municipio a ah:Municipality ;
+             geo:hasGeometry ?g .
+  BIND("<http://www.opengis.net/def/crs/OGC/1.3/CRS84> POINT(-5.9823 37.3886)"^^geo:wktLiteral AS ?centro)
+  FILTER(geof:distance(?centro, ?g, units:metre) <= 80000)
+}
+```
+
+### 8.5 Cadena PROV-O de una observación
+
+```sparql
+PREFIX ah:   <https://data.atlashabita.example/ontology/>
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX dct:  <http://purl.org/dc/terms/>
+
+SELECT ?observation ?activity ?source ?title
+WHERE {
+  ?observation a ah:IndicatorObservation ;
+               prov:wasGeneratedBy ?activity .
+  ?activity prov:used ?source .
+  ?source dct:title ?title .
+}
+```
+
+### 8.6 Jerarquía administrativa
 
 ```sparql
 PREFIX ah:   <https://data.atlashabita.example/ontology/>
@@ -255,13 +334,14 @@ WHERE {
 
 | Named graph | URI | Contenido |
 |---|---|---|
-| Territorios | `https://data.atlashabita.example/graph/territories` | Jerarquía y geometrías resumidas. |
-| Socioeconomía | `https://data.atlashabita.example/graph/socioeconomic` | Renta, desempleo, educación. |
-| Vivienda | `https://data.atlashabita.example/graph/housing` | Alquiler y vivienda. |
-| Movilidad | `https://data.atlashabita.example/graph/mobility` | Transporte y cobertura. |
-| Servicios | `https://data.atlashabita.example/graph/services` | Sanidad y educación. |
-| Fuentes | `https://data.atlashabita.example/graph/sources` | Metadatos de procedencia. |
-| Scores | `https://data.atlashabita.example/graph/scores` | Resultados calculados. |
+| Territorios | `https://data.atlashabita.example/graph/territories` | Jerarquía administrativa. |
+| Geometrías | `https://data.atlashabita.example/graph/geometry` | Features GeoSPARQL (`geo:Point`, `geo:asWKT`). |
+| Indicadores | `https://data.atlashabita.example/graph/indicators` | Definiciones de indicadores. |
+| Observaciones | `https://data.atlashabita.example/graph/observations` | Valores por territorio/periodo. |
+| Fuentes | `https://data.atlashabita.example/graph/sources` | Metadatos PROV-O de procedencia. |
+| Procedencia | `https://data.atlashabita.example/graph/provenance` | `ah:IngestionActivity` y cadena PROV-O. |
+| Perfiles | `https://data.atlashabita.example/graph/profiles` | Pesos y contribuciones de perfiles. |
+| Ontología | `https://data.atlashabita.example/graph/ontology` | TBox importado opcionalmente. |
 
 ---
 
@@ -284,3 +364,15 @@ El modelo RDF se considera aceptable si:
 - [11 · Modelo RDF y ontología](11_MODELO_DE_DATOS_RDF_Y_ONTOLOGIA.md).
 - [data-pipeline.md](data-pipeline.md) · Pipeline que produce el grafo.
 - [api.md](api.md) · Endpoints que exponen datos derivados del grafo.
+
+---
+
+## 12. Consumo RDF desde la UI (v0.2.0)
+
+La Fase D añade tres superficies en el frontend que ejercitan el grafo:
+
+- `features/territory/RdfExportModal` abre `POST /rdf/export` con `{territory_id, format: 'turtle', chunk_bytes, page}` y muestra el resultado en un `CodeBlock` paginado. Si la API no responde, el modal construye un Turtle sintético con prefijos `ah:`, `dct:`, `prov:`, `xsd:` a partir del dataset nacional mock, para que la demo sea ejecutable sin backend.
+- `features/sparql/SparqlPlayground` consume `GET /sparql/catalog` y `POST /sparql` y mantiene un **catálogo local** con tres consultas de referencia (top-by-score, affordable-housing, indicator-by-ca) que pueden ejecutarse offline sobre el dataset mock. Los bindings se validan en cliente con `features/sparql/schema.ts` (tipos `string`, `integer`, `number`, `boolean`, `iri`).
+- `features/provenance/ProvenanceChip` materializa la procedencia PROV-O por indicador (dataset, licencia, periodo, URL oficial) en un tooltip accesible.
+
+Estos contratos se alinean con los tipos definidos en `apps/web/src/services/sparql.ts` y `apps/web/src/services/rdf_export.ts`. Cuando la Fase C publique los endpoints reales, los hooks (`useSparql`, `useRdfExport`) alternarán automáticamente al backend, manteniendo el fallback solo como red de seguridad.

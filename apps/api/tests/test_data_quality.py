@@ -130,20 +130,20 @@ def test_validate_observations_pasa_sobre_el_seed_real(dataset: SeedDataset) -> 
     assert isinstance(report, QualityReport)
     assert report.status == "ok", report.issues
     assert report.critical_count == 0
-    assert report.counters["rows"] == 50
+    assert report.counters["rows"] == len(dataset.observations)
 
 
 def test_validate_territories_pasa_sobre_el_seed_real(dataset: SeedDataset) -> None:
     report = validate_territories(dataset)
     assert report.status == "ok", report.issues
     assert report.critical_count == 0
-    assert report.counters["municipalities"] == 10
+    assert report.counters["municipalities"] == len(dataset.municipalities)
 
 
 def test_validate_sources_pasa_sobre_el_seed_real(dataset: SeedDataset) -> None:
     report = validate_sources(dataset)
     assert report.status == "ok", report.issues
-    assert report.counters["sources"] == 5
+    assert report.counters["sources"] == len(dataset.sources)
 
 
 # ---------------------------------------------------------------------------

@@ -84,7 +84,7 @@ def test_compute_ordena_por_score_descendente(scoring: ScoringService) -> None:
     results = scoring.compute("remote_work")
     scores = [result.score for result in results]
     assert scores == sorted(scores, reverse=True)
-    assert len(results) == 10
+    assert len(results) >= 100
 
 
 def test_compute_highlights_y_warnings_coherentes(scoring: ScoringService) -> None:
@@ -115,7 +115,10 @@ def test_compute_rescala_pesos_si_faltan_datos(dataset: SeedDataset, settings: S
     scoring = ScoringService(mutated, settings)
     results = scoring.compute("remote_work")
     sevilla = next(r for r in results if r.territory_id == "municipality:41091")
-    assert sevilla.confidence == pytest.approx(0.8)
+    profile_size = len(
+        next(profile for profile in dataset.profiles if profile.id == "remote_work").weights
+    )
+    assert sevilla.confidence == pytest.approx((profile_size - 1) / profile_size, rel=1e-3)
     total_weights = sum(contribution.weight for contribution in sevilla.contributions)
     assert total_weights == pytest.approx(1.0)
 

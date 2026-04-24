@@ -1,0 +1,18 @@
+{
+  "source": "MITECO - Reto Demográfico - datos de servicios",
+  "landing": "https://www.miteco.gob.es/es/cartografia-y-sig/ide/descargas/reto-demografico/datos-servicios.html",
+  "license": "CC BY 4.0",
+  "period": "2025",
+  "rows": [
+    {"municipality_code": "28079", "name": "Madrid", "services_score": 88.5, "health_coverage": 95, "education_coverage": 96, "retail_coverage": 93},
+    {"municipality_code": "08019", "name": "Barcelona", "services_score": 87.2, "health_coverage": 94, "education_coverage": 95, "retail_coverage": 92},
+    {"municipality_code": "46250", "name": "València", "services_score": 82.3, "health_coverage": 90, "education_coverage": 92, "retail_coverage": 88},
+    {"municipality_code": "41091", "name": "Sevilla", "services_score": 83.4, "health_coverage": 92, "education_coverage": 91, "retail_coverage": 90},
+    {"municipality_code": "50297", "name": "Zaragoza", "services_score": 80.8, "health_coverage": 91, "education_coverage": 90, "retail_coverage": 87},
+    {"municipality_code": "29067", "name": "Málaga", "services_score": 84.7, "health_coverage": 90, "education_coverage": 89, "retail_coverage": 91},
+    {"municipality_code": "30030", "name": "Murcia", "services_score": 79.6, "health_coverage": 88, "education_coverage": 88, "retail_coverage": 85},
+    {"municipality_code": "07040", "name": "Palma", "services_score": 81.4, "health_coverage": 89, "education_coverage": 90, "retail_coverage": 86},
+    {"municipality_code": "35016", "name": "Las Palmas de Gran Canaria", "services_score": 79.2, "health_coverage": 87, "education_coverage": 88, "retail_coverage": 85},
+    {"municipality_code": "48020", "name": "Bilbao", "services_score": 86.1, "health_coverage": 93, "education_coverage": 94, "retail_coverage": 89}
+  ]
+}
