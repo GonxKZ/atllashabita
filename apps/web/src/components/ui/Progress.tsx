@@ -48,7 +48,10 @@ export function Progress({
   ...rest
 }: ProgressProps) {
   const safeValue = clamp(value, min, max);
-  const percent = ((safeValue - min) / (max - min)) * 100;
+  // Evita divisiones por cero cuando max === min: en ese caso la barra queda
+  // completa si value >= min y vacía en caso contrario.
+  const range = max - min;
+  const percent = range > 0 ? ((safeValue - min) / range) * 100 : safeValue >= min ? 100 : 0;
   const display = valueText ?? `${Math.round(percent)}%`;
 
   return (
