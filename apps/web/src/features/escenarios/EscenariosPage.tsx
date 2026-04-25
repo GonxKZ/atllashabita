@@ -8,9 +8,9 @@
  * antes/después con la baseline.
  *
  * Cálculo del ranking: el componente computa una puntuación normalizada en
- * cliente a partir del dataset mock (suficiente para mostrar la dinámica).
- * Cuando la API real esté lista bastará con sustituir `scoreMunicipality`
- * por una llamada a `/rankings/custom`.
+ * cliente a partir del dataset territorial integrado. La misma lógica
+ * normalizada se reutiliza en el dashboard para que el mapa refleje la mezcla
+ * del usuario sin esperar a una recarga.
  */
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ArrowDownLeft, ArrowDownRight, BookmarkPlus, RotateCcw } from 'lucide-react';
@@ -20,100 +20,17 @@ import { HelpKey } from '../../components/ui/HelpKey';
 import { Tag } from '../../components/ui/Tag';
 import { Tooltip } from '../../components/ui/Tooltip';
 import { cn } from '../../components/ui/cn';
-import { NATIONAL_MUNICIPALITIES, type NationalMunicipality } from '../../data/national_mock';
-import {
-  DEFAULT_WEIGHTS,
-  normalizeWeights,
-  useEscenariosStore,
-  type WeightVector,
-} from '../../state/escenariosStore';
+import { NATIONAL_MUNICIPALITIES } from '../../data/national_mock';
+import { DEFAULT_WEIGHTS, useEscenariosStore } from '../../state/escenariosStore';
+import { computeRanges, rankMunicipalities, type RankedEntry } from './scoring';
 import { WEIGHT_DESCRIPTORS, WeightSliders } from './WeightSliders';
 
 const TOP_LIMIT = 10;
 
-/** Sentido de cada factor (idéntico a la tabla del comparador). */
-const DIRECTION: Record<string, 'higher_is_better' | 'lower_is_better'> = {
-  rent_price: 'lower_is_better',
-  income: 'higher_is_better',
-  broadband: 'higher_is_better',
-  services: 'higher_is_better',
-  air_quality: 'lower_is_better',
-  mobility: 'lower_is_better',
-  transit: 'higher_is_better',
-  climate: 'higher_is_better',
-};
-
-/**
- * Calcula los rangos [min, max] por factor para normalizar las puntuaciones
- * en el subset nacional. Se memoiza fuera del render para no recomputar en
- * cada cambio de slider — el dataset mock es estable durante la sesión.
- */
-function computeRanges(
-  data: readonly NationalMunicipality[]
-): Readonly<Record<string, { min: number; max: number }>> {
-  const accumulators: Record<string, { min: number; max: number }> = {};
-  for (const entry of data) {
-    for (const indicator of entry.indicators) {
-      const id = indicator.id;
-      const slot = accumulators[id];
-      if (!slot) {
-        accumulators[id] = { min: indicator.value, max: indicator.value };
-      } else {
-        slot.min = Math.min(slot.min, indicator.value);
-        slot.max = Math.max(slot.max, indicator.value);
-      }
-    }
-  }
-  return accumulators;
-}
-
 const RANGES = computeRanges(NATIONAL_MUNICIPALITIES);
 
-/**
- * Calcula el score de un municipio (0–100) para el vector de pesos
- * normalizado proporcionado. Apply pure: cada factor se normaliza a [0, 1]
- * según su rango y sentido, se multiplica por su peso y se suma.
- */
-export function scoreMunicipality(
-  entry: NationalMunicipality,
-  weights: WeightVector,
-  ranges: Readonly<Record<string, { min: number; max: number }>> = RANGES
-): number {
-  let total = 0;
-  for (const indicator of entry.indicators) {
-    const weight = weights[indicator.id];
-    if (typeof weight !== 'number' || weight <= 0) continue;
-    const range = ranges[indicator.id];
-    if (!range) continue;
-    const span = range.max - range.min;
-    const normalized = span === 0 ? 1 : (indicator.value - range.min) / span;
-    const oriented = DIRECTION[indicator.id] === 'lower_is_better' ? 1 - normalized : normalized;
-    total += weight * Math.max(0, Math.min(1, oriented));
-  }
-  return Math.round(total * 1000) / 10; // dos decimales / 100 base
-}
-
-/** Resultado individual del ranking simulado: el municipio y su puntuación. */
-export interface RankedEntry {
-  readonly entry: NationalMunicipality;
-  readonly score: number;
-}
-
-/** Devuelve los `limit` mejores municipios del dataset bajo `weights`. */
-export function rankMunicipalities(
-  data: readonly NationalMunicipality[],
-  weights: WeightVector,
-  limit: number = TOP_LIMIT
-): readonly RankedEntry[] {
-  const normalized = normalizeWeights(weights);
-  return data
-    .map((entry) => ({ entry, score: scoreMunicipality(entry, normalized) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
-}
-
 function buildBaseline(): readonly RankedEntry[] {
-  return rankMunicipalities(NATIONAL_MUNICIPALITIES, DEFAULT_WEIGHTS);
+  return rankMunicipalities(NATIONAL_MUNICIPALITIES, DEFAULT_WEIGHTS, TOP_LIMIT, RANGES);
 }
 
 export function EscenariosPage() {
@@ -130,7 +47,7 @@ export function EscenariosPage() {
 
   const baselineRanking = useMemo(() => buildBaseline(), []);
   const currentRanking = useMemo(
-    () => rankMunicipalities(NATIONAL_MUNICIPALITIES, weights),
+    () => rankMunicipalities(NATIONAL_MUNICIPALITIES, weights, TOP_LIMIT, RANGES),
     [weights]
   );
 

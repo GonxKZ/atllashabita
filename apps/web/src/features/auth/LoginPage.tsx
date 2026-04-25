@@ -7,7 +7,7 @@
  *   - Etiquetas explícitas, mensajes de error bajo cada campo, foco visible.
  *   - Tras `signIn` redirige a `?next=<ruta>` si está presente; si no, a `/`.
  */
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useReducer, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -15,6 +15,61 @@ import { useAuthStore } from '../../state/auth';
 
 const FIELD_INPUT_CLASSES =
   'h-11 w-full rounded-2xl border border-[color:var(--color-line-soft)] bg-white px-4 text-sm text-ink-900 placeholder:text-ink-500 transition-colors hover:border-brand-200 focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100';
+
+interface LoginFormState {
+  readonly email: string;
+  readonly password: string;
+  readonly emailError: string | null;
+  readonly passwordError: string | null;
+  readonly formError: string | null;
+  readonly submitting: boolean;
+}
+
+type LoginFormAction =
+  | { readonly type: 'field'; readonly field: 'email' | 'password'; readonly value: string }
+  | { readonly type: 'submit-start' }
+  | {
+      readonly type: 'validation-error';
+      readonly emailError: string | null;
+      readonly passwordError: string | null;
+    }
+  | { readonly type: 'form-error'; readonly message: string }
+  | { readonly type: 'submit-end' };
+
+const LOGIN_INITIAL_STATE: LoginFormState = {
+  email: '',
+  password: '',
+  emailError: null,
+  passwordError: null,
+  formError: null,
+  submitting: false,
+};
+
+function loginFormReducer(state: LoginFormState, action: LoginFormAction): LoginFormState {
+  switch (action.type) {
+    case 'field':
+      return {
+        ...state,
+        [action.field]: action.value,
+        [`${action.field}Error`]: null,
+        formError: null,
+      };
+    case 'validation-error':
+      return {
+        ...state,
+        emailError: action.emailError,
+        passwordError: action.passwordError,
+        formError: null,
+        submitting: false,
+      };
+    case 'submit-start':
+      return { ...state, emailError: null, passwordError: null, formError: null, submitting: true };
+    case 'form-error':
+      return { ...state, formError: action.message, submitting: false };
+    case 'submit-end':
+      return { ...state, submitting: false };
+  }
+}
 
 export function LoginPage() {
   const emailId = useId();
@@ -25,38 +80,25 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const signIn = useAuthStore((state) => state.signIn);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [form, dispatch] = useReducer(loginFormReducer, LOGIN_INITIAL_STATE);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setEmailError(null);
-    setPasswordError(null);
-    setFormError(null);
-
-    let invalid = false;
-    if (email.trim().length === 0) {
-      setEmailError('Introduce tu correo.');
-      invalid = true;
-    }
-    if (password.length === 0) {
-      setPasswordError('Introduce tu contraseña.');
-      invalid = true;
-    }
-    if (invalid) return;
-
-    setSubmitting(true);
-    const result = signIn(email, password);
-    setSubmitting(false);
-
-    if (!result.ok) {
-      setFormError(result.error);
+    const emailError = form.email.trim().length === 0 ? 'Introduce tu correo.' : null;
+    const passwordError = form.password.length === 0 ? 'Introduce tu contraseña.' : null;
+    if (emailError || passwordError) {
+      dispatch({ type: 'validation-error', emailError, passwordError });
       return;
     }
+
+    dispatch({ type: 'submit-start' });
+    const result = signIn(form.email, form.password);
+
+    if (!result.ok) {
+      dispatch({ type: 'form-error', message: result.error });
+      return;
+    }
+    dispatch({ type: 'submit-end' });
 
     const nextRaw = searchParams.get('next');
     const next = nextRaw && nextRaw.startsWith('/') ? nextRaw : '/';
@@ -96,16 +138,18 @@ export function LoginPage() {
               name="email"
               autoComplete="email"
               required
-              aria-invalid={emailError !== null}
-              aria-describedby={emailError ? `${emailId}-error` : undefined}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              aria-invalid={form.emailError !== null}
+              aria-describedby={form.emailError ? `${emailId}-error` : undefined}
+              value={form.email}
+              onChange={(event) =>
+                dispatch({ type: 'field', field: 'email', value: event.target.value })
+              }
               className={FIELD_INPUT_CLASSES}
               placeholder="usuario@dominio.es"
             />
-            {emailError ? (
+            {form.emailError ? (
               <p id={`${emailId}-error`} role="alert" className="text-xs text-rose-700">
-                {emailError}
+                {form.emailError}
               </p>
             ) : null}
           </div>
@@ -120,27 +164,29 @@ export function LoginPage() {
               name="password"
               autoComplete="current-password"
               required
-              aria-invalid={passwordError !== null}
-              aria-describedby={passwordError ? `${passwordId}-error` : undefined}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              aria-invalid={form.passwordError !== null}
+              aria-describedby={form.passwordError ? `${passwordId}-error` : undefined}
+              value={form.password}
+              onChange={(event) =>
+                dispatch({ type: 'field', field: 'password', value: event.target.value })
+              }
               className={FIELD_INPUT_CLASSES}
               placeholder="********"
             />
-            {passwordError ? (
+            {form.passwordError ? (
               <p id={`${passwordId}-error`} role="alert" className="text-xs text-rose-700">
-                {passwordError}
+                {form.passwordError}
               </p>
             ) : null}
           </div>
 
-          {formError ? (
+          {form.formError ? (
             <p
               id={errorId}
               role="alert"
               className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700"
             >
-              {formError}
+              {form.formError}
             </p>
           ) : null}
 
@@ -150,9 +196,9 @@ export function LoginPage() {
             size="md"
             fullWidth
             leadingIcon={<LogIn size={16} />}
-            disabled={submitting}
+            disabled={form.submitting}
           >
-            {submitting ? 'Comprobando…' : 'Entrar'}
+            {form.submitting ? 'Comprobando…' : 'Entrar'}
           </Button>
         </form>
 

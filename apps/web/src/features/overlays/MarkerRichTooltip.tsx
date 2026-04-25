@@ -50,6 +50,10 @@ export interface MarkerRichTooltipProps {
   readonly activeIndicatorId?: string;
   /** Callback al pulsar "Ver ficha". */
   readonly onOpenSheet?: (id: string) => void;
+  /** Mantiene visible el tooltip mientras el usuario pasa del marcador al CTA. */
+  readonly onPointerEnter?: () => void;
+  /** Permite cerrar el tooltip al abandonar la tarjeta. */
+  readonly onPointerLeave?: () => void;
 }
 
 const SPARKLINE_WIDTH = 160;
@@ -124,6 +128,8 @@ export function MarkerRichTooltip({
   unit,
   activeIndicatorId,
   onOpenSheet,
+  onPointerEnter,
+  onPointerLeave,
 }: MarkerRichTooltipProps) {
   const sparklineValues = useMemo(
     () => buildSparkline(marker.id, marker.score),
@@ -140,6 +146,8 @@ export function MarkerRichTooltip({
       role="tooltip"
       data-testid="marker-rich-tooltip"
       data-feature="marker-rich-tooltip"
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
       className={cn(
         'pointer-events-auto absolute min-w-[260px] -translate-x-1/2 -translate-y-full overflow-hidden rounded-2xl',
         'border border-white/15 bg-[var(--color-ink-900)]/95 text-white shadow-[var(--shadow-elevated)] backdrop-blur'
@@ -235,6 +243,9 @@ export function MarkerRichTooltip({
         </span>
         <button
           type="button"
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
           onClick={() => onOpenSheet?.(marker.id)}
           data-testid="marker-rich-tooltip-cta"
           className={cn(

@@ -24,6 +24,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type RefObject,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Sparkles, X } from 'lucide-react';
@@ -68,6 +69,177 @@ function detectMacOS(): boolean {
   // para discriminar el cluster de plataformas Apple. En tests jsdom el UA
   // es "Mozilla/5.0" y devuelve `false`, manteniendo la salida determinista.
   return /Mac|iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+function CommandPaletteHeader({
+  dialogId,
+  inputRef,
+  query,
+  setQuery,
+  filtered,
+  activeIndex,
+  onClose,
+}: {
+  readonly dialogId: string;
+  readonly inputRef: RefObject<HTMLInputElement | null>;
+  readonly query: string;
+  readonly setQuery: (query: string) => void;
+  readonly filtered: readonly CommandItem[];
+  readonly activeIndex: number;
+  readonly onClose: () => void;
+}) {
+  return (
+    <header className="flex items-center gap-3 border-b border-[color:var(--color-line-soft)] px-4 py-3">
+      <Search aria-hidden="true" size={18} className="text-ink-500" />
+      <label htmlFor={`${dialogId}-input`} className="sr-only">
+        Buscar acciones, municipios y atajos
+      </label>
+      <input
+        id={`${dialogId}-input`}
+        ref={inputRef}
+        type="search"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Busca un municipio, capa o acción…"
+        autoComplete="off"
+        aria-controls={`${dialogId}-listbox`}
+        aria-activedescendant={
+          filtered[activeIndex] ? `${dialogId}-option-${filtered[activeIndex]!.id}` : undefined
+        }
+        className="text-ink-900 placeholder:text-ink-500 flex-1 bg-transparent text-base outline-none"
+      />
+      <span className="text-ink-500 hidden items-center gap-1 text-[11px] sm:inline-flex">
+        <span>cierra con</span>
+        <HelpKey>Esc</HelpKey>
+      </span>
+      <button
+        type="button"
+        onClick={() => onClose()}
+        aria-label="Cerrar"
+        className="text-ink-500 hover:text-ink-900 inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors"
+      >
+        <X size={16} aria-hidden="true" />
+      </button>
+    </header>
+  );
+}
+
+function CommandPaletteList({
+  dialogId,
+  listRef,
+  sections,
+  filtered,
+  activeIndex,
+  setActiveIndex,
+  context,
+  query,
+}: {
+  readonly dialogId: string;
+  readonly listRef: RefObject<HTMLDivElement | null>;
+  readonly sections: ReturnType<typeof groupBySection>;
+  readonly filtered: readonly CommandItem[];
+  readonly activeIndex: number;
+  readonly setActiveIndex: (index: number) => void;
+  readonly context: CommandContext;
+  readonly query: string;
+}) {
+  return (
+    <div
+      ref={listRef}
+      id={`${dialogId}-listbox`}
+      role="listbox"
+      aria-label="Comandos disponibles"
+      className="max-h-[60vh] flex-1 overflow-y-auto px-2 py-3"
+    >
+      {sections.length === 0 ? (
+        <p role="status" aria-live="polite" className="text-ink-500 px-4 py-10 text-center text-sm">
+          No encontramos resultados para “{query}”. Prueba con otra palabra o pulsa{' '}
+          <HelpKey>Esc</HelpKey> para cerrar.
+        </p>
+      ) : (
+        sections.map((group) => (
+          <section key={group.section} aria-label={SECTION_LABELS[group.section]} className="mb-3">
+            <h3 className="text-ink-500 px-3 pb-1 text-[11px] font-semibold tracking-[0.16em] uppercase">
+              {SECTION_LABELS[group.section]}
+            </h3>
+            <ul className="flex flex-col gap-0.5">
+              {group.items.map((item) => {
+                const flatIndex = filtered.indexOf(item);
+                const isActive = flatIndex === activeIndex;
+                const Icon = item.icon ?? Sparkles;
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      id={`${dialogId}-option-${item.id}`}
+                      role="option"
+                      aria-selected={isActive}
+                      data-testid={`palette-option-${item.id}`}
+                      onMouseEnter={() => setActiveIndex(flatIndex)}
+                      onClick={() => item.run(context)}
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left transition-colors',
+                        'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:outline-none',
+                        isActive
+                          ? 'bg-brand-50 text-ink-900'
+                          : 'text-ink-700 hover:bg-surface-muted'
+                      )}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={cn(
+                          'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
+                          isActive
+                            ? 'bg-brand-500 text-white shadow-[0_6px_12px_-8px_rgba(16,185,129,0.65)]'
+                            : 'bg-surface-muted text-ink-500'
+                        )}
+                      >
+                        <Icon size={16} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="text-ink-900 block truncate text-sm font-semibold">
+                          {item.title}
+                        </span>
+                        {item.subtitle ? (
+                          <span className="text-ink-500 block truncate text-xs">
+                            {item.subtitle}
+                          </span>
+                        ) : null}
+                      </span>
+                      {item.shortcut ? (
+                        <span className="hidden items-center gap-1 sm:inline-flex">
+                          {item.shortcut.map((token) => (
+                            <HelpKey key={`${item.id}-${token}`}>{token}</HelpKey>
+                          ))}
+                        </span>
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        ))
+      )}
+    </div>
+  );
+}
+
+function CommandPaletteFooter({ platformShortcut }: { readonly platformShortcut: string }) {
+  return (
+    <footer className="text-ink-500 flex flex-wrap items-center justify-between gap-2 border-t border-[color:var(--color-line-soft)] bg-white/80 px-4 py-2 text-[11px]">
+      <span className="inline-flex items-center gap-1">
+        Sugiere acciones con <HelpKey>{platformShortcut}</HelpKey>
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <HelpKey>↑</HelpKey>
+        <HelpKey>↓</HelpKey>
+        <span>navegar</span>
+        <HelpKey>Enter</HelpKey>
+        <span>elegir</span>
+      </span>
+    </footer>
+  );
 }
 
 export function CommandPalette({
@@ -239,139 +411,29 @@ export function CommandPalette({
           'max-h-[min(80vh,600px)]'
         )}
       >
-        <header className="flex items-center gap-3 border-b border-[color:var(--color-line-soft)] px-4 py-3">
-          <Search aria-hidden="true" size={18} className="text-ink-500" />
-          <label htmlFor={`${dialogId}-input`} className="sr-only">
-            Buscar acciones, municipios y atajos
-          </label>
-          <input
-            id={`${dialogId}-input`}
-            ref={inputRef}
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Busca un municipio, capa o acción…"
-            autoComplete="off"
-            aria-controls={`${dialogId}-listbox`}
-            aria-activedescendant={
-              filtered[activeIndex] ? `${dialogId}-option-${filtered[activeIndex]!.id}` : undefined
-            }
-            className="text-ink-900 placeholder:text-ink-500 flex-1 bg-transparent text-base outline-none"
-          />
-          <span className="text-ink-500 hidden items-center gap-1 text-[11px] sm:inline-flex">
-            <span>cierra con</span>
-            <HelpKey>Esc</HelpKey>
-          </span>
-          <button
-            type="button"
-            onClick={() => onClose()}
-            aria-label="Cerrar"
-            className="text-ink-500 hover:text-ink-900 inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors"
-          >
-            <X size={16} aria-hidden="true" />
-          </button>
-        </header>
+        <CommandPaletteHeader
+          dialogId={dialogId}
+          inputRef={inputRef}
+          query={query}
+          setQuery={setQuery}
+          filtered={filtered}
+          activeIndex={activeIndex}
+          onClose={onClose}
+        />
         <h2 id={titleId} className="sr-only">
           Paleta de comandos AtlasHabita
         </h2>
-        <div
-          ref={listRef}
-          id={`${dialogId}-listbox`}
-          role="listbox"
-          aria-label="Comandos disponibles"
-          className="max-h-[60vh] flex-1 overflow-y-auto px-2 py-3"
-        >
-          {sections.length === 0 ? (
-            <p
-              role="status"
-              aria-live="polite"
-              className="text-ink-500 px-4 py-10 text-center text-sm"
-            >
-              No encontramos resultados para “{query}”. Prueba con otra palabra o pulsa{' '}
-              <HelpKey>Esc</HelpKey> para cerrar.
-            </p>
-          ) : (
-            sections.map((group) => (
-              <section
-                key={group.section}
-                aria-label={SECTION_LABELS[group.section]}
-                className="mb-3"
-              >
-                <h3 className="text-ink-500 px-3 pb-1 text-[11px] font-semibold tracking-[0.16em] uppercase">
-                  {SECTION_LABELS[group.section]}
-                </h3>
-                <ul className="flex flex-col gap-0.5">
-                  {group.items.map((item) => {
-                    const flatIndex = filtered.indexOf(item);
-                    const isActive = flatIndex === activeIndex;
-                    const Icon = item.icon ?? Sparkles;
-                    return (
-                      <li key={item.id}>
-                        <button
-                          type="button"
-                          id={`${dialogId}-option-${item.id}`}
-                          role="option"
-                          aria-selected={isActive}
-                          data-testid={`palette-option-${item.id}`}
-                          onMouseEnter={() => setActiveIndex(flatIndex)}
-                          onClick={() => item.run(context)}
-                          className={cn(
-                            'flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left transition-colors',
-                            'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:outline-none',
-                            isActive
-                              ? 'bg-brand-50 text-ink-900'
-                              : 'text-ink-700 hover:bg-surface-muted'
-                          )}
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={cn(
-                              'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl',
-                              isActive
-                                ? 'bg-brand-500 text-white shadow-[0_6px_12px_-8px_rgba(16,185,129,0.65)]'
-                                : 'bg-surface-muted text-ink-500'
-                            )}
-                          >
-                            <Icon size={16} />
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="text-ink-900 block truncate text-sm font-semibold">
-                              {item.title}
-                            </span>
-                            {item.subtitle ? (
-                              <span className="text-ink-500 block truncate text-xs">
-                                {item.subtitle}
-                              </span>
-                            ) : null}
-                          </span>
-                          {item.shortcut ? (
-                            <span className="hidden items-center gap-1 sm:inline-flex">
-                              {item.shortcut.map((token) => (
-                                <HelpKey key={`${item.id}-${token}`}>{token}</HelpKey>
-                              ))}
-                            </span>
-                          ) : null}
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ))
-          )}
-        </div>
-        <footer className="text-ink-500 flex flex-wrap items-center justify-between gap-2 border-t border-[color:var(--color-line-soft)] bg-white/80 px-4 py-2 text-[11px]">
-          <span className="inline-flex items-center gap-1">
-            Sugiere acciones con <HelpKey>{platformShortcut}</HelpKey>
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <HelpKey>↑</HelpKey>
-            <HelpKey>↓</HelpKey>
-            <span>navegar</span>
-            <HelpKey>Enter</HelpKey>
-            <span>elegir</span>
-          </span>
-        </footer>
+        <CommandPaletteList
+          dialogId={dialogId}
+          listRef={listRef}
+          sections={sections}
+          filtered={filtered}
+          activeIndex={activeIndex}
+          setActiveIndex={setActiveIndex}
+          context={context}
+          query={query}
+        />
+        <CommandPaletteFooter platformShortcut={platformShortcut} />
       </div>
     </div>
   );

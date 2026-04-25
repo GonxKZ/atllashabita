@@ -1,15 +1,24 @@
-import { describe, expect, it } from 'vitest';
+/* eslint-disable no-undef -- localStorage es global del navegador. */
+import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { Sidebar } from '../Sidebar';
+import { useFiltersStore } from '@/state/filters';
+import { useMapLayerStore } from '@/state/mapLayer';
 
 function renderInRouter(ui: ReactNode, initialEntries: string[] = ['/']) {
   return render(<MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>);
 }
 
 describe('Sidebar (Atelier)', () => {
+  beforeEach(() => {
+    useFiltersStore.getState().resetFilters();
+    useMapLayerStore.getState().resetActiveLayer();
+    localStorage.clear();
+  });
+
   it('expone landmark de navegación con las cinco secciones principales', () => {
     renderInRouter(<Sidebar />);
     const nav = screen.getByRole('navigation', { name: 'Navegación principal' });
@@ -36,15 +45,17 @@ describe('Sidebar (Atelier)', () => {
     expect(checkboxes.length).toBeGreaterThanOrEqual(3);
   });
 
-  it('alterna las capas activas al hacer click en sus checkboxes', async () => {
+  it('alterna las capas activas y sincroniza la capa principal del mapa', async () => {
     const user = userEvent.setup();
     renderInRouter(<Sidebar defaultCollapsed={false} />);
     const region = screen.getByRole('region', { name: /Capas activas/i });
-    const housingCheckbox = within(region).getByRole('checkbox', { name: /Vivienda asequible/i });
-    expect(housingCheckbox).toBeChecked();
+    const broadbandCheckbox = within(region).getByRole('checkbox', { name: /Banda ancha/i });
+    expect(broadbandCheckbox).not.toBeChecked();
 
-    await user.click(housingCheckbox);
-    expect(housingCheckbox).not.toBeChecked();
+    await user.click(broadbandCheckbox);
+    expect(broadbandCheckbox).toBeChecked();
+    expect(useFiltersStore.getState().activeLayers).toContain('broadband');
+    expect(useMapLayerStore.getState().activeLayerId).toBe('broadband');
   });
 
   it('expone el saludo "Hola, <Nombre>" del usuario en la card inferior', () => {

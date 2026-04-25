@@ -6,7 +6,7 @@
  * contraseña, confirmación). Tras un registro exitoso el usuario queda con
  * sesión iniciada y se le envía a `?next` o a `/cuenta` por defecto.
  */
-import { useId, useMemo, useState, type FormEvent } from 'react';
+import { useId, useMemo, useReducer, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
@@ -15,6 +15,78 @@ import { validateEmail, validatePassword } from '../../services/auth';
 
 const FIELD_INPUT_CLASSES =
   'h-11 w-full rounded-2xl border border-[color:var(--color-line-soft)] bg-white px-4 text-sm text-ink-900 placeholder:text-ink-500 transition-colors hover:border-brand-200 focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100';
+
+type RegisterField = 'name' | 'email' | 'password' | 'confirm';
+
+interface RegisterFormState {
+  readonly name: string;
+  readonly email: string;
+  readonly password: string;
+  readonly confirm: string;
+  readonly nameError: string | null;
+  readonly emailError: string | null;
+  readonly passwordError: string | null;
+  readonly confirmError: string | null;
+  readonly formError: string | null;
+  readonly submitting: boolean;
+}
+
+type RegisterFormAction =
+  | { readonly type: 'field'; readonly field: RegisterField; readonly value: string }
+  | {
+      readonly type: 'validation-error';
+      readonly errors: Pick<
+        RegisterFormState,
+        'nameError' | 'emailError' | 'passwordError' | 'confirmError'
+      >;
+    }
+  | { readonly type: 'submit-start' }
+  | { readonly type: 'form-error'; readonly message: string }
+  | { readonly type: 'submit-end' };
+
+const REGISTER_INITIAL_STATE: RegisterFormState = {
+  name: '',
+  email: '',
+  password: '',
+  confirm: '',
+  nameError: null,
+  emailError: null,
+  passwordError: null,
+  confirmError: null,
+  formError: null,
+  submitting: false,
+};
+
+function registerFormReducer(
+  state: RegisterFormState,
+  action: RegisterFormAction
+): RegisterFormState {
+  switch (action.type) {
+    case 'field':
+      return {
+        ...state,
+        [action.field]: action.value,
+        [`${action.field}Error`]: null,
+        formError: null,
+      };
+    case 'validation-error':
+      return { ...state, ...action.errors, formError: null, submitting: false };
+    case 'submit-start':
+      return {
+        ...state,
+        nameError: null,
+        emailError: null,
+        passwordError: null,
+        confirmError: null,
+        formError: null,
+        submitting: true,
+      };
+    case 'form-error':
+      return { ...state, formError: action.message, submitting: false };
+    case 'submit-end':
+      return { ...state, submitting: false };
+  }
+}
 
 export function RegisterPage() {
   const nameId = useId();
@@ -27,64 +99,40 @@ export function RegisterPage() {
   const [searchParams] = useSearchParams();
   const signUp = useAuthStore((state) => state.signUp);
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-
-  const [nameError, setNameError] = useState<string | null>(null);
-  const [emailError, setEmailError] = useState<string | null>(null);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
-  const [confirmError, setConfirmError] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [form, dispatch] = useReducer(registerFormReducer, REGISTER_INITIAL_STATE);
 
   // Sugerencias en vivo para acompañar al usuario sin disparar errores antes de
   // tiempo. Sólo se materializan como mensaje cuando hay texto en el campo.
-  const passwordHints = useMemo(() => validatePassword(password), [password]);
+  const passwordHints = useMemo(() => validatePassword(form.password), [form.password]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNameError(null);
-    setEmailError(null);
-    setPasswordError(null);
-    setConfirmError(null);
-    setFormError(null);
+    const emailCheck = validateEmail(form.email);
+    const passwordCheck = validatePassword(form.password);
+    const errors = {
+      nameError:
+        form.name.trim().length < 2 ? 'El nombre debe tener al menos 2 caracteres.' : null,
+      emailError: emailCheck.valid ? null : emailCheck.error,
+      passwordError: passwordCheck.valid
+        ? null
+        : (passwordCheck.errors[0] ?? 'Contraseña inválida.'),
+      confirmError:
+        form.password !== form.confirm ? 'Las contraseñas no coinciden.' : null,
+    };
 
-    let invalid = false;
-
-    if (name.trim().length < 2) {
-      setNameError('El nombre debe tener al menos 2 caracteres.');
-      invalid = true;
-    }
-
-    const emailCheck = validateEmail(email);
-    if (!emailCheck.valid) {
-      setEmailError(emailCheck.error);
-      invalid = true;
-    }
-
-    const passwordCheck = validatePassword(password);
-    if (!passwordCheck.valid) {
-      setPasswordError(passwordCheck.errors[0] ?? 'Contraseña inválida.');
-      invalid = true;
-    }
-
-    if (password !== confirm) {
-      setConfirmError('Las contraseñas no coinciden.');
-      invalid = true;
-    }
-
-    if (invalid) return;
-
-    setSubmitting(true);
-    const result = signUp({ email, password, name });
-    setSubmitting(false);
-
-    if (!result.ok) {
-      setFormError(result.error);
+    if (Object.values(errors).some(Boolean)) {
+      dispatch({ type: 'validation-error', errors });
       return;
     }
+
+    dispatch({ type: 'submit-start' });
+    const result = signUp({ email: form.email, password: form.password, name: form.name });
+
+    if (!result.ok) {
+      dispatch({ type: 'form-error', message: result.error });
+      return;
+    }
+    dispatch({ type: 'submit-end' });
 
     const nextRaw = searchParams.get('next');
     const next = nextRaw && nextRaw.startsWith('/') ? nextRaw : '/cuenta';
@@ -124,16 +172,18 @@ export function RegisterPage() {
               name="name"
               autoComplete="name"
               required
-              aria-invalid={nameError !== null}
-              aria-describedby={nameError ? `${nameId}-error` : undefined}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
+              aria-invalid={form.nameError !== null}
+              aria-describedby={form.nameError ? `${nameId}-error` : undefined}
+              value={form.name}
+              onChange={(event) =>
+                dispatch({ type: 'field', field: 'name', value: event.target.value })
+              }
               className={FIELD_INPUT_CLASSES}
               placeholder="Alex Romero"
             />
-            {nameError ? (
+            {form.nameError ? (
               <p id={`${nameId}-error`} role="alert" className="text-xs text-rose-700">
-                {nameError}
+                {form.nameError}
               </p>
             ) : null}
           </div>
@@ -148,16 +198,18 @@ export function RegisterPage() {
               name="email"
               autoComplete="email"
               required
-              aria-invalid={emailError !== null}
-              aria-describedby={emailError ? `${emailId}-error` : undefined}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              aria-invalid={form.emailError !== null}
+              aria-describedby={form.emailError ? `${emailId}-error` : undefined}
+              value={form.email}
+              onChange={(event) =>
+                dispatch({ type: 'field', field: 'email', value: event.target.value })
+              }
               className={FIELD_INPUT_CLASSES}
               placeholder="usuario@dominio.es"
             />
-            {emailError ? (
+            {form.emailError ? (
               <p id={`${emailId}-error`} role="alert" className="text-xs text-rose-700">
-                {emailError}
+                {form.emailError}
               </p>
             ) : null}
           </div>
@@ -172,22 +224,24 @@ export function RegisterPage() {
               name="password"
               autoComplete="new-password"
               required
-              aria-invalid={passwordError !== null}
-              aria-describedby={passwordError ? `${passwordId}-error` : `${passwordId}-help`}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              aria-invalid={form.passwordError !== null}
+              aria-describedby={form.passwordError ? `${passwordId}-error` : `${passwordId}-help`}
+              value={form.password}
+              onChange={(event) =>
+                dispatch({ type: 'field', field: 'password', value: event.target.value })
+              }
               className={FIELD_INPUT_CLASSES}
               placeholder="********"
             />
             <p id={`${passwordId}-help`} className="text-ink-500 text-xs">
               Mínimo 8 caracteres, una mayúscula, una minúscula y un dígito.
             </p>
-            {passwordError ? (
+            {form.passwordError ? (
               <p id={`${passwordId}-error`} role="alert" className="text-xs text-rose-700">
-                {passwordError}
+                {form.passwordError}
               </p>
             ) : null}
-            {!passwordError && password.length > 0 && !passwordHints.valid ? (
+            {!form.passwordError && form.password.length > 0 && !passwordHints.valid ? (
               <ul aria-live="polite" className="text-xs text-amber-700">
                 {passwordHints.errors.map((message) => (
                   <li key={message}>· {message}</li>
@@ -206,27 +260,29 @@ export function RegisterPage() {
               name="confirm"
               autoComplete="new-password"
               required
-              aria-invalid={confirmError !== null}
-              aria-describedby={confirmError ? `${confirmId}-error` : undefined}
-              value={confirm}
-              onChange={(event) => setConfirm(event.target.value)}
+              aria-invalid={form.confirmError !== null}
+              aria-describedby={form.confirmError ? `${confirmId}-error` : undefined}
+              value={form.confirm}
+              onChange={(event) =>
+                dispatch({ type: 'field', field: 'confirm', value: event.target.value })
+              }
               className={FIELD_INPUT_CLASSES}
               placeholder="********"
             />
-            {confirmError ? (
+            {form.confirmError ? (
               <p id={`${confirmId}-error`} role="alert" className="text-xs text-rose-700">
-                {confirmError}
+                {form.confirmError}
               </p>
             ) : null}
           </div>
 
-          {formError ? (
+          {form.formError ? (
             <p
               id={errorId}
               role="alert"
               className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700"
             >
-              {formError}
+              {form.formError}
             </p>
           ) : null}
 
@@ -236,9 +292,9 @@ export function RegisterPage() {
             size="md"
             fullWidth
             leadingIcon={<UserPlus size={16} />}
-            disabled={submitting}
+            disabled={form.submitting}
           >
-            {submitting ? 'Creando…' : 'Crear cuenta'}
+            {form.submitting ? 'Creando…' : 'Crear cuenta'}
           </Button>
         </form>
 

@@ -137,9 +137,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     @staticmethod
     def _client_ip(request: Request) -> str:
-        forwarded = request.headers.get("x-forwarded-for")
-        if forwarded:
-            return forwarded.split(",")[0].strip()
+        # No confiamos en X-Forwarded-For en la app directamente: sin una
+        # lista explícita de proxies de confianza, cualquier cliente podría
+        # rotar ese header y esquivar el rate limit.
         if request.client is not None:
             return request.client.host
         return "anonymous"

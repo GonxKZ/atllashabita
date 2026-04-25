@@ -48,7 +48,8 @@ export function HeroBanner({
   onChipChange,
   className,
 }: HeroBannerProps) {
-  const [selected, setSelected] = useState(initialSelectedChipId);
+  const [selectedOverride, setSelectedOverride] = useState<string | null>(null);
+  const selected = selectedOverride ?? initialSelectedChipId;
   const rootRef = useRef<HTMLElement | null>(null);
 
   // Entrada del hero: fade + ligero slide vertical. Se limpia solo al
@@ -69,7 +70,7 @@ export function HeroBanner({
   );
 
   const handleSelect = (chipId: string) => {
-    setSelected(chipId);
+    setSelectedOverride(chipId);
     onChipChange?.(chipId);
   };
 

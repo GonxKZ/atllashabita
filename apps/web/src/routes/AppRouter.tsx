@@ -25,6 +25,7 @@
 
 import { Suspense, lazy, useCallback, useState } from 'react';
 import { createBrowserRouter, Outlet, useNavigate } from 'react-router-dom';
+import { BellRing, Database, MessageCircle, Send, ShieldCheck, X } from 'lucide-react';
 
 import { DashboardShell } from '../features/dashboard/DashboardShell';
 import { Sidebar } from '../components/layout/Sidebar';
@@ -74,6 +75,8 @@ function RootLayout() {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [legendVisible, setLegendVisible] = useState(true);
   const [miniMapVisible, setMiniMapVisible] = useState(true);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const focusTopbarSearch = useCallback(() => {
     if (typeof document === 'undefined') return;
@@ -115,14 +118,14 @@ function RootLayout() {
     >
       <div
         className={cn(
-          'transition-all duration-200 ease-out',
-          sidebarVisible ? 'w-72' : 'w-0 overflow-hidden'
+          'sticky top-0 z-40 h-screen shrink-0 self-start transition-all duration-200 ease-out',
+          sidebarVisible ? 'w-[72px] xl:w-72' : 'w-0 overflow-hidden'
         )}
         aria-hidden={!sidebarVisible}
       >
-        <Sidebar />
+        <Sidebar className="h-screen" />
       </div>
-      <div className="flex min-h-screen flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <Topbar
           onSearch={(q) => {
             const term = q.trim();
@@ -130,9 +133,8 @@ function RootLayout() {
               navigate(`/ranking?q=${encodeURIComponent(term)}`);
             }
           }}
-          onFeedback={() =>
-            window.open('mailto:licitaciones@gpic.es?subject=Feedback%20AtlasHabita')
-          }
+          onFeedback={() => setFeedbackOpen(true)}
+          onNotifications={() => setNotificationsOpen(true)}
           onNewAnalysis={() => navigate('/sparql')}
           extra={
             <button
@@ -166,6 +168,179 @@ function RootLayout() {
       />
 
       {shortcutsOpen ? <ShortcutsHelp onClose={() => setShortcutsOpen(false)} /> : null}
+      {feedbackOpen ? <FeedbackDialog onClose={() => setFeedbackOpen(false)} /> : null}
+      {notificationsOpen ? (
+        <NotificationsDialog onClose={() => setNotificationsOpen(false)} />
+      ) : null}
+    </div>
+  );
+}
+
+interface FeedbackDialogProps {
+  readonly onClose: () => void;
+}
+
+function FeedbackDialog({ onClose }: FeedbackDialogProps) {
+  const [sent, setSent] = useState(false);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-[rgba(18,17,14,0.44)] backdrop-blur-md"
+        aria-label="Cerrar feedback"
+        onClick={onClose}
+      />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="feedback-title"
+        className="relative z-10 w-full max-w-lg rounded-[28px] border border-[color:var(--color-line-soft)] bg-white p-5 shadow-[0_30px_90px_-38px_rgba(15,23,42,0.65)]"
+      >
+        <header className="flex items-start gap-3">
+          <span className="bg-brand-50 text-brand-700 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
+            <MessageCircle size={18} aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 id="feedback-title" className="font-display text-ink-900 text-xl font-semibold">
+              Feedback de AtlasHabita
+            </h2>
+            <p className="text-ink-500 mt-1 text-sm">
+              Describe una mejora, un problema visual o un dato que quieras revisar.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="text-ink-500 hover:text-ink-900 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--color-linen-100)] transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-moss-300)] focus-visible:outline-none"
+          >
+            <X size={17} aria-hidden="true" />
+          </button>
+        </header>
+        <form
+          className="mt-5 flex flex-col gap-3"
+          action={() => {
+            setSent(true);
+          }}
+        >
+          <label className="text-ink-700 text-sm font-semibold" htmlFor="feedback-message">
+            Mensaje
+          </label>
+          <textarea
+            id="feedback-message"
+            name="message"
+            required
+            minLength={8}
+            rows={5}
+            placeholder="Ej.: el panel de capas debería recordar mi selección..."
+            className="min-h-32 resize-y rounded-2xl border border-[color:var(--color-line-soft)] bg-white px-4 py-3 text-sm leading-relaxed outline-none transition focus:border-[color:var(--color-brand-500)] focus:ring-4 focus:ring-[color:color-mix(in_srgb,var(--color-brand-300)_30%,transparent)]"
+          />
+          {sent ? (
+            <p role="status" className="text-brand-700 rounded-2xl bg-[color:var(--color-brand-50)] px-4 py-3 text-sm font-medium">
+              Feedback registrado localmente para revisión del equipo.
+            </p>
+          ) : null}
+          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-ink-700 inline-flex h-10 items-center justify-center rounded-full border border-[color:var(--color-line-soft)] px-4 text-sm font-semibold transition-colors hover:bg-[color:var(--color-linen-100)] focus-visible:ring-2 focus-visible:ring-[color:var(--color-moss-300)] focus-visible:outline-none"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="bg-brand-600 hover:bg-brand-700 inline-flex h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold text-white shadow-[0_16px_28px_-18px_rgba(2,132,92,0.8)] transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-moss-300)] focus-visible:outline-none"
+            >
+              Enviar feedback
+              <Send size={15} aria-hidden="true" />
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  );
+}
+
+interface NotificationsDialogProps {
+  readonly onClose: () => void;
+}
+
+const NOTIFICATIONS = [
+  {
+    icon: <Database size={17} aria-hidden="true" />,
+    title: 'Datasets actualizados',
+    body: 'INE, MITECO, MITMA, CRTM y DGT disponibles en el pipeline territorial.',
+  },
+  {
+    icon: <ShieldCheck size={17} aria-hidden="true" />,
+    title: 'API protegida',
+    body: 'Cabeceras de seguridad, límites de consulta y rate limiting activos.',
+  },
+  {
+    icon: <BellRing size={17} aria-hidden="true" />,
+    title: 'Ranking personalizado',
+    body: 'Los pesos de Escenarios recalculan el mapa y el top territorial al instante.',
+  },
+] as const;
+
+function NotificationsDialog({ onClose }: NotificationsDialogProps) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-start justify-end px-4 pt-20 sm:pt-24">
+      <button
+        type="button"
+        className="absolute inset-0 bg-[rgba(18,17,14,0.2)] backdrop-blur-[2px]"
+        aria-label="Cerrar notificaciones"
+        onClick={onClose}
+      />
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notifications-title"
+        className="relative z-10 w-full max-w-sm rounded-[28px] border border-[color:var(--color-line-soft)] bg-white p-4 shadow-[0_28px_80px_-38px_rgba(15,23,42,0.62)]"
+      >
+        <header className="flex items-start gap-3 border-b border-[color:var(--color-line-soft)] pb-3">
+          <span className="bg-brand-50 text-brand-700 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
+            <BellRing size={18} aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2
+              id="notifications-title"
+              className="font-display text-ink-900 text-lg font-semibold"
+            >
+              Notificaciones territoriales
+            </h2>
+            <p className="text-ink-500 mt-1 text-xs">
+              Señales operativas y de datos para revisar tu análisis.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="text-ink-500 hover:text-ink-900 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--color-linen-100)] transition-colors focus-visible:ring-2 focus-visible:ring-[color:var(--color-moss-300)] focus-visible:outline-none"
+          >
+            <X size={17} aria-hidden="true" />
+          </button>
+        </header>
+        <ul className="mt-3 flex flex-col gap-2">
+          {NOTIFICATIONS.map((item) => (
+            <li
+              key={item.title}
+              className="flex gap-3 rounded-2xl border border-[color:var(--color-line-soft)] bg-[color:var(--color-linen-50)] px-3 py-3"
+            >
+              <span className="bg-brand-50 text-brand-700 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+                {item.icon}
+              </span>
+              <div>
+                <p className="text-ink-900 text-sm font-semibold">{item.title}</p>
+                <p className="text-ink-500 mt-0.5 text-xs leading-relaxed">{item.body}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
@@ -394,7 +569,6 @@ export const appRouter = createBrowserRouter([
 export {
   RootLayout,
   HomeRoute,
-  ComparadorRoute,
   EscenariosRoute,
   RankingRoute,
   TerritoryRoute,

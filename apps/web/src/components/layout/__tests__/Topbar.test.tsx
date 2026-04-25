@@ -47,15 +47,25 @@ describe('Topbar (Atelier)', () => {
     expect(onSearch).toHaveBeenCalledWith('Madrid');
   });
 
-  it('dispara los callbacks de Feedback y "Nuevo análisis" al hacer clic', async () => {
+  it('dispara los callbacks de Feedback, notificaciones y "Nuevo análisis" al hacer clic', async () => {
     const onFeedback = vi.fn();
+    const onNotifications = vi.fn();
     const onNewAnalysis = vi.fn();
     const user = userEvent.setup();
 
-    renderInRouter(<Topbar onFeedback={onFeedback} onNewAnalysis={onNewAnalysis} />);
+    renderInRouter(
+      <Topbar
+        onFeedback={onFeedback}
+        onNotifications={onNotifications}
+        onNewAnalysis={onNewAnalysis}
+      />
+    );
 
     await user.click(screen.getByRole('button', { name: /Feedback/i }));
     expect(onFeedback).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole('button', { name: /Notificaciones/i }));
+    expect(onNotifications).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: /Nuevo análisis/i }));
     expect(onNewAnalysis).toHaveBeenCalledTimes(1);
@@ -69,10 +79,11 @@ describe('Topbar (Atelier)', () => {
     expect(onOpenCommandPalette).toHaveBeenCalledTimes(1);
   });
 
-  it('muestra "Iniciar sesión" cuando no hay usuario', () => {
+  it('muestra el acceso a cuenta cuando no hay usuario sin exponer login en el shell', () => {
     renderInRouter(<Topbar />);
-    const link = screen.getByRole('link', { name: /Iniciar sesión/i });
-    expect(link).toHaveAttribute('href', '/login');
+    expect(screen.queryByRole('link', { name: /Iniciar sesión/i })).toBeNull();
+    const link = screen.getByRole('link', { name: /Abrir cuenta/i });
+    expect(link).toHaveAttribute('href', '/cuenta');
   });
 
   it('muestra el menú de cuenta y permite cerrar sesión cuando hay usuario', async () => {

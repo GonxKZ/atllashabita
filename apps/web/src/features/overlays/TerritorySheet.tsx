@@ -72,7 +72,7 @@ export function TerritorySheet({
   initialSnap = 'default',
   onClose,
 }: TerritorySheetProps) {
-  const [snap, setSnap] = useState<SheetSnap>(initialSnap);
+  const [snap, setSnap] = useState<SheetSnap>('default');
   const [dragOffset, setDragOffset] = useState(0);
   const dragStateRef = useRef<{ startY: number; lastY: number; lastT: number } | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
@@ -87,7 +87,7 @@ export function TerritorySheet({
    * snap/offset sin disparar un render adicional ni el warning
    * `react-doctor/no-cascading-set-state`.
    */
-  const [trackedTerritoryId, setTrackedTerritoryId] = useState<string | null>(territoryId);
+  const [trackedTerritoryId, setTrackedTerritoryId] = useState<string | null>(null);
   if (trackedTerritoryId !== territoryId) {
     setTrackedTerritoryId(territoryId);
     setDragOffset(0);

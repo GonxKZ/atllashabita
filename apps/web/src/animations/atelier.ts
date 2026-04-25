@@ -38,7 +38,7 @@ export const DURATIONS = {
 } as const;
 
 /** Tipos de duración disponibles (clave del objeto `DURATIONS`). */
-export type DurationKey = keyof typeof DURATIONS;
+type DurationKey = keyof typeof DURATIONS;
 
 /**
  * Curvas Bézier nombradas para describir la intención del movimiento:
@@ -52,9 +52,6 @@ export const EASINGS = {
   smooth: 'cubic-bezier(0.36, 0.66, 0.04, 1)',
 } as const;
 
-/** Tipos de easing disponibles. */
-export type EasingKey = keyof typeof EASINGS;
-
 /**
  * Stagger en segundos para listas y cuadrículas. `tight` se reserva a
  * tiles pequeños (chips, badges), `normal` a cards/markers y `lush` a
@@ -65,9 +62,6 @@ export const STAGGERS = {
   normal: 0.07,
   lush: 0.12,
 } as const;
-
-/** Tipos de stagger disponibles. */
-export type StaggerKey = keyof typeof STAGGERS;
 
 /**
  * Radio (px) de captura del cursor magnético sobre CTAs primarios.

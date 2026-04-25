@@ -1,5 +1,5 @@
 /* eslint-disable no-undef -- MediaQueryListEvent es global del navegador. */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   BarChart3,
@@ -16,6 +16,9 @@ import { MotionStagger } from '../motion';
 import { cn } from '../ui/cn';
 import { LayersPanel, type LayerOption } from './LayersPanel';
 import { UserCard } from './UserCard';
+import { MAP_LAYER_CATALOG } from '@/features/map/layers/catalog';
+import { useFiltersStore } from '@/state/filters';
+import { useMapLayerStore } from '@/state/mapLayer';
 
 /**
  * AtlasHabita · Sidebar Atelier (M12, issue #116)
@@ -68,17 +71,17 @@ const DEFAULT_NAV: SidebarNavItem[] = [
     id: 'scenarios',
     label: 'Escenarios',
     icon: <SlidersHorizontal size={18} />,
-    href: '/sparql',
+    href: '/escenarios',
   },
 ];
 
-const DEFAULT_LAYERS: LayerOption[] = [
-  { id: 'housing', label: 'Vivienda asequible', checked: true },
-  { id: 'jobs', label: 'Empleo', checked: true },
-  { id: 'connectivity', label: 'Conectividad', checked: false },
-  { id: 'transport', label: 'Transporte público', checked: false },
-  { id: 'education', label: 'Educación', checked: false },
-];
+const DEFAULT_LAYERS: LayerOption[] = MAP_LAYER_CATALOG.map((layer, index) => ({
+  id: layer.id,
+  label: layer.label,
+  checked: index === 0,
+}));
+
+const DEFAULT_LAYER_IDS = MAP_LAYER_CATALOG.map((layer) => layer.id);
 
 const COLLAPSE_BREAKPOINT_PX = 1280;
 
@@ -129,8 +132,8 @@ export function Sidebar({
   navItems = DEFAULT_NAV,
   layers = DEFAULT_LAYERS,
   activeNavId,
-  userName = 'Alex Romero',
-  userSubtitle = 'Cuenta personal',
+  userName,
+  userSubtitle,
   userAvatarUrl,
   collapsed: collapsedProp,
   defaultCollapsed,
@@ -157,11 +160,39 @@ export function Sidebar({
     onCollapsedChange?.(next);
   };
 
-  const [layerState, setLayerState] = useState<LayerOption[]>(layers);
+  const activeLayerId = useMapLayerStore((state) => state.activeLayerId);
+  const setActiveLayer = useMapLayerStore((state) => state.setActiveLayer);
+  const activeLayerIds = useFiltersStore((state) => state.activeLayers);
+  const toggleLayer = useFiltersStore((state) => state.toggleLayer);
   const location = useLocation();
   // Si el llamador no fija `activeNavId`, el item activo se deduce de la ruta
   // actual: así el subrayado moss sigue al usuario al navegar.
   const resolvedActive = activeNavId ?? detectActiveId(location.pathname) ?? 'home';
+
+  const layerState = useMemo<LayerOption[]>(() => {
+    const source = layers.length > 0 && layers !== DEFAULT_LAYERS ? layers : DEFAULT_LAYERS;
+    return source.map((layer) => ({
+      ...layer,
+      checked: activeLayerIds.includes(layer.id),
+    }));
+  }, [activeLayerIds, layers]);
+
+  const handleLayerToggle = (id: string, checked: boolean) => {
+    if (!checked && activeLayerIds.length <= 1) {
+      return;
+    }
+
+    toggleLayer(id);
+
+    if (checked) {
+      setActiveLayer(id);
+      return;
+    }
+
+    if (id !== activeLayerId) return;
+    const nextActive = activeLayerIds.find((layerId) => layerId !== id) ?? DEFAULT_LAYER_IDS[0];
+    setActiveLayer(nextActive);
+  };
 
   return (
     <aside
@@ -170,7 +201,7 @@ export function Sidebar({
       // Atelier: linen-0 con borde derecho cálido, ancho responsivo.
       // 18rem (288px) en expandido, 4.5rem (72px) en colapsado.
       className={cn(
-        'scroll-soft flex h-full shrink-0 flex-col gap-7 border-r',
+        'scroll-soft flex h-full min-h-0 shrink-0 flex-col gap-6 overflow-y-auto border-r',
         'border-[color:var(--color-line-soft)] bg-[color:var(--color-linen-0)]',
         'pt-6 pb-5 transition-[width] duration-300 ease-out',
         collapsed ? 'w-[72px] px-3' : 'w-72 px-5',
@@ -287,25 +318,21 @@ export function Sidebar({
         <LayersPanel
           title="Capas activas"
           layers={layerState}
-          onChange={(id, checked) =>
-            setLayerState((prev) =>
-              prev.map((layer) => (layer.id === id ? { ...layer, checked } : layer))
-            )
-          }
+          onChange={handleLayerToggle}
         />
       ) : null}
 
       <div className="mt-auto">
         {collapsed ? (
           <div
-            aria-label={`Sesión de ${userName}`}
-            title={userName}
+            aria-label={`Sesión de ${userName ?? 'AtlasHabita'}`}
+            title={userName ?? 'Cuenta'}
             className={cn(
               'mx-auto inline-flex h-9 w-9 items-center justify-center rounded-full',
               'bg-[color:var(--color-moss-100)] text-sm font-semibold text-[color:var(--color-moss-700)]'
             )}
           >
-            {userName
+            {(userName ?? 'AH')
               .split(' ')
               .map((part) => part[0])
               .join('')

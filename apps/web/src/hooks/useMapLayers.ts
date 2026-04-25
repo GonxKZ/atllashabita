@@ -6,9 +6,9 @@ import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { getMapLayer, listMapLayers } from '../services/map_layers';
 import type { MapLayerPayload, MapLayerSummary, ProfileId } from '../services/types';
 
-export const MAP_LAYERS_LIST_KEY = ['map', 'layers'] as const;
+const MAP_LAYERS_LIST_KEY = ['map', 'layers'] as const;
 
-export function mapLayerKey(id: string, profile: ProfileId | undefined) {
+function mapLayerKey(id: string, profile: ProfileId | undefined) {
   return ['map', 'layer', id, profile ?? 'default'] as const;
 }
 

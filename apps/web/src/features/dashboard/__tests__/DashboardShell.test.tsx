@@ -7,6 +7,7 @@ import { DashboardShell } from '../DashboardShell';
 import { useMapLayerStore } from '@/state/mapLayer';
 import { useUiStore } from '@/state/ui';
 import { NATIONAL_MUNICIPALITIES } from '@/data/national_mock';
+import { DEFAULT_WEIGHTS, useEscenariosStore, type WeightVector } from '@/state/escenariosStore';
 
 const wrap = (node: ReactNode) => <MemoryRouter>{node}</MemoryRouter>;
 
@@ -69,6 +70,11 @@ describe('DashboardShell', () => {
   beforeEach(() => {
     useMapLayerStore.getState().resetActiveLayer();
     useUiStore.getState().reset();
+    useEscenariosStore.setState({
+      weights: { ...DEFAULT_WEIGHTS },
+      baseline: { ...DEFAULT_WEIGHTS },
+      scenarios: [],
+    });
     /* eslint-disable-next-line no-undef -- localStorage es global del navegador. */
     localStorage.clear();
   });
@@ -120,5 +126,25 @@ describe('DashboardShell', () => {
     expect(useMapLayerStore.getState().activeLayerId).toBe('score');
     fireEvent.keyDown(window, { key: ']' });
     expect(useMapLayerStore.getState().activeLayerId).not.toBe('score');
+  });
+
+  it('recalcula el score del mapa con los pesos del simulador de escenarios', () => {
+    const heavyRent: WeightVector = {
+      rent_price: 0.95,
+      income: 0.05,
+      broadband: 0,
+      services: 0,
+      air_quality: 0,
+      mobility: 0,
+      transit: 0,
+      climate: 0,
+    };
+
+    act(() => {
+      useEscenariosStore.getState().setWeights(heavyRent);
+    });
+
+    render(wrap(<DashboardShell />));
+    expect(screen.getByText(/Mezcla personalizada activa/i)).toBeInTheDocument();
   });
 });

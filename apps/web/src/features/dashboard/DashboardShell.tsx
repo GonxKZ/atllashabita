@@ -1,15 +1,21 @@
 import { useCallback, useMemo, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Activity,
   Building2,
+  Database,
   GitCompareArrows,
+  Layers3,
   Map as MapIcon,
   Sparkles,
   TrendingUp,
 } from 'lucide-react';
 import { ActionCards, type ActionCardItem } from '@/components/layout/ActionCards';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { ActivityFeed } from '@/features/activity/ActivityFeed';
 import { SpainMap } from '@/features/map/SpainMap';
+import { HighlightCard } from '@/features/recommendations/HighlightCard';
+import { TrendsChart } from '@/features/trends/TrendsChart';
 import {
   MAP_LAYER_CATALOG,
   buildLegendStops,
@@ -17,9 +23,12 @@ import {
   resolveLayer,
   type MapLayerId,
 } from '@/features/map/layers/catalog';
-import { toEnrichedMapPoints } from '@/data/national_mock';
+import { mockActivity, mockHighlight, mockTrends } from '@/data/mock';
+import { NATIONAL_SOURCES, toEnrichedMapPoints } from '@/data/national_mock';
+import { computeRanges, scoreMunicipality } from '@/features/escenarios/scoring';
 import { useMapLayerStore } from '@/state/mapLayer';
 import { useUiStore } from '@/state/ui';
+import { DEFAULT_WEIGHTS, useEscenariosStore } from '@/state/escenariosStore';
 import { cn } from '@/components/ui/cn';
 import { FloatingRanking, MiniMap, RichLegend, TerritorySheet } from '@/features/overlays';
 
@@ -74,6 +83,8 @@ interface StatsStripProps {
   readonly avgScore: number;
   readonly highlightedName: string;
   readonly highlightedScore: number;
+  readonly sourcesCount: number;
+  readonly layersCount: number;
 }
 
 function StatsStrip({
@@ -81,19 +92,21 @@ function StatsStrip({
   avgScore,
   highlightedName,
   highlightedScore,
+  sourcesCount,
+  layersCount,
 }: StatsStripProps) {
   return (
     <ul
       aria-label="Indicadores destacados"
       data-feature="stats-strip"
       className={cn(
-        'flex flex-wrap items-stretch gap-3 rounded-2xl border border-[color:var(--color-line-soft)] bg-white/80 p-3 backdrop-blur',
+        'grid grid-cols-2 gap-2 rounded-2xl border border-[color:var(--color-line-soft)] bg-white/82 p-2.5 backdrop-blur sm:grid-cols-5',
         'shadow-[var(--shadow-card)]'
       )}
     >
       <StatsStripItem
         icon={<Building2 size={16} aria-hidden="true" />}
-        label="Municipios analizados"
+        label="Municipios"
         value={territoriesCount.toLocaleString('es-ES')}
       />
       <StatsStripItem
@@ -106,21 +119,33 @@ function StatsStrip({
         label="Mejor encaje"
         value={`${highlightedName} · ${highlightedScore}`}
       />
+      <StatsStripItem
+        icon={<Database size={16} aria-hidden="true" />}
+        label="Fuentes"
+        value={`${sourcesCount} datasets`}
+      />
+      <StatsStripItem
+        icon={<Layers3 size={16} aria-hidden="true" />}
+        label="Métricas"
+        value={`${layersCount} métricas`}
+      />
     </ul>
   );
 }
 
 function StatsStripItem({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <li className="flex min-w-[160px] flex-1 items-center gap-3 rounded-xl bg-white/95 px-3 py-2">
-      <span className="bg-brand-50 text-brand-700 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+    <li className="flex min-w-0 items-center gap-2 rounded-xl bg-white/95 px-2 py-2 sm:flex-col sm:items-start sm:gap-1.5">
+      <span className="bg-brand-50 text-brand-700 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl">
         {icon}
       </span>
       <span className="flex min-w-0 flex-col">
-        <span className="text-ink-500 text-[10px] font-semibold tracking-[0.16em] uppercase">
+        <span className="text-ink-500 truncate text-[9px] font-semibold tracking-[0.12em] uppercase sm:w-full">
           {label}
         </span>
-        <span className="text-ink-900 truncate text-sm font-semibold tabular-nums">{value}</span>
+        <span className="text-ink-900 truncate text-[12px] font-semibold tabular-nums sm:w-full">
+          {value}
+        </span>
       </span>
     </li>
   );
@@ -144,8 +169,22 @@ function StatsStripItem({ icon, label, value }: { icon: ReactNode; label: string
 export function DashboardShell() {
   const activeLayerId = useMapLayerStore((state) => state.activeLayerId);
   const setActiveLayer = useMapLayerStore((state) => state.setActiveLayer);
+  const weights = useEscenariosStore((state) => state.weights);
   const activeLayer = useMemo(() => resolveLayer(activeLayerId), [activeLayerId]);
-  const enrichedPoints = useMemo(() => toEnrichedMapPoints(), []);
+  const basePoints = useMemo(() => toEnrichedMapPoints(), []);
+  const ranges = useMemo(() => computeRanges(basePoints), [basePoints]);
+  const enrichedPoints = useMemo(
+    () =>
+      basePoints.map((point) => ({
+        ...point,
+        score: scoreMunicipality(point, weights, ranges),
+      })),
+    [basePoints, ranges, weights]
+  );
+  const personalizedScoreActive = useMemo(
+    () => JSON.stringify(weights) !== JSON.stringify(DEFAULT_WEIGHTS),
+    [weights]
+  );
 
   const selectedTerritoryId = useUiStore((state) => state.selectedTerritoryId);
   const openTerritorySheet = useUiStore((state) => state.openTerritorySheet);
@@ -157,6 +196,7 @@ export function DashboardShell() {
   );
 
   const legendStops = useMemo(() => buildLegendStops(activeLayer, domain), [activeLayer, domain]);
+  const sourcesCount = Object.keys(NATIONAL_SOURCES).length;
 
   const { avgScore, highlight } = useMemo(() => {
     if (enrichedPoints.length === 0) {
@@ -183,25 +223,42 @@ export function DashboardShell() {
   );
 
   const hero = (
-    <section aria-labelledby="dashboard-title" className="flex flex-col gap-4">
-      <div className="from-brand-500 via-brand-500 to-brand-600 relative overflow-hidden rounded-3xl bg-gradient-to-br p-6 text-white shadow-[var(--shadow-elevated)] sm:p-7">
+    <section aria-labelledby="dashboard-title" className="flex flex-col gap-3">
+      <div className="relative overflow-hidden rounded-3xl border border-[color:var(--color-line-soft)] bg-white p-5 text-[color:var(--color-ink-900)] shadow-[var(--shadow-card)] sm:p-6">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-white/25 blur-3xl"
+          className="from-brand-100/70 via-sky-100/55 pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l to-transparent"
+        />
+        <div
+          aria-hidden="true"
+          className="bg-brand-200/30 pointer-events-none absolute -top-24 -right-16 h-56 w-56 rounded-full blur-3xl"
         />
         <div className="relative flex flex-col gap-2">
           <h1
             id="dashboard-title"
-            className="font-display max-w-3xl text-[24px] leading-[1.15] font-bold sm:text-[28px]"
+            className="font-display max-w-3xl text-[22px] leading-[1.12] font-bold sm:text-[26px]"
           >
             Descubre el{' '}
-            <span className="rounded-md bg-white/15 px-1.5 py-0.5 text-white">mejor lugar</span>{' '}
+            <span className="text-brand-700 rounded-md bg-[var(--color-brand-50)] px-1.5 py-0.5">
+              mejor lugar
+            </span>{' '}
             para vivir en España
           </h1>
-          <p className="max-w-xl text-[13px] leading-relaxed text-white/85">
-            Pinchar en el mapa para abrir la ficha del municipio. Pulsa{' '}
-            <kbd className="font-mono">[</kbd> o <kbd className="font-mono">]</kbd> para cambiar de
-            capa.
+          <p className="text-ink-600 max-w-xl text-[12.5px] leading-relaxed">
+            El score del mapa se recalcula con tu mezcla de indicadores. Ajusta pesos en{' '}
+            <Link
+              to="/escenarios"
+              className="text-brand-700 font-semibold underline decoration-[color:var(--color-brand-200)] underline-offset-4 hover:text-brand-800"
+            >
+              Escenarios
+            </Link>
+            , pincha un marcador para abrir su ficha y pulsa <kbd className="font-mono">[</kbd> o{' '}
+            <kbd className="font-mono">]</kbd> para cambiar de capa.
+          </p>
+          <p className="text-brand-700 text-[11px] font-semibold">
+            {personalizedScoreActive
+              ? 'Mezcla personalizada activa: el ranking y los marcadores ya reflejan tus prioridades.'
+              : 'Mezcla equilibrada activa: cambia los pesos para encontrar tu mejor zona.'}
           </p>
         </div>
       </div>
@@ -211,13 +268,15 @@ export function DashboardShell() {
         avgScore={avgScore}
         highlightedName={highlight.name}
         highlightedScore={highlight.score}
+        sourcesCount={sourcesCount}
+        layersCount={MAP_LAYER_CATALOG.length}
       />
 
       <div
         role="radiogroup"
         aria-label="Capa activa del mapa territorial"
         data-feature="dashboard-layer-switcher"
-        className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+        className="grid grid-cols-[repeat(auto-fit,minmax(108px,1fr))] gap-1.5 rounded-2xl border border-[color:var(--color-line-soft)] bg-white/75 p-2 shadow-[var(--shadow-card)] backdrop-blur"
       >
         {MAP_LAYER_CATALOG.map((layer) => {
           const isActive = layer.id === activeLayer.id;
@@ -231,8 +290,8 @@ export function DashboardShell() {
               data-active={isActive ? 'true' : 'false'}
               className={
                 isActive
-                  ? 'border-brand-300 bg-brand-50 text-ink-900 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors'
-                  : 'text-ink-500 hover:border-brand-200 hover:bg-brand-50/40 inline-flex items-center gap-2 rounded-full border border-[color:var(--color-line-soft)] bg-white px-3 py-1.5 text-xs font-semibold transition-colors'
+                  ? 'border-brand-300 bg-brand-50 text-ink-900 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-2xl border px-2.5 py-1.5 text-center text-[11px] font-semibold shadow-sm transition-colors'
+                  : 'text-ink-600 hover:border-brand-200 hover:bg-brand-50/40 inline-flex min-h-9 items-center justify-center gap-1.5 rounded-2xl border border-[color:var(--color-line-soft)] bg-white px-2.5 py-1.5 text-center text-[11px] font-semibold transition-colors'
               }
             >
               <span
@@ -254,7 +313,7 @@ export function DashboardShell() {
        */}
       <div
         data-feature="atelier-map-stage"
-        className="relative h-[min(70vh,720px)] min-h-[420px] overflow-hidden rounded-3xl bg-white shadow-[var(--shadow-card)] ring-1 ring-[color:var(--color-line-soft)]"
+        className="relative h-[min(64vh,620px)] min-h-[390px] overflow-hidden rounded-3xl bg-white shadow-[var(--shadow-card)] ring-1 ring-[color:var(--color-line-soft)]"
       >
         <SpainMap
           points={enrichedPoints}
@@ -266,7 +325,7 @@ export function DashboardShell() {
           onMarkerSelect={handleMarkerSelect}
         />
 
-        <FloatingRanking />
+        <FloatingRanking forcedExpanded={false} className="hidden xl:flex" />
 
         <RichLegend
           layer={activeLayer}
@@ -275,14 +334,31 @@ export function DashboardShell() {
           onLayerChange={handleLayerChange}
         />
 
-        <MiniMap />
+        <MiniMap className="hidden 2xl:block" />
       </div>
     </section>
   );
 
+  const side = (
+    <>
+      <HighlightCard highlight={mockHighlight} onOpen={openTerritorySheet} />
+      <TrendsChart
+        data={mockTrends}
+        title="Tendencias territoriales"
+        subtitle="Evolución del índice agregado en los municipios destacados."
+      />
+      <ActivityFeed items={mockActivity.slice(0, 4)} />
+    </>
+  );
+
   return (
     <>
-      <DashboardLayout embedded hero={hero} footer={<ActionCards items={ACTION_ITEMS} />} />
+      <DashboardLayout
+        embedded
+        hero={hero}
+        side={side}
+        footer={<ActionCards items={ACTION_ITEMS} />}
+      />
       <TerritorySheet territoryId={selectedTerritoryId} onClose={closeTerritorySheet} />
     </>
   );
