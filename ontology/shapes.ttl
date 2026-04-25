@@ -88,39 +88,92 @@ ah:GeometryShape
 ah:IndicatorObservationShape
     a sh:NodeShape ;
     sh:targetClass ah:IndicatorObservation ;
-    sh:property [ sh:path ah:indicator ; sh:minCount 1 ; sh:class ah:Indicator ] ;
-    sh:property [ sh:path ah:value ; sh:minCount 1 ; sh:datatype xsd:decimal ] ;
-    sh:property [ sh:path ah:period ; sh:minCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [
+        sh:path ah:indicator ;
+        sh:minCount 1 ;
+        sh:class ah:Indicator ;
+        sh:message "Observación: ah:indicator obligatorio y debe apuntar a ah:Indicator (OBS-01)."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:value ;
+        sh:minCount 1 ;
+        sh:datatype xsd:decimal ;
+        sh:message "Observación: ah:value obligatorio como xsd:decimal (OBS-02)."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:period ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "Observación: ah:period obligatorio como xsd:string (OBS-03)."@es ;
+    ] ;
     sh:property [
         sh:path ah:periodYear ;
         sh:maxCount 1 ;
         sh:datatype xsd:gYear ;
-        sh:message "Si se declara, el año del periodo debe ser xsd:gYear."@es ;
+        sh:message "Si se declara, el año del periodo debe ser xsd:gYear (OBS-04)."@es ;
     ] ;
-    sh:property [ sh:path ah:providedBy ; sh:minCount 1 ; sh:class ah:DataSource ] ;
-    sh:property [ sh:path ah:unit ; sh:datatype xsd:string ] .
+    sh:property [
+        sh:path ah:providedBy ;
+        sh:minCount 1 ;
+        sh:class ah:DataSource ;
+        sh:message "Observación: ah:providedBy obligatorio y debe apuntar a ah:DataSource (OBS-05)."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:unit ;
+        sh:datatype xsd:string ;
+    ] ;
+    sh:property [
+        sh:path ah:qualityFlag ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:string ;
+        sh:pattern "^(ok|validated|provisional|unknown)$" ;
+        sh:message "Observación: ah:qualityFlag debe ser ok | validated | provisional | unknown (OBS-06)."@es ;
+    ] .
 
 ah:IndicatorShape
     a sh:NodeShape ;
     sh:targetClass ah:Indicator ;
-    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] ;
+    sh:property [
+        sh:path rdfs:label ;
+        sh:minCount 1 ;
+        sh:message "Indicator: rdfs:label obligatorio (IND-01)."@es ;
+    ] ;
     sh:property [
         sh:path ah:direction ;
         sh:minCount 1 ;
         sh:in ( "higher_is_better" "lower_is_better" ) ;
+        sh:message "Indicator: ah:direction debe ser higher_is_better o lower_is_better (IND-02)."@es ;
     ] .
 
 ah:DataSourceShape
     a sh:NodeShape ;
     sh:targetClass ah:DataSource ;
-    sh:property [ sh:path dct:title ; sh:minCount 1 ] ;
-    sh:property [ sh:path ah:license ; sh:minCount 1 ] ;
-    sh:property [ sh:path ah:periodicity ; sh:minCount 1 ] .
+    sh:property [
+        sh:path dct:title ;
+        sh:minCount 1 ;
+        sh:message "DataSource: dct:title obligatorio (DSC-01)."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:license ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "DataSource: ah:license obligatoria como xsd:string (DSC-02)."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:periodicity ;
+        sh:minCount 1 ;
+        sh:datatype xsd:string ;
+        sh:message "DataSource: ah:periodicity obligatoria como xsd:string (DSC-03)."@es ;
+    ] .
 
 ah:DecisionProfileShape
     a sh:NodeShape ;
     sh:targetClass ah:DecisionProfile ;
-    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+    sh:property [
+        sh:path rdfs:label ;
+        sh:minCount 1 ;
+        sh:message "DecisionProfile: rdfs:label obligatorio (DPF-01)."@es ;
+    ] .
 
 ah:ScoreShape
     a sh:NodeShape ;
@@ -237,17 +290,25 @@ ah:RoadAccidentShape
         sh:path dct:identifier ;
         sh:minCount 1 ;
         sh:datatype xsd:string ;
+        sh:message "Accidente: dct:identifier obligatorio como xsd:string (ACC-01)."@es ;
     ] ;
     sh:property [
         sh:path ah:accidentSeverity ;
         sh:minCount 1 ;
         sh:in ( "fatal" "serious" "slight" ) ;
-        sh:message "La severidad del accidente debe ser fatal, serious o slight."@es ;
+        sh:message "La severidad del accidente debe ser fatal, serious o slight (ACC-02)."@es ;
+    ] ;
+    sh:property [
+        sh:path ah:accidentDate ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:date ;
+        sh:message "Accidente: ah:accidentDate debe ser xsd:date (ACC-03)."@es ;
     ] ;
     sh:property [
         sh:path ah:accidentYear ;
         sh:maxCount 1 ;
         sh:datatype xsd:gYear ;
+        sh:message "Accidente: ah:accidentYear debe ser xsd:gYear (ACC-04)."@es ;
     ] ;
     sh:property [
         sh:path ah:accidentVictims ;

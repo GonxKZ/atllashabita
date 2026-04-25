@@ -28,6 +28,16 @@ class ComputeRankingsUseCase:
     que combinaciones distintas de pesos personalizados hagan crecer la memoria
     del proceso sin control. Al superar el umbral se expulsa la entrada menos
     usada, de forma que las consultas más repetidas se conservan "calientes".
+
+    Indexación O(1):
+
+    - ``_territories_by_code`` permite resolver el nombre de provincia/CCAA de
+      cualquier resultado sin recorrer ``dataset.territories``.
+    - ``_municipalities_by_province`` y ``_municipalities_by_community`` permiten
+      resolver el ámbito sin filtrar la lista entera en cada petición.
+
+    Estos índices son inmutables y se construyen con un único recorrido del
+    dataset al instanciar el caso de uso.
     """
 
     def __init__(
@@ -43,6 +53,18 @@ class ComputeRankingsUseCase:
         self._data_version = data_version
         self._cache: OrderedDict[_CacheKey, tuple[TerritoryScore, ...]] = OrderedDict()
         self._cache_max = max(1, settings.cache_max_entries)
+        self._territories_by_code, municipalities_by_p, municipalities_by_c = _build_indices(
+            dataset
+        )
+        self._all_municipalities: tuple[Territory, ...] = tuple(
+            t for t in dataset.territories if t.kind is TerritoryKind.MUNICIPALITY
+        )
+        self._municipalities_by_province: dict[str, tuple[Territory, ...]] = {
+            code: tuple(items) for code, items in municipalities_by_p.items()
+        }
+        self._municipalities_by_community: dict[str, tuple[Territory, ...]] = {
+            code: tuple(items) for code, items in municipalities_by_c.items()
+        }
 
     def execute(
         self,
@@ -96,26 +118,20 @@ class ComputeRankingsUseCase:
 
     def _resolve_scope(self, scope: str) -> tuple[Territory, ...]:
         if scope == _SCOPE_ALL:
-            return tuple(
-                t for t in self._dataset.territories if t.kind is TerritoryKind.MUNICIPALITY
-            )
+            return self._all_municipalities
         if _SCOPE_SEPARATOR not in scope:
             raise InvalidScopeError(scope)
         prefix, _, code = scope.partition(_SCOPE_SEPARATOR)
         if prefix not in _ALLOWED_SCOPE_PREFIXES or not code:
             raise InvalidScopeError(scope)
-        if prefix == "autonomous_community":
-            municipalities = tuple(
-                t
-                for t in self._dataset.territories
-                if t.kind is TerritoryKind.MUNICIPALITY and t.autonomous_community_code == code
-            )
-        else:
-            municipalities = tuple(
-                t
-                for t in self._dataset.territories
-                if t.kind is TerritoryKind.MUNICIPALITY and t.province_code == code
-            )
+        # Lookup O(1) sobre los índices precomputados; evita recorrer
+        # ``dataset.territories`` en cada petición.
+        index = (
+            self._municipalities_by_community
+            if prefix == "autonomous_community"
+            else self._municipalities_by_province
+        )
+        municipalities = index.get(code, ())
         if not municipalities:
             raise InvalidScopeError(scope)
         return municipalities
@@ -168,7 +184,41 @@ class ComputeRankingsUseCase:
     def _lookup_name(self, code: str | None, kind: TerritoryKind) -> str | None:
         if code is None:
             return None
-        for candidate in self._dataset.territories:
-            if candidate.kind is kind and candidate.code == code:
-                return candidate.name
-        return None
+        # Lookup O(1) sobre el índice precomputado: evita recorrer todos los
+        # territorios para cada fila del ranking serializado (era O(n*m)).
+        candidate = self._territories_by_code.get((kind, code))
+        return candidate.name if candidate is not None else None
+
+
+def _build_indices(
+    dataset: SeedDataset,
+) -> tuple[
+    dict[tuple[TerritoryKind, str], Territory],
+    dict[str, list[Territory]],
+    dict[str, list[Territory]],
+]:
+    """Construye los índices auxiliares en una única pasada por el dataset.
+
+    Devuelve:
+
+    * ``territories_by_code``: ``(kind, code) -> Territory`` para lookup O(1)
+      por código administrativo (provincia, comunidad autónoma, municipio).
+    * ``municipalities_by_province``: ``province_code -> [Territory]`` con los
+      municipios pertenecientes a cada provincia.
+    * ``municipalities_by_community``: análogo a nivel de comunidad autónoma.
+
+    Mantener la construcción aquí (función libre) facilita cubrirla con tests
+    aislados sin instanciar el caso de uso completo.
+    """
+    territories_by_code: dict[tuple[TerritoryKind, str], Territory] = {}
+    by_province: dict[str, list[Territory]] = {}
+    by_community: dict[str, list[Territory]] = {}
+    for territory in dataset.territories:
+        territories_by_code[(territory.kind, territory.code)] = territory
+        if territory.kind is not TerritoryKind.MUNICIPALITY:
+            continue
+        if territory.province_code:
+            by_province.setdefault(territory.province_code, []).append(territory)
+        if territory.autonomous_community_code:
+            by_community.setdefault(territory.autonomous_community_code, []).append(territory)
+    return territories_by_code, by_province, by_community

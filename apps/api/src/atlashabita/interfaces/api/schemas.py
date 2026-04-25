@@ -264,7 +264,13 @@ class ErrorResponse(_ApiModel):
 
 
 class HealthResponse(_ApiModel):
-    """Eco del endpoint de salud (duplicado aquí para centralizar schemas)."""
+    """Contrato del endpoint de salud.
+
+    El router ``health`` mantiene su propio ``BaseModel`` por independencia
+    histórica; esta versión queda como fuente única para clientes que importan
+    desde ``schemas`` y deberá fusionarse con la del router cuando se haga la
+    revisión de schemas (ver ``docs/reviews/v0.5.1-review-cross.md`` #9).
+    """
 
     status: str
     name: str

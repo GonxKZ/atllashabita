@@ -85,7 +85,13 @@ export function Pagination({
       <ul className="flex items-center gap-1.5">
         {range.map((entry, index) =>
           entry === 'dots' ? (
-            <li key={`dots-${index}`} aria-hidden="true" className="text-ink-500 px-1 text-sm">
+            // Clave estable: el siguiente elemento numérico determina si
+            // estos dots son los "before-N" o los "after-N" del rango.
+            <li
+              key={`dots-before-${range.slice(index + 1).find((e) => e !== 'dots') ?? 'end'}`}
+              aria-hidden="true"
+              className="text-ink-500 px-1 text-sm"
+            >
               …
             </li>
           ) : (

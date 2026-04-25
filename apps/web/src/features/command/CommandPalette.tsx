@@ -109,9 +109,18 @@ export function CommandPalette({
     return () => window.clearTimeout(handle);
   }, [open]);
 
-  useEffect(() => {
+  /*
+   * Patrón "ajustar estado durante el render" recomendado por react.dev
+   * (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes).
+   * Reseteamos `activeIndex` cuando cambia la consulta o el conjunto de
+   * items sin un `useEffect` de sincronización (que provocaba un render
+   * extra y violaba `react-doctor/no-derived-state-effect`).
+   */
+  const [resetSignature, setResetSignature] = useState({ query, count: items.length });
+  if (resetSignature.query !== query || resetSignature.count !== items.length) {
+    setResetSignature({ query, count: items.length });
     setActiveIndex(0);
-  }, [query, items]);
+  }
 
   const context: CommandContext = useMemo(
     () => ({
@@ -337,8 +346,8 @@ export function CommandPalette({
                           </span>
                           {item.shortcut ? (
                             <span className="hidden items-center gap-1 sm:inline-flex">
-                              {item.shortcut.map((token, idx) => (
-                                <HelpKey key={`${item.id}-shortcut-${idx}`}>{token}</HelpKey>
+                              {item.shortcut.map((token) => (
+                                <HelpKey key={`${item.id}-${token}`}>{token}</HelpKey>
                               ))}
                             </span>
                           ) : null}

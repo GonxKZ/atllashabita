@@ -126,14 +126,18 @@ export function Topbar({
 
         <form
           role="search"
-          onSubmit={(event) => {
-            event.preventDefault();
-            // Narrowing seguro: el input puede no existir o ser una `RadioNodeList`
-            // si el caller anida varios `name="query"`; en ambos casos devolvemos
-            // cadena vacia.
-            const candidate = event.currentTarget.elements.namedItem('query');
-            const value = candidate instanceof HTMLInputElement ? candidate.value : '';
-            onSearch?.(value);
+          /*
+           * `action` (React 19) recibe el `FormData` y previene el submit
+           * por defecto sin requerir `event.preventDefault()`. Mejora la
+           * accesibilidad porque el formulario sigue siendo válido y el
+           * navegador puede aplicar autofill/keyboard hints
+           * (`react-doctor/no-prevent-default`). El narrowing del valor
+           * se hace en el propio `FormData.get`, sin asumir que el input
+           * existe ni el tipo del candidato.
+           */
+          action={(formData: FormData) => {
+            const value = formData.get('query');
+            onSearch?.(typeof value === 'string' ? value : '');
           }}
           className="relative min-w-0 flex-1"
         >

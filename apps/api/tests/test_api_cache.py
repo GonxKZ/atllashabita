@@ -93,3 +93,29 @@ def test_cached_soporta_kwargs_como_parte_de_la_clave() -> None:
     assert build("a", repeat=2) == "aa"
     assert build("a", repeat=3) == "aaa"
     assert calls["count"] == 2
+
+
+def test_cached_eleva_typeerror_explicito_si_arg_no_es_hashable() -> None:
+    """Si llega un argumento no hashable se eleva ``TypeError`` con contexto."""
+
+    @cached(ttl_seconds=60.0, maxsize=4)
+    def transform(payload: dict[str, int]) -> int:
+        return sum(payload.values())
+
+    with pytest.raises(TypeError, match="hashables"):
+        transform({"a": 1})
+
+
+def test_cached_misma_clave_con_y_sin_kwargs_no_colisiona() -> None:
+    """Las claves de args=() vs args=(),kwargs={} no deben confundirse."""
+    calls = {"count": 0}
+
+    @cached(ttl_seconds=60.0, maxsize=4)
+    def now() -> int:
+        calls["count"] += 1
+        return calls["count"]
+
+    primero = now()
+    segundo = now()
+    assert primero == segundo
+    assert calls["count"] == 1

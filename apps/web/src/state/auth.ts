@@ -50,12 +50,9 @@ export interface AuthUser {
  * Registro persistido de cuentas creadas en el dispositivo.
  *
  * Almacena la contraseña en claro porque el MVP no dispone aún de backend.
- *
- * TODO: integrar PBKDF2 antes de promocionar este store a producción real.
- * Cadena de seguridad:
- *   1. Validación de fortaleza en `services/auth.validatePassword`.
- *   2. Persistencia local únicamente (no se sincroniza con servidor).
- *   3. Sustituible por `POST /auth/{login,register}` cambiando este módulo.
+ * El refuerzo (hash + endpoint real) está documentado en
+ * `services/auth.assertCredentials`, que es el punto único a tocar cuando se
+ * integre `POST /auth/{login,register}`.
  */
 interface AccountRecord {
   readonly user: AuthUser;

@@ -12,6 +12,7 @@ neutras (lista vacía y riesgo cero) acompañados de un log informativo.
 from __future__ import annotations
 
 import csv
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -80,13 +81,8 @@ class ListAccidentsUseCase:
         offset: int = 0,
     ) -> list[dict[str, Any]]:
         """Lista accidentes filtrados, paginados y serializables."""
-        records = self._load()
-        filtered = [
-            record
-            for record in records
-            if (territory_id is None or record.territory_id == territory_id)
-            and (period is None or record.period == period)
-        ]
+        match = _build_match(territory_id=territory_id, period=period)
+        filtered = [record for record in self._load() if match(record)]
         bounded = filtered[offset : offset + limit]
         return [record.to_public() for record in bounded]
 
@@ -96,25 +92,30 @@ class ListAccidentsUseCase:
         territory_id: str | None = None,
         period: str | None = None,
     ) -> int:
-        records = self._load()
-        return sum(
-            1
-            for record in records
-            if (territory_id is None or record.territory_id == territory_id)
-            and (period is None or record.period == period)
-        )
+        match = _build_match(territory_id=territory_id, period=period)
+        return sum(1 for record in self._load() if match(record))
 
     def risk(self, territory_id: str) -> dict[str, Any]:
         """Indicador de riesgo: accidentes por 1.000 habitantes y agregados.
 
         Si no hay datos para el territorio, devuelve un payload coherente
         con valores cero para que la pantalla técnica pueda renderizar la
-        ficha sin manejar nulos.
+        ficha sin manejar nulos. La iteración es **single-pass**: se recorren
+        los records una sola vez acumulando los tres totales y el conteo, en
+        lugar de filtrar la lista y volver a recorrerla tres veces más.
         """
-        records = [r for r in self._load() if r.territory_id == territory_id]
-        accidents = sum(r.accidents for r in records)
-        fatalities = sum((r.fatalities or 0.0) for r in records)
-        injuries = sum((r.injuries or 0.0) for r in records)
+        accidents = 0.0
+        fatalities = 0.0
+        injuries = 0.0
+        records = 0
+        for record in self._load():
+            if record.territory_id != territory_id:
+                continue
+            accidents += record.accidents
+            fatalities += record.fatalities or 0.0
+            injuries += record.injuries or 0.0
+            records += 1
+
         territory = self._dataset.get_territory(territory_id)
         population = territory.population if territory else None
 
@@ -129,7 +130,7 @@ class ListAccidentsUseCase:
             "population": population,
             "accidents_per_1000": accidents_per_1000,
             "fatalities_per_1000": fatalities_per_1000,
-            "records": len(records),
+            "records": records,
         }
 
     def _load(self) -> tuple[AccidentRecord, ...]:
@@ -156,6 +157,26 @@ class ListAccidentsUseCase:
         self._cache = tuple(records)
         logger.info("accidents.csv_loaded", path=str(path), rows=len(records))
         return self._cache
+
+
+def _build_match(
+    *,
+    territory_id: str | None,
+    period: str | None,
+) -> Callable[[AccidentRecord], bool]:
+    """Construye un predicado reutilizable para los filtros opcionales.
+
+    Tener una función única elimina la duplicación entre ``list_records`` y
+    ``count_records`` (DRY) y permite cortocircuitar la evaluación cuando
+    ningún filtro está activo.
+    """
+    if territory_id is None and period is None:
+        return lambda _record: True
+    if period is None:
+        return lambda record: record.territory_id == territory_id
+    if territory_id is None:
+        return lambda record: record.period == period
+    return lambda record: record.territory_id == territory_id and record.period == period
 
 
 def _parse_row(row: dict[str, str], number: int) -> AccidentRecord:
