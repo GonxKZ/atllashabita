@@ -70,14 +70,15 @@ function useCountup(target: number, durationMs = 900): number {
     }
 
     const start = performance.now();
-    const initial = 0;
-    const delta = target - initial;
     const ease = (t: number): number => 1 - Math.pow(1 - t, 3);
 
     const step = (now: number): void => {
       const elapsed = now - start;
       const t = Math.min(1, elapsed / durationMs);
-      setValue(initial + delta * ease(t));
+      // Forma funcional: el cálculo no depende del valor previo, pero usar
+      // la callback evita stale closures si en el futuro encadenamos
+      // animaciones (`react-doctor/rerender-functional-setstate`).
+      setValue(() => target * ease(t));
       if (t < 1) {
         rafRef.current = window.requestAnimationFrame(step);
       }

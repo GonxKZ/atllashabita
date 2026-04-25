@@ -94,8 +94,10 @@ export function MapLegend({
         ) : null}
       </figcaption>
       <ul className="mt-2 flex items-stretch gap-1" data-testid="map-legend-stops">
-        {cleanStops.map((stop, idx) => (
-          <li key={`${stop.min}-${stop.max}-${idx}`} className="flex flex-1 flex-col items-stretch">
+        {cleanStops.map((stop) => (
+          // Cada stop ocupa un tramo disjunto del dominio, así que la
+          // tupla (min,max) basta como clave estable.
+          <li key={`${stop.min}-${stop.max}`} className="flex flex-1 flex-col items-stretch">
             <span
               aria-hidden="true"
               className="block h-3 w-full rounded-sm"

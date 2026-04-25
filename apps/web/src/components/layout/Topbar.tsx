@@ -135,12 +135,16 @@ export function Topbar({
 
         <form
           role="search"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const input = event.currentTarget.elements.namedItem('query') as {
-              value?: string;
-            } | null;
-            onSearch?.(input?.value ?? '');
+          /*
+           * `action` (React 19) recibe el FormData y previene el submit
+           * por defecto sin requerir `event.preventDefault()`. Mejora la
+           * accesibilidad porque el formulario sigue siendo válido y el
+           * navegador puede aplicar autofill/keyboard hints
+           * (`react-doctor/no-prevent-default`).
+           */
+          action={(formData: FormData) => {
+            const value = formData.get('query');
+            onSearch?.(typeof value === 'string' ? value : '');
           }}
           className="relative min-w-0 flex-1"
         >

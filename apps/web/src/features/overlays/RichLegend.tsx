@@ -19,7 +19,7 @@
  *    capa anteceder/seguir.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, EyeOff } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -122,10 +122,10 @@ export function RichLegend({
     { dependencies: [domain.min, domain.max, layer.id] }
   );
 
-  const cyclingCatalog = useMemo(
-    () => (catalog.length > 0 ? catalog : MAP_LAYER_CATALOG),
-    [catalog]
-  );
+  // Selección directa: ambas referencias son estables (`catalog` viene de
+  // props y `MAP_LAYER_CATALOG` es un módulo). Memoizar un ternario es más
+  // caro que evaluarlo (`react-doctor/no-usememo-simple-expression`).
+  const cyclingCatalog = catalog.length > 0 ? catalog : MAP_LAYER_CATALOG;
 
   const cycleLayer = useCallback(
     (direction: 1 | -1) => {
