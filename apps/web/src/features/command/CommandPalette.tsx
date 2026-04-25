@@ -1,4 +1,4 @@
-/* eslint-disable no-undef -- HTMLInputElement, HTMLDivElement, KeyboardEvent y document son tipos DOM globales. */
+/* eslint-disable no-undef -- HTMLInputElement, HTMLDivElement, HTMLElement, KeyboardEvent y document son tipos DOM globales. */
 /**
  * Paleta de comandos accesible (⌘K).
  *
@@ -7,13 +7,24 @@
  *   - Input de búsqueda con foco automático al abrir.
  *   - Lista filtrada y agrupada por sección (`buildCommandCatalog`).
  *   - Navegación con flechas y `Enter`; `Esc` cierra.
+ *   - Focus trap basico: Tab/Shift+Tab queda confinado al dialogo
+ *     mientras `open === true` (cumple WCAG 2.4.3 - orden de foco y
+ *     2.4.7 - focus visible).
  *   - Atajos sugeridos en cada fila para enseñar el camino "rápido" al usuario.
  *
  * Pensada para vivir en el `RootLayout`. Fuera de la paleta el usuario nunca
  * percibe su presencia: si `open` es `false` el componente no monta el overlay
  * ni los listeners.
  */
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Sparkles, X } from 'lucide-react';
 
@@ -125,42 +136,82 @@ export function CommandPalette({
     ]
   );
 
-  if (!open) return null;
+  /**
+   * Focus trap basico: cuando el usuario tabula fuera del dialogo (Tab al
+   * final / Shift+Tab al inicio) lo redirigimos al primer/ultimo elemento
+   * focusable. Aceptamos el coste de leer el DOM en cada Tab a cambio de
+   * no acoplar el dialogo a una libreria externa.
+   */
+  const trapFocus = useCallback((event: KeyboardEvent<HTMLDivElement>) => {
+    const dialog = event.currentTarget;
+    const focusables = dialog.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusables.length === 0) {
+      event.preventDefault();
+      return;
+    }
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }, []);
 
-  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (filtered.length === 0) {
-      if (event.key === 'Escape') onClose();
-      return;
-    }
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      setActiveIndex((current) => (current + 1) % filtered.length);
-      return;
-    }
-    if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      setActiveIndex((current) => (current - 1 + filtered.length) % filtered.length);
-      return;
-    }
-    if (event.key === 'Enter') {
-      event.preventDefault();
-      const target = filtered[activeIndex];
-      if (target) target.run(context);
-      return;
-    }
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      onClose();
-    }
-  }
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Tab') {
+        trapFocus(event);
+        return;
+      }
+      if (filtered.length === 0) {
+        if (event.key === 'Escape') onClose();
+        return;
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        setActiveIndex((current) => (current + 1) % filtered.length);
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setActiveIndex((current) => (current - 1 + filtered.length) % filtered.length);
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const target = filtered[activeIndex];
+        if (target) target.run(context);
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    },
+    [activeIndex, context, filtered, onClose, trapFocus]
+  );
+
+  if (!open) return null;
 
   return (
     <div
       className="fixed inset-0 z-[60] flex items-start justify-center px-4 pt-[8vh]"
       role="presentation"
     >
+      {/*
+       * Backdrop accionable: cumple "click outside cierra" sin contaminar
+       * el arbol semantico (el cierre tambien existe via boton X y Esc).
+       * `tabIndex={-1}` para que no entre en el orden de tab, y
+       * `aria-label` por si algun SR lo recoge.
+       */}
       <button
         type="button"
+        tabIndex={-1}
         className="bg-ink-900/40 absolute inset-0 backdrop-blur-md transition-opacity"
         aria-label="Cerrar paleta de comandos"
         onClick={() => onClose()}

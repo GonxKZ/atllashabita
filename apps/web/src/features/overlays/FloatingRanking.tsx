@@ -140,6 +140,12 @@ export function FloatingRanking({
         }
       }}
     >
+      {/*
+       * Header siempre interactivo aunque el panel este colapsado: garantiza
+       * que el boton de pin se pueda alcanzar por teclado en ambos estados.
+       * El cuerpo se colapsa con `h-0`/`opacity-0` y `aria-hidden` para no
+       * ser anunciado por SR cuando no es visible.
+       */}
       <header className="flex shrink-0 items-center justify-between gap-3 border-b border-white/40 px-4 py-2">
         <div className="flex min-w-0 flex-col">
           <span
@@ -149,7 +155,9 @@ export function FloatingRanking({
             Ranking nacional
           </span>
           <span className="text-ink-500 truncate text-[11px]">
-            Pinchar en el mapa para abrir la ficha del municipio.
+            {effectiveExpanded
+              ? 'Pinchar en el mapa para abrir la ficha del municipio.'
+              : 'Panel colapsado. Pulsa Tab o pasa el raton para abrir.'}
           </span>
         </div>
         <button
@@ -160,7 +168,7 @@ export function FloatingRanking({
           data-testid="floating-ranking-pin"
           className={cn(
             'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors',
-            'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:outline-none',
+            'focus-visible:ring-2 focus-visible:ring-[color:var(--color-moss-500)] focus-visible:ring-offset-2 focus-visible:outline-none',
             isPinned
               ? 'bg-brand-500 text-white shadow-sm'
               : 'text-ink-500 hover:bg-brand-50 hover:text-brand-700 bg-white/70'
@@ -181,6 +189,10 @@ export function FloatingRanking({
           effectiveExpanded ? 'opacity-100' : 'pointer-events-none h-0 opacity-0'
         )}
         aria-hidden={!effectiveExpanded}
+        // Cuando el panel esta colapsado, evitamos exponer el ranking a la
+        // tabulacion (el header sigue siendo alcanzable por teclado).
+        // React 19 soporta `inert` como boolean nativo en HTMLAttributes.
+        inert={!effectiveExpanded}
       >
         {children ?? <RankingPanel className="border-none bg-transparent shadow-none" />}
       </div>

@@ -1,16 +1,7 @@
-/* eslint-disable no-undef -- KeyboardEvent es global del navegador. */
+/* eslint-disable no-undef -- KeyboardEvent y HTMLInputElement son globales del navegador. */
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight,
-  Bell,
-  Command,
-  LogIn,
-  LogOut,
-  MessageCircle,
-  Search,
-  UserCircle,
-} from 'lucide-react';
+import { ArrowRight, Bell, Command, LogIn, LogOut, MessageCircle, Search } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -137,10 +128,12 @@ export function Topbar({
           role="search"
           onSubmit={(event) => {
             event.preventDefault();
-            const input = event.currentTarget.elements.namedItem('query') as {
-              value?: string;
-            } | null;
-            onSearch?.(input?.value ?? '');
+            // Narrowing seguro: el input puede no existir o ser una `RadioNodeList`
+            // si el caller anida varios `name="query"`; en ambos casos devolvemos
+            // cadena vacia.
+            const candidate = event.currentTarget.elements.namedItem('query');
+            const value = candidate instanceof HTMLInputElement ? candidate.value : '';
+            onSearch?.(value);
           }}
           className="relative min-w-0 flex-1"
         >
@@ -262,6 +255,3 @@ export function Topbar({
     </header>
   );
 }
-
-// Re-exportamos `UserCircle` para consumers externos que lo necesiten.
-export const TopbarUserIcon = UserCircle;
