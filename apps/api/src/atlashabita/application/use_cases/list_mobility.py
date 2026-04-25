@@ -14,6 +14,8 @@ informativo: el endpoint sigue devolviendo 200 sin reventar.
 from __future__ import annotations
 
 import csv
+import heapq
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -88,14 +90,8 @@ class ListMobilityUseCase:
         offset: int = 0,
     ) -> list[dict[str, Any]]:
         """Lista flujos filtrados, paginados y serializables."""
-        flows = self._load()
-        filtered = [
-            flow
-            for flow in flows
-            if (origin is None or flow.origin_id == origin)
-            and (destination is None or flow.destination_id == destination)
-            and (period is None or flow.period == period)
-        ]
+        match = _build_match(origin=origin, destination=destination, period=period)
+        filtered = [flow for flow in self._load() if match(flow)]
         bounded = filtered[offset : offset + limit]
         return [flow.to_public() for flow in bounded]
 
@@ -107,14 +103,8 @@ class ListMobilityUseCase:
         period: str | None = None,
     ) -> int:
         """Total de flujos que cumplen los filtros (para metadata de paginación)."""
-        flows = self._load()
-        return sum(
-            1
-            for flow in flows
-            if (origin is None or flow.origin_id == origin)
-            and (destination is None or flow.destination_id == destination)
-            and (period is None or flow.period == period)
-        )
+        match = _build_match(origin=origin, destination=destination, period=period)
+        return sum(1 for flow in self._load() if match(flow))
 
     def summary(self, territory_id: str) -> dict[str, Any]:
         """Resumen agregado de movilidad para un territorio.
@@ -123,36 +113,41 @@ class ListMobilityUseCase:
         más el top de pares origen/destino. Si no hay datos, devuelve ceros
         con listas vacías para que la pantalla técnica pueda mostrar el
         estado "sin datos" sin tratamientos especiales en el frontend.
+
+        Implementación **single-pass**: la lista de flujos se recorre una
+        única vez y se acumulan en paralelo los totales, conteos y los
+        diccionarios de pares (origen/destino) que después alimentan el top.
+        Antes se recorría 4 veces (incoming, outgoing, total_in, total_out).
         """
-        flows = self._load()
-        outgoing = [flow for flow in flows if flow.origin_id == territory_id]
-        incoming = [flow for flow in flows if flow.destination_id == territory_id]
-
-        total_outgoing = sum(flow.trips for flow in outgoing)
-        total_incoming = sum(flow.trips for flow in incoming)
-
-        top_destinations = self._top_pairs(outgoing, key="destination_id")
-        top_origins = self._top_pairs(incoming, key="origin_id")
+        outgoing_flows = 0
+        incoming_flows = 0
+        total_outgoing = 0.0
+        total_incoming = 0.0
+        outgoing_pairs: dict[str, float] = {}
+        incoming_pairs: dict[str, float] = {}
+        for flow in self._load():
+            if flow.origin_id == territory_id:
+                outgoing_flows += 1
+                total_outgoing += flow.trips
+                outgoing_pairs[flow.destination_id] = (
+                    outgoing_pairs.get(flow.destination_id, 0.0) + flow.trips
+                )
+            if flow.destination_id == territory_id:
+                incoming_flows += 1
+                total_incoming += flow.trips
+                incoming_pairs[flow.origin_id] = (
+                    incoming_pairs.get(flow.origin_id, 0.0) + flow.trips
+                )
 
         return {
             "territory_id": territory_id,
             "total_outgoing_trips": total_outgoing,
             "total_incoming_trips": total_incoming,
-            "outgoing_flows": len(outgoing),
-            "incoming_flows": len(incoming),
-            "top_destinations": top_destinations,
-            "top_origins": top_origins,
+            "outgoing_flows": outgoing_flows,
+            "incoming_flows": incoming_flows,
+            "top_destinations": _top_n(outgoing_pairs),
+            "top_origins": _top_n(incoming_pairs),
         }
-
-    def _top_pairs(
-        self, flows: list[MobilityFlow], *, key: str, top: int = 5
-    ) -> list[dict[str, Any]]:
-        accumulator: dict[str, float] = {}
-        for flow in flows:
-            target = getattr(flow, key)
-            accumulator[target] = accumulator.get(target, 0.0) + flow.trips
-        ranked = sorted(accumulator.items(), key=lambda item: item[1], reverse=True)
-        return [{"territory_id": territory, "trips": value} for territory, value in ranked[:top]]
 
     def _load(self) -> tuple[MobilityFlow, ...]:
         if self._cache is not None:
@@ -178,6 +173,45 @@ class ListMobilityUseCase:
         self._cache = tuple(flows)
         logger.info("mobility.csv_loaded", path=str(path), rows=len(flows))
         return self._cache
+
+
+def _build_match(
+    *,
+    origin: str | None,
+    destination: str | None,
+    period: str | None,
+) -> Callable[[MobilityFlow], bool]:
+    """Predicado reutilizable para los filtros de listado/conteo.
+
+    Centraliza la lógica de filtrado que antes estaba duplicada literalmente
+    entre ``list_flows`` y ``count_flows``, evitando que un cambio futuro
+    desincronice ambas variantes.
+    """
+    if origin is None and destination is None and period is None:
+        return lambda _flow: True
+
+    def _match(flow: MobilityFlow) -> bool:
+        if origin is not None and flow.origin_id != origin:
+            return False
+        if destination is not None and flow.destination_id != destination:
+            return False
+        return not (period is not None and flow.period != period)
+
+    return _match
+
+
+def _top_n(accumulator: dict[str, float], *, top: int = 5) -> list[dict[str, Any]]:
+    """Devuelve las ``top`` entradas con más viajes en O(n log k).
+
+    ``heapq.nlargest`` es asintóticamente mejor que ``sorted`` cuando ``top``
+    es pequeño respecto al tamaño del diccionario: el coste pasa de
+    O(n log n) a O(n log k). Para los típicos ``top=5`` el ahorro es
+    significativo en municipios con miles de pares O/D.
+    """
+    if not accumulator:
+        return []
+    pairs = heapq.nlargest(top, accumulator.items(), key=lambda item: item[1])
+    return [{"territory_id": territory, "trips": value} for territory, value in pairs]
 
 
 def _parse_row(row: dict[str, str], number: int) -> MobilityFlow:

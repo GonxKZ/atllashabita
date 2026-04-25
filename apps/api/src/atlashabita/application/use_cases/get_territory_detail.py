@@ -3,20 +3,45 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Any
 
 from atlashabita.application.scoring import ScoringService
-from atlashabita.domain.territories import Territory
+from atlashabita.domain.territories import Territory, TerritoryKind
 from atlashabita.infrastructure.ingestion import SeedDataset
 from atlashabita.observability.errors import TerritoryNotFoundError
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class GetTerritoryDetailUseCase:
-    """Construye la vista detallada de un territorio."""
+    """Construye la vista detallada de un territorio.
+
+    El dataclass es ``frozen`` para que el caso de uso sea inmutable y se
+    pueda compartir entre peticiones sin sorpresas. Se omite ``slots=True``
+    porque :func:`functools.cached_property` necesita el ``__dict__`` de la
+    instancia para almacenar el resultado memoizado; el coste extra (un dict
+    ligero) es despreciable frente al ahorro de O(n) por petición que aporta
+    el índice ``_territories_by_code``.
+    """
 
     dataset: SeedDataset
     scoring_service: ScoringService
+
+    @cached_property
+    def _territories_by_code(self) -> dict[tuple[TerritoryKind, str], Territory]:
+        """Índice ``(kind, code) -> Territory`` para lookup O(1) de jerarquía.
+
+        Se construye una vez y se reutiliza en todas las llamadas a
+        ``execute``: la ficha territorial recupera la provincia y comunidad por
+        código administrativo, lo que antes implicaba un O(n) por cada
+        territorio renderizado.
+        """
+        return {(t.kind, t.code): t for t in self.dataset.territories}
+
+    @cached_property
+    def _indicators_by_code(self) -> dict[str, Any]:
+        """Índice ``code -> Indicator`` para evitar reconstruirlo por cada ficha."""
+        return {indicator.code: indicator for indicator in self.dataset.indicators}
 
     def execute(self, territory_id: str) -> dict[str, Any]:
         """Devuelve la ficha territorial serializable.
@@ -51,8 +76,10 @@ class GetTerritoryDetailUseCase:
         }
 
     def _hierarchy(self, territory: Territory) -> dict[str, str | None]:
-        province = self._find_by_code(territory.province_code, "province")
-        community = self._find_by_code(territory.autonomous_community_code, "autonomous_community")
+        province = self._find_by_code(territory.province_code, TerritoryKind.PROVINCE)
+        community = self._find_by_code(
+            territory.autonomous_community_code, TerritoryKind.AUTONOMOUS_COMMUNITY
+        )
         return {
             "province": province.name if province else None,
             "province_code": territory.province_code,
@@ -65,20 +92,19 @@ class GetTerritoryDetailUseCase:
             return None
         return {"lat": territory.centroid.lat, "lon": territory.centroid.lon}
 
-    def _find_by_code(self, code: str | None, kind: str) -> Territory | None:
+    def _find_by_code(self, code: str | None, kind: TerritoryKind) -> Territory | None:
         if code is None:
             return None
-        for candidate in self.dataset.territories:
-            if candidate.code == code and candidate.kind.value == kind:
-                return candidate
-        return None
+        # Lookup O(1) sobre el índice memoizado en lugar del antiguo O(n) que
+        # recorría ``self.dataset.territories`` por cada llamada.
+        return self._territories_by_code.get((kind, code))
 
     def _collect_indicators(self, territory_id: str) -> list[dict[str, Any]]:
-        indicators_by_code = {indicator.code: indicator for indicator in self.dataset.indicators}
-        observations = [
-            obs for obs in self.dataset.observations if obs.territory_id == territory_id
-        ]
-        observations.sort(key=lambda obs: obs.indicator_code)
+        indicators_by_code = self._indicators_by_code
+        observations = sorted(
+            (obs for obs in self.dataset.observations if obs.territory_id == territory_id),
+            key=lambda obs: obs.indicator_code,
+        )
         rows: list[dict[str, Any]] = []
         for obs in observations:
             indicator = indicators_by_code.get(obs.indicator_code)
