@@ -418,9 +418,14 @@ class SparqlRunner:
         profile_uri = URIRef(f"{AHR}profile/{profile_id}")
         target_class = _scope_to_class(scope)
         capped_limit = max(1, min(int(limit), self.settings.sparql_max_results))
+        # Normalización lineal aplanada: la heurística vive en `_normalize`
+        # (Python) y aquí se reproduce en SPARQL con tramos lineales por
+        # rango. Se declara `PREFIX xsd:` explícitamente porque algunos
+        # backends estrictos rechazan literales tipados sin él.
         query = f"""
         PREFIX ah: <{AH}>
         PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
         SELECT ?territory ?label
                (SUM(?contribution) AS ?score)
@@ -440,7 +445,7 @@ class SparqlRunner:
                IF(?value <= 0, 1.0,
                   IF(?value >= 25, 0.0, 1.0 - (?value / 25.0))),
                IF(?value <= 0, 0.0,
-                  IF(?value <= 1, xsd:decimal(?value),
+                  IF(?value <= 1, ?value,
                      IF(?value <= 100, ?value / 100.0,
                         IF(?value >= 50000, 1.0, ?value / 50000.0)))))
             AS ?normalized
@@ -506,6 +511,10 @@ class SparqlRunner:
         se rechaza antes de interpolarla para evitar consultas arbitrarias.
         """
         observation_ref = _require_observation_uri(observation_uri)
+        # Cada fragmento opcional se aísla en su propio bloque para que la
+        # ausencia del título de la fuente no descarte la actividad ni la
+        # propia fuente. Esto evita falsos negativos en el endpoint de
+        # procedencia cuando el catálogo de fuentes no expone `dct:title`.
         query = f"""
         PREFIX ah: <{AH}>
         PREFIX prov: <{PROV}>
@@ -520,8 +529,8 @@ class SparqlRunner:
                               ah:qualityFlag ?quality .
           OPTIONAL {{
             <{observation_ref}> prov:wasGeneratedBy ?activity .
-            ?activity prov:used ?source .
-            ?source dct:title ?source_title .
+            OPTIONAL {{ ?activity prov:used ?source . }}
+            OPTIONAL {{ ?source dct:title ?source_title . }}
           }}
         }}
         LIMIT 1
@@ -559,28 +568,37 @@ class SparqlRunner:
         _require_safe_identifier(origin_code, field="origin_code")
         _require_safe_identifier(destination_code, field="destination_code")
         _require_safe_period(period)
-        # Aceptamos cualquier kind administrativo; la consulta filtra por
-        # ``dct:identifier`` con el código provisto y delega la disambiguación
-        # al grafo (origen/destino son territorios cualquiera). Comparamos
-        # los literales con ``STR`` para ser robustos frente a tipados
-        # mixtos (xsd:string vs literal plano).
+        # Construimos las URIs canónicas de los territorios (cualquier `kind`)
+        # y delegamos el emparejamiento al motor SPARQL vía VALUES, evitando
+        # los `FILTER(STR(?x) = "y")` que penalizaban al optimizador. El
+        # `period` es un literal tipado xsd:string ya validado por el regex
+        # ``_SAFE_PERIOD``, por lo que la interpolación es segura.
+        origin_iris = " ".join(
+            f"<{AHR}territory/{kind}/{origin_code}>"
+            for kind in ("municipality", "province", "autonomous_community")
+        )
+        destination_iris = " ".join(
+            f"<{AHR}territory/{kind}/{destination_code}>"
+            for kind in ("municipality", "province", "autonomous_community")
+        )
+        # Tipamos el periodo explícitamente como xsd:string porque el grafo
+        # serializa los periodos con datatype xsd:string y SPARQL hace
+        # emparejamiento estructural por defecto. ``VALUES`` con literal
+        # tipado evita la trampa de aparearlo con un literal plano.
         query = f"""
         PREFIX ah: <{AH}>
-        PREFIX dct: <{DCT}>
-        PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+        PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
         SELECT ?flow ?origin ?destination ?trips ?mode ?distance ?period
         WHERE {{
+          VALUES ?origin {{ {origin_iris} }}
+          VALUES ?destination {{ {destination_iris} }}
+          VALUES ?period {{ "{period}"^^xsd:string }}
           ?flow a ah:MobilityFlow ;
                 ah:flowOrigin ?origin ;
                 ah:flowDestination ?destination ;
                 ah:flowTrips ?trips ;
                 ah:period ?period .
-          ?origin dct:identifier ?origin_code .
-          ?destination dct:identifier ?destination_code .
-          FILTER(STR(?period) = "{period}")
-          FILTER(STR(?origin_code) = "{origin_code}")
-          FILTER(STR(?destination_code) = "{destination_code}")
           OPTIONAL {{ ?flow ah:flowMode ?mode . }}
           OPTIONAL {{ ?flow ah:flowDistanceKm ?distance . }}
         }}
@@ -782,6 +800,9 @@ class SparqlRunner:
         Consulta de diagnóstico útil para verificar en tests/manifiestos que
         el grafo contiene las cantidades esperadas por clase tras la carga.
         """
+        # `LIMIT 1000` se hace explícito para outputs reproducibles
+        # independientemente de `sparql_max_results`. Es una consulta de
+        # diagnóstico sobre TBox/ABox, por lo que mil clases es holgado.
         query = """
         SELECT ?class (COUNT(?s) AS ?total)
         WHERE {
@@ -789,6 +810,7 @@ class SparqlRunner:
         }
         GROUP BY ?class
         ORDER BY DESC(?total)
+        LIMIT 1000
         """
         return {str(row["class"]): int(str(row["total"])) for row in self._execute(query)}
 

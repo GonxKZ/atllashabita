@@ -204,6 +204,7 @@ ah:license
 ah:periodicity
     a owl:DatatypeProperty ;
     rdfs:label "periodicidad"@es ;
+    rdfs:comment "Periodicidad de actualización de la fuente. Valores canónicos: 'annual', 'biannual', 'quarterly', 'monthly', 'weekly', 'daily', 'irregular'."@es ;
     rdfs:domain ah:DataSource ;
     rdfs:range xsd:string .
 
@@ -335,8 +336,10 @@ ah:flowOrigin
 ah:flowDestination
     a owl:ObjectProperty ;
     rdfs:label "destino del flujo"@es ;
+    rdfs:comment "Territorio destino del flujo. SOSA define un único `hasFeatureOfInterest` por observación, por lo que se mantiene como propiedad propia y se subordina a `prov:wasInfluencedBy` para conservar trazabilidad PROV."@es ;
     rdfs:domain ah:MobilityFlow ;
-    rdfs:range ah:Territory .
+    rdfs:range ah:Territory ;
+    rdfs:subPropertyOf prov:wasInfluencedBy .
 
 ah:flowTrips
     a owl:DatatypeProperty ;
@@ -349,7 +352,7 @@ ah:flowTrips
 ah:flowMode
     a owl:DatatypeProperty ;
     rdfs:label "modo de transporte"@es ;
-    rdfs:comment "Modo de transporte (por ejemplo 'all', 'car', 'public_transit')."@es ;
+    rdfs:comment "Modo de transporte agregado del flujo MITMA. Valores canónicos: 'all', 'car', 'public_transit', 'walk', 'bike'. Se modela como xsd:string para permitir extensiones del dataset sin romper retrocompatibilidad."@es ;
     rdfs:domain ah:MobilityFlow ;
     rdfs:range xsd:string .
 
@@ -406,6 +409,7 @@ ah:accidentFatalities
 ah:accidentRoadType
     a owl:DatatypeProperty ;
     rdfs:label "tipo de vía"@es ;
+    rdfs:comment "Tipo de carretera según taxonomía DGT: 'autopista', 'autovia', 'nacional', 'autonomica', 'local', 'urbana', 'travesia'."@es ;
     rdfs:domain ah:RoadAccident ;
     rdfs:range xsd:string .
 
@@ -458,16 +462,20 @@ ah:routeLongName
     rdfs:range xsd:string .
 
 ah:transitMode
-    a owl:DatatypeProperty ;
+    a owl:DatatypeProperty , owl:FunctionalProperty ;
     rdfs:label "modo de transporte"@es ;
-    rdfs:comment "'bus', 'metro', 'tram', 'rail', 'ferry'."@es ;
+    rdfs:comment "Modo de transporte de la ruta según GTFS: 'bus', 'metro', 'tram', 'rail', 'ferry', 'cable', 'funicular'. Cardinalidad máxima 1 (owl:FunctionalProperty)."@es ;
     rdfs:domain ah:TransitRoute ;
     rdfs:range xsd:string .
 
 ah:operator
     a owl:DatatypeProperty ;
     rdfs:label "operador"@es ;
-    rdfs:domain ah:TransitRoute ;
+    rdfs:comment "Identificador del operador (agencia GTFS o equivalente). Aplica tanto a rutas como a paradas para soportar federaciones multi-operador."@es ;
+    rdfs:domain [
+        a owl:Class ;
+        owl:unionOf ( ah:TransitRoute ah:TransitStop )
+    ] ;
     rdfs:range xsd:string .
 
 ah:locatedIn
