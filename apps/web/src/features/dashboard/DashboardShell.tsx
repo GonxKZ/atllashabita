@@ -1,40 +1,27 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, type ReactNode } from 'react';
 import {
-  BarChart3,
+  Activity,
   Building2,
   GitCompareArrows,
   Map as MapIcon,
   Sparkles,
-  Wallet,
-  Wifi,
-  Wrench,
+  TrendingUp,
 } from 'lucide-react';
 import { ActionCards, type ActionCardItem } from '@/components/layout/ActionCards';
-import { ChipFilters, type ChipFilterOption } from '@/components/layout/ChipFilters';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { OpportunityIndex } from '@/components/layout/OpportunityIndex';
-import { ActivityFeed } from '@/features/activity';
-import { HighlightCard } from '@/features/recommendations';
 import { SpainMap } from '@/features/map/SpainMap';
-import { MAP_LAYER_CATALOG, resolveLayer } from '@/features/map/layers/catalog';
-import { TrendsChart } from '@/features/trends';
-import { mockActivity, mockHighlight, mockTrends } from '@/data/mock';
+import {
+  MAP_LAYER_CATALOG,
+  buildLegendStops,
+  computeLayerDomain,
+  resolveLayer,
+  type MapLayerId,
+} from '@/features/map/layers/catalog';
 import { toEnrichedMapPoints } from '@/data/national_mock';
 import { useMapLayerStore } from '@/state/mapLayer';
-
-/**
- * Filtros rápidos del hero. Igualan los chips visibles en la captura
- * `atlashabita-main.png`: Calidad de vida, Vivienda asequible, Empleo,
- * Conectividad y "Más filtros" como afordancia para abrir el panel
- * detallado de scoring.
- */
-const CHIP_OPTIONS: ChipFilterOption[] = [
-  { id: 'quality', label: 'Calidad de vida', icon: <Sparkles size={14} strokeWidth={2.25} /> },
-  { id: 'housing', label: 'Vivienda asequible', icon: <Building2 size={14} strokeWidth={2.25} /> },
-  { id: 'jobs', label: 'Empleo', icon: <Wallet size={14} strokeWidth={2.25} /> },
-  { id: 'connectivity', label: 'Conectividad', icon: <Wifi size={14} strokeWidth={2.25} /> },
-  { id: 'more', label: 'Más filtros', icon: <Wrench size={14} strokeWidth={2.25} /> },
-];
+import { useUiStore } from '@/state/ui';
+import { cn } from '@/components/ui/cn';
+import { FloatingRanking, MiniMap, RichLegend, TerritorySheet } from '@/features/overlays';
 
 /**
  * Cuatro acciones inferiores: igualan la fila final de la captura
@@ -69,180 +56,234 @@ const ACTION_ITEMS: ActionCardItem[] = [
     id: 'analyze',
     title: 'Analizar',
     description: 'Entra al modo técnico para SPARQL, SHACL y reportes avanzados.',
-    icon: <BarChart3 size={20} strokeWidth={2.25} />,
+    icon: <Activity size={20} strokeWidth={2.25} />,
     accent: 'amber',
     href: '/sparql',
   },
 ];
 
 /**
- * Bounds aproximados de la península y archipiélagos para la previsualización
- * del dashboard. Se proyecta a coordenadas SVG asumiendo un mapa Mercator
- * lineal — es suficientemente preciso para una vista decorativa estática y
- * evita arrastrar `maplibre-gl` (con su dependencia de WebGL/URL.createObjectURL)
- * a la home, donde la prioridad es el render rápido y SSR-friendly de la UI.
+ * Banda compacta de KPI por encima del mapa (StatsStrip Atelier).
  *
- *  La vista interactiva real con react-map-gl + tiles de OpenFreeMap se sigue
- *  ofreciendo en `/mapa` (ver `routes/AppRouter.tsx`); aquí mostramos una
- *  versión estática pixel-perfect del comp `atlashabita-main.png`.
+ * Conserva información sintética para que el contexto del mapa quede
+ * resumido sin recurrir a un panel lateral. Los valores se derivan del
+ * dataset nacional para mantener la coherencia con el ranking.
  */
-// La home renderiza ahora el componente `SpainMap` interactivo (MapLibre +
-// OpenFreeMap). En entornos jsdom (vitest) el mock de `vitest.setup.ts`
-// devuelve un wrapper accesible para que los tests sigan siendo deterministas.
+interface StatsStripProps {
+  readonly territoriesCount: number;
+  readonly avgScore: number;
+  readonly highlightedName: string;
+  readonly highlightedScore: number;
+}
+
+function StatsStrip({
+  territoriesCount,
+  avgScore,
+  highlightedName,
+  highlightedScore,
+}: StatsStripProps) {
+  return (
+    <ul
+      aria-label="Indicadores destacados"
+      data-feature="stats-strip"
+      className={cn(
+        'flex flex-wrap items-stretch gap-3 rounded-2xl border border-[color:var(--color-line-soft)] bg-white/80 p-3 backdrop-blur',
+        'shadow-[var(--shadow-card)]'
+      )}
+    >
+      <StatsStripItem
+        icon={<Building2 size={16} aria-hidden="true" />}
+        label="Municipios analizados"
+        value={territoriesCount.toLocaleString('es-ES')}
+      />
+      <StatsStripItem
+        icon={<TrendingUp size={16} aria-hidden="true" />}
+        label="Score medio"
+        value={avgScore.toFixed(1)}
+      />
+      <StatsStripItem
+        icon={<Sparkles size={16} aria-hidden="true" />}
+        label="Mejor encaje"
+        value={`${highlightedName} · ${highlightedScore}`}
+      />
+    </ul>
+  );
+}
+
+function StatsStripItem({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <li className="flex min-w-[160px] flex-1 items-center gap-3 rounded-xl bg-white/95 px-3 py-2">
+      <span className="bg-brand-50 text-brand-700 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+        {icon}
+      </span>
+      <span className="flex min-w-0 flex-col">
+        <span className="text-ink-500 text-[10px] font-semibold tracking-[0.16em] uppercase">
+          {label}
+        </span>
+        <span className="text-ink-900 truncate text-sm font-semibold tabular-nums">{value}</span>
+      </span>
+    </li>
+  );
+}
 
 /**
- * Dashboard principal de AtlasHabita.
+ * Dashboard principal de AtlasHabita en modo Atelier.
  *
- * Compone Sidebar + Topbar + bloque hero + mapa + panel lateral derecho
- * (recomendación / tendencias / actividad) + acciones inferiores. El
- * layout sigue pixel-perfect la captura `atlashabita-main.png`:
+ * Refactorizado en M12 para que el mapa pase a ocupar el área principal
+ * en pantalla completa y los componentes panelados anteriores se
+ * conviertan en overlays:
  *
- *  - Hero verde con gradiente y la palabra "mejor lugar" resaltada.
- *  - Chips de filtros sobre el hero, variante `onBrand`.
- *  - Mapa estático (SVG) con marcadores burbuja verdes; bajo él, índice de
- *    oportunidad. La versión interactiva con maplibre se accede en `/mapa`.
- *  - Panel lateral con HighlightCard, TrendsChart y ActivityFeed reales
- *    tomando datos de `data/mock.ts`.
- *  - Cards de acción inferiores con iconografía y acentos distintos.
+ *  - Hero compacto con el titular + StatsStrip por encima del mapa.
+ *  - Mapa fullscreen (`SpainMap`) con `FloatingRanking`, `RichLegend` y
+ *    `MiniMap` solapados como overlays "quiet" (`z-overlay-quiet`).
+ *  - Tooltip rico (`MarkerRichTooltip`) y `TerritorySheet` como overlays
+ *    "rich" (`z-overlay-rich`).
+ *  - Cards de acción inferiores conservadas para mantener el flujo de
+ *    navegación principal.
  */
 export function DashboardShell() {
-  const [activeChips, setActiveChips] = useState<string[]>(['quality']);
   const activeLayerId = useMapLayerStore((state) => state.activeLayerId);
   const setActiveLayer = useMapLayerStore((state) => state.setActiveLayer);
   const activeLayer = useMemo(() => resolveLayer(activeLayerId), [activeLayerId]);
   const enrichedPoints = useMemo(() => toEnrichedMapPoints(), []);
 
-  const hero = useMemo(
-    () => (
-      <section aria-labelledby="dashboard-title" className="flex flex-col gap-5">
-        {/*
-         * Banner verde del comp: gradiente diagonal con la palabra "mejor
-         * lugar" en blanco brillante. Las dos burbujas blancas suavizadas
-         * imitan el "glow" de la captura.
-         */}
-        <div className="from-brand-500 via-brand-500 to-brand-600 relative overflow-hidden rounded-3xl bg-gradient-to-br p-7 text-white shadow-[var(--shadow-elevated)] sm:p-8">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-white/25 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-32 -left-10 h-80 w-80 rounded-full bg-emerald-300/30 blur-3xl"
-          />
-          <div className="relative flex flex-col gap-5">
-            <div className="flex flex-col gap-2.5">
-              <h1
-                id="dashboard-title"
-                className="font-display max-w-3xl text-[28px] leading-[1.15] font-bold sm:text-[34px]"
-              >
-                Descubre el{' '}
-                <span className="rounded-md bg-white/15 px-1.5 py-0.5 text-white">mejor lugar</span>{' '}
-                para vivir en España
-              </h1>
-              <p className="max-w-xl text-[14px] leading-relaxed text-white/85">
-                Explora, compara y encuentra tu lugar ideal con datos abiertos y tecnología
-                semántica.
-              </p>
-            </div>
-            <ChipFilters
-              options={CHIP_OPTIONS}
-              value={activeChips}
-              tone="onBrand"
-              onToggle={(id) =>
-                setActiveChips((prev) =>
-                  prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-                )
-              }
-            />
-          </div>
-        </div>
+  const selectedTerritoryId = useUiStore((state) => state.selectedTerritoryId);
+  const openTerritorySheet = useUiStore((state) => state.openTerritorySheet);
+  const closeTerritorySheet = useUiStore((state) => state.closeTerritorySheet);
 
-        {/*
-         * Mini LayerSwitcher en formato chip-row para alternar la métrica
-         * que colorea el mapa sin abandonar la home. La fila es scrollable
-         * en horizontal en pantallas estrechas y comparte el mismo store
-         * que `/mapa`, por lo que la elección persiste entre rutas.
-         */}
-        <div
-          role="radiogroup"
-          aria-label="Capa activa del mapa territorial"
-          data-feature="dashboard-layer-switcher"
-          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-        >
-          {MAP_LAYER_CATALOG.map((layer) => {
-            const isActive = layer.id === activeLayer.id;
-            return (
-              <button
-                key={layer.id}
-                type="button"
-                role="radio"
-                aria-checked={isActive}
-                onClick={() => setActiveLayer(layer.id)}
-                data-active={isActive ? 'true' : 'false'}
-                className={
-                  isActive
-                    ? 'border-brand-300 bg-brand-50 text-ink-900 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors'
-                    : 'text-ink-500 hover:border-brand-200 hover:bg-brand-50/40 inline-flex items-center gap-2 rounded-full border border-[color:var(--color-line-soft)] bg-white px-3 py-1.5 text-xs font-semibold transition-colors'
-                }
-              >
-                <span
-                  aria-hidden="true"
-                  className="block h-2 w-2 rounded-full"
-                  style={{ backgroundColor: layer.palette[0] }}
-                />
-                {layer.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/*
-         * Mapa interactivo MapLibre con tiles reales (OpenFreeMap Liberty).
-         * En entornos jsdom (vitest) `vitest.setup.ts` mockea `maplibre-gl`
-         * para evitar `URL.createObjectURL`, lo cual deja el árbol DOM
-         * estable durante los tests.
-         */}
-        <div className="relative h-[400px] overflow-hidden rounded-3xl bg-white shadow-[var(--shadow-card)] ring-1 ring-[color:var(--color-line-soft)]">
-          <SpainMap
-            points={enrichedPoints}
-            ariaLabel="Mapa territorial de España con municipios destacados"
-            className="h-full"
-            layerId={activeLayer.id}
-          />
-        </div>
-
-        <OpportunityIndex
-          value={74}
-          description="Resumen agregado de los territorios filtrados con tu selección actual."
-        />
-      </section>
-    ),
-    [activeChips, activeLayer.id, enrichedPoints, setActiveLayer]
+  const domain = useMemo(
+    () => computeLayerDomain(enrichedPoints, activeLayer),
+    [enrichedPoints, activeLayer]
   );
 
-  /*
-   * Panel lateral derecho: tres cards apiladas que reproducen exactamente
-   * el orden de la captura — Recomendación destacada (con foto), Tendencias
-   * (sparkline verde) y Actividad reciente (timeline con iconos circulares).
-   */
-  const side = (
-    <>
-      <HighlightCard highlight={mockHighlight} />
-      <TrendsChart
-        data={mockTrends}
-        title="Tendencias"
-        subtitle="Score medio de los últimos 12 meses."
+  const legendStops = useMemo(() => buildLegendStops(activeLayer, domain), [activeLayer, domain]);
+
+  const { avgScore, highlight } = useMemo(() => {
+    if (enrichedPoints.length === 0) {
+      return { avgScore: 0, highlight: { name: 'Sin datos', score: 0 } };
+    }
+    const total = enrichedPoints.reduce((acc, point) => acc + point.score, 0);
+    const top = enrichedPoints.reduce((acc, point) => (point.score > acc.score ? point : acc));
+    return {
+      avgScore: total / enrichedPoints.length,
+      highlight: { name: top.name, score: top.score },
+    };
+  }, [enrichedPoints]);
+
+  const handleMarkerSelect = useCallback(
+    (id: string) => openTerritorySheet(id),
+    [openTerritorySheet]
+  );
+
+  const handleLayerChange = useCallback(
+    (next: MapLayerId) => {
+      setActiveLayer(next);
+    },
+    [setActiveLayer]
+  );
+
+  const hero = (
+    <section aria-labelledby="dashboard-title" className="flex flex-col gap-4">
+      <div className="from-brand-500 via-brand-500 to-brand-600 relative overflow-hidden rounded-3xl bg-gradient-to-br p-6 text-white shadow-[var(--shadow-elevated)] sm:p-7">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-white/25 blur-3xl"
+        />
+        <div className="relative flex flex-col gap-2">
+          <h1
+            id="dashboard-title"
+            className="font-display max-w-3xl text-[24px] leading-[1.15] font-bold sm:text-[28px]"
+          >
+            Descubre el{' '}
+            <span className="rounded-md bg-white/15 px-1.5 py-0.5 text-white">mejor lugar</span>{' '}
+            para vivir en España
+          </h1>
+          <p className="max-w-xl text-[13px] leading-relaxed text-white/85">
+            Pinchar en el mapa para abrir la ficha del municipio. Pulsa{' '}
+            <kbd className="font-mono">[</kbd> o <kbd className="font-mono">]</kbd> para cambiar de
+            capa.
+          </p>
+        </div>
+      </div>
+
+      <StatsStrip
+        territoriesCount={enrichedPoints.length}
+        avgScore={avgScore}
+        highlightedName={highlight.name}
+        highlightedScore={highlight.score}
       />
-      <ActivityFeed items={mockActivity.slice(0, 3)} title="Actividad reciente" />
-    </>
+
+      <div
+        role="radiogroup"
+        aria-label="Capa activa del mapa territorial"
+        data-feature="dashboard-layer-switcher"
+        className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+      >
+        {MAP_LAYER_CATALOG.map((layer) => {
+          const isActive = layer.id === activeLayer.id;
+          return (
+            <button
+              key={layer.id}
+              type="button"
+              role="radio"
+              aria-checked={isActive}
+              onClick={() => setActiveLayer(layer.id)}
+              data-active={isActive ? 'true' : 'false'}
+              className={
+                isActive
+                  ? 'border-brand-300 bg-brand-50 text-ink-900 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-sm transition-colors'
+                  : 'text-ink-500 hover:border-brand-200 hover:bg-brand-50/40 inline-flex items-center gap-2 rounded-full border border-[color:var(--color-line-soft)] bg-white px-3 py-1.5 text-xs font-semibold transition-colors'
+              }
+            >
+              <span
+                aria-hidden="true"
+                className="block h-2 w-2 rounded-full"
+                style={{ backgroundColor: layer.palette[0] }}
+              />
+              {layer.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/*
+       * Mapa Atelier: ocupa todo el ancho y tiene los overlays
+       * (FloatingRanking, RichLegend, MiniMap) solapados sobre él.
+       * `SpainMap` recibe `enrichedTooltip` para que los hovers usen
+       * el `MarkerRichTooltip` con sparkline y CTA.
+       */}
+      <div
+        data-feature="atelier-map-stage"
+        className="relative h-[min(70vh,720px)] min-h-[420px] overflow-hidden rounded-3xl bg-white shadow-[var(--shadow-card)] ring-1 ring-[color:var(--color-line-soft)]"
+      >
+        <SpainMap
+          points={enrichedPoints}
+          ariaLabel="Mapa territorial de España con municipios destacados"
+          className="h-full"
+          layerId={activeLayer.id}
+          enrichedTooltip
+          hideLegend
+          onMarkerSelect={handleMarkerSelect}
+        />
+
+        <FloatingRanking />
+
+        <RichLegend
+          layer={activeLayer}
+          stops={legendStops}
+          domain={domain}
+          onLayerChange={handleLayerChange}
+        />
+
+        <MiniMap />
+      </div>
+    </section>
   );
 
   return (
-    <DashboardLayout
-      embedded
-      hero={hero}
-      side={side}
-      footer={<ActionCards items={ACTION_ITEMS} />}
-    />
+    <>
+      <DashboardLayout embedded hero={hero} footer={<ActionCards items={ACTION_ITEMS} />} />
+      <TerritorySheet territoryId={selectedTerritoryId} onClose={closeTerritorySheet} />
+    </>
   );
 }

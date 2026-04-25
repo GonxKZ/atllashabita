@@ -22,6 +22,20 @@
  *  - Foco accesible coherente con WCAG 2.4.7/2.4.11.
  *  - Scroll soft global para el shell + grain SVG opcional.
  */
+/*
+ * Z-index escalonado para overlays cartográficos (M12 · issue #118).
+ *
+ * El mapa y los marcadores viven en el plano base. Los overlays "quiet"
+ * (mini-map, ranking flotante, leyenda en estado relajado) se sitúan
+ * justo por encima sin competir con marcadores enfocados. Los overlays
+ * "rich" (tooltip detallado y bottom-sheet de ficha) toman precedencia
+ * porque vehiculan información contextual prioritaria al gesto del
+ * usuario y deben quedar siempre por delante.
+ */
+:root {
+  --z-overlay-quiet: 10;
+  --z-overlay-rich: 20;
+}
 
 @layer base {
   html,
