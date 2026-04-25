@@ -13,6 +13,7 @@ import { useGSAP } from '@gsap/react';
 import { prefersReducedMotion, resolveDuration } from '@/animations';
 import { MapLegend } from './MapLegend';
 import { MapTooltip, type MapTooltipIndicator } from './MapTooltip';
+import { MarkerRichTooltip } from '@/features/overlays/MarkerRichTooltip';
 import {
   buildLegendStops,
   computeLayerDomain,
@@ -95,6 +96,23 @@ export interface SpainMapProps {
    * y en entornos sin acceso a OpenFreeMap.
    */
   readonly offline?: boolean;
+  /**
+   * Cuando `true`, el mapa usa el tooltip rico del Atelier
+   * (`MarkerRichTooltip`) en lugar del clásico `MapTooltip`. El tooltip
+   * rico incluye sparkline 12 meses, top-3 indicadores y CTA "Ver ficha".
+   */
+  readonly enrichedTooltip?: boolean;
+  /**
+   * Oculta la leyenda integrada (`MapLegend`). Útil cuando otra superficie
+   * (p. ej. `RichLegend` del Atelier) ya dibuja una leyenda flotante.
+   */
+  readonly hideLegend?: boolean;
+  /**
+   * Callback emitido cuando el usuario activa un marcador (clic en el
+   * marcador o en el CTA del tooltip rico). Habilita la apertura de la
+   * ficha territorial en `TerritorySheet`.
+   */
+  readonly onMarkerSelect?: (id: string) => void;
 }
 
 interface MarkerPresentation {
@@ -144,6 +162,9 @@ export function SpainMap({
   layerLabel,
   unit,
   offline = false,
+  enrichedTooltip = false,
+  hideLegend = false,
+  onMarkerSelect,
 }: SpainMapProps) {
   const [hovered, setHovered] = useState<HoveredState | null>(null);
   const containerRef = useRef<HTMLElement | null>(null);
@@ -332,6 +353,11 @@ export function SpainMap({
               onPointerEnter={handleEnter(marker)}
               onPointerMove={handleMove}
               onPointerLeave={handleLeave}
+              onClick={() => {
+                if (onMarkerSelect) {
+                  onMarkerSelect(marker.id);
+                }
+              }}
               onFocus={(event) => {
                 const container = event.currentTarget.closest(
                   '[data-spain-map]'
@@ -363,28 +389,54 @@ export function SpainMap({
       </Map>
 
       {hovered ? (
-        <MapTooltip
-          name={hovered.marker.name}
-          value={hovered.marker.value}
-          score={hovered.marker.score}
-          x={hovered.x}
-          y={hovered.y}
-          unit={resolvedUnit}
-          layerLabel={resolvedLabel}
-          activeIndicatorId={activeLayer.id === 'score' ? undefined : activeLayer.id}
-          indicators={hovered.marker.indicators}
-          province={hovered.marker.province}
-        />
+        enrichedTooltip ? (
+          <MarkerRichTooltip
+            marker={{
+              id: hovered.marker.id,
+              name: hovered.marker.name,
+              score: hovered.marker.score,
+              value: hovered.marker.value,
+              province: hovered.marker.province,
+              indicators: hovered.marker.indicators?.map((indicator) => ({
+                id: indicator.id,
+                label: indicator.label,
+                value: indicator.value,
+                unit: indicator.unit,
+              })),
+            }}
+            x={hovered.x}
+            y={hovered.y}
+            layerLabel={resolvedLabel}
+            unit={resolvedUnit}
+            activeIndicatorId={activeLayer.id === 'score' ? undefined : activeLayer.id}
+            onOpenSheet={onMarkerSelect}
+          />
+        ) : (
+          <MapTooltip
+            name={hovered.marker.name}
+            value={hovered.marker.value}
+            score={hovered.marker.score}
+            x={hovered.x}
+            y={hovered.y}
+            unit={resolvedUnit}
+            layerLabel={resolvedLabel}
+            activeIndicatorId={activeLayer.id === 'score' ? undefined : activeLayer.id}
+            indicators={hovered.marker.indicators}
+            province={hovered.marker.province}
+          />
+        )
       ) : null}
 
-      <MapLegend
-        label={resolvedLabel}
-        stops={legendStops}
-        unit={resolvedUnit}
-        domain={domain}
-        description={layerId ? activeLayer.description : undefined}
-        className="absolute bottom-4 left-4"
-      />
+      {hideLegend ? null : (
+        <MapLegend
+          label={resolvedLabel}
+          stops={legendStops}
+          unit={resolvedUnit}
+          domain={domain}
+          description={layerId ? activeLayer.description : undefined}
+          className="absolute bottom-4 left-4"
+        />
+      )}
     </section>
   );
 }

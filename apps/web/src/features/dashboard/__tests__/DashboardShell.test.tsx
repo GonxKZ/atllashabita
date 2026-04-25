@@ -1,10 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { DashboardShell } from '../DashboardShell';
 import { useMapLayerStore } from '@/state/mapLayer';
+import { useUiStore } from '@/state/ui';
+import { NATIONAL_MUNICIPALITIES } from '@/data/national_mock';
 
 const wrap = (node: ReactNode) => <MemoryRouter>{node}</MemoryRouter>;
 
@@ -66,6 +68,7 @@ beforeAll(() => {
 describe('DashboardShell', () => {
   beforeEach(() => {
     useMapLayerStore.getState().resetActiveLayer();
+    useUiStore.getState().reset();
     /* eslint-disable-next-line no-undef -- localStorage es global del navegador. */
     localStorage.clear();
   });
@@ -92,5 +95,30 @@ describe('DashboardShell', () => {
     await user.click(broadband);
     expect(useMapLayerStore.getState().activeLayerId).toBe('broadband');
     expect(broadband).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('monta los overlays Atelier (FloatingRanking, RichLegend, MiniMap)', () => {
+    render(wrap(<DashboardShell />));
+    expect(screen.getByLabelText(/ranking de municipios/i)).toBeInTheDocument();
+    expect(screen.getByTestId('rich-legend')).toBeInTheDocument();
+    expect(screen.getByTestId('mini-map')).toBeInTheDocument();
+  });
+
+  it('abre la TerritorySheet cuando el store recibe un selectedTerritoryId', () => {
+    const target = NATIONAL_MUNICIPALITIES[0];
+    render(wrap(<DashboardShell />));
+    expect(screen.queryByTestId('territory-sheet')).toBeNull();
+    act(() => {
+      useUiStore.getState().openTerritorySheet(target.id);
+    });
+    expect(screen.getByTestId('territory-sheet')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(target.name);
+  });
+
+  it('atajo `]` rota la capa activa del mapa a través de RichLegend', () => {
+    render(wrap(<DashboardShell />));
+    expect(useMapLayerStore.getState().activeLayerId).toBe('score');
+    fireEvent.keyDown(window, { key: ']' });
+    expect(useMapLayerStore.getState().activeLayerId).not.toBe('score');
   });
 });
