@@ -93,6 +93,13 @@ export function buildJson(municipalities: readonly NationalMunicipality[]): stri
   return JSON.stringify(payload, null, 2);
 }
 
+/**
+ * Las cuatro ranuras del comparador son posicionales. Mantenerlas en una
+ * constante asegura una clave estable independiente del valor del slot
+ * (que puede ser `null` cuando está vacío).
+ */
+const SLOT_POSITION_KEYS = ['slot-pos-A', 'slot-pos-B', 'slot-pos-C', 'slot-pos-D'] as const;
+
 function downloadFile(name: string, content: string, mime: string) {
   if (typeof document === 'undefined') return;
   const blob = new Blob([content], { type: mime });
@@ -297,7 +304,10 @@ export function ComparadorPage() {
           >
             {slots.map((slot, index) => (
               <div
-                key={`slot-${index}`}
+                // Las cuatro ranuras son posicionales (A..D) y no se reordenan
+                // nunca. Una clave nominal estable evita el warning
+                // `react-doctor/no-array-index-as-key` y comunica intent.
+                key={SLOT_POSITION_KEYS[index]}
                 onDragOver={(event) => event.preventDefault()}
                 onDrop={(event) => handleDropOnSlot(event, index)}
                 className={cn(

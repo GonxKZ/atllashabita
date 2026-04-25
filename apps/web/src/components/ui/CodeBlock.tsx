@@ -88,8 +88,16 @@ export function CodeBlock({
         style={{ maxHeight: `${maxHeight}px` }}
       >
         <code className="font-mono">
-          {lines.map((line, index) => (
-            <span key={`${index}-${line.length}`} className="flex">
+          {(() => {
+            // Clave estable basada en el offset acumulado: independiente del
+            // index (que cambia al insertar/eliminar líneas) y único incluso
+            // cuando varias líneas son idénticas.
+            let cumulativeOffset = 0;
+            return lines.map((line, index) => {
+              const start = cumulativeOffset;
+              cumulativeOffset += line.length + 1;
+              return (
+                <span key={`l-${start}`} className="flex">
               {showLineNumbers ? (
                 <span
                   aria-hidden="true"
@@ -100,7 +108,9 @@ export function CodeBlock({
               ) : null}
               <span className="flex-1 whitespace-pre-wrap">{line || ' '}</span>
             </span>
-          ))}
+              );
+            });
+          })()}
         </code>
       </pre>
     </section>

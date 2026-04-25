@@ -81,18 +81,20 @@ export function TerritorySheet({
   const municipality = isOpen ? (data.find((entry) => entry.id === territoryId) ?? null) : null;
 
   /*
-   * Cuando se abre el sheet, restablecemos snap y offset; cuando se cierra,
-   * limpiamos cualquier residuo de drag para que la próxima apertura comience
-   * limpia.
+   * Patrón "reset state when a prop changes" sin useEffect (react.dev:
+   * https://react.dev/learn/you-might-not-need-an-effect#resetting-all-state-when-a-prop-changes).
+   * Detectamos el cambio de `territoryId` durante el render y restablecemos
+   * snap/offset sin disparar un render adicional ni el warning
+   * `react-doctor/no-cascading-set-state`.
    */
-  useEffect(() => {
-    if (!isOpen) {
-      setDragOffset(0);
-      return;
-    }
-    setSnap(initialSnap);
+  const [trackedTerritoryId, setTrackedTerritoryId] = useState<string | null>(territoryId);
+  if (trackedTerritoryId !== territoryId) {
+    setTrackedTerritoryId(territoryId);
     setDragOffset(0);
-  }, [isOpen, initialSnap, territoryId]);
+    if (territoryId !== null) {
+      setSnap(initialSnap);
+    }
+  }
 
   /* `Escape` cierra el sheet. Sólo registramos el listener cuando está abierto
    * para no contaminar el árbol cuando no procede. */
