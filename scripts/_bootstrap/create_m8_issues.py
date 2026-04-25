@@ -5,56 +5,13 @@ mismo título ya existe, no la duplica; si el milestone ya existe, lo reutiliza.
 """
 from __future__ import annotations
 
-import json
-import os
 import sys
-import urllib.error
-import urllib.request
+
+from _github_api import GithubApi
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-TOKEN = os.environ["GH_TOKEN"]
-REPO = "GonxKZ/atllashabita"
-API = f"https://api.github.com/repos/{REPO}"
-
-
-def _request(method: str, path: str, body: dict | None = None) -> dict | list:
-    url = f"{API}{path}"
-    data = json.dumps(body).encode("utf-8") if body else None
-    req = urllib.request.Request(url, data=data, method=method)
-    req.add_header("Authorization", f"token {TOKEN}")
-    req.add_header("Accept", "application/vnd.github+json")
-    if data:
-        req.add_header("Content-Type", "application/json")
-    try:
-        with urllib.request.urlopen(req) as r:
-            return json.loads(r.read() or b"null")
-    except urllib.error.HTTPError as exc:
-        return {"error": exc.code, "body": exc.read().decode("utf-8", "replace")[:400]}
-
-
-def find_milestone(title: str) -> int | None:
-    data = _request("GET", "/milestones?state=all&per_page=100")
-    assert isinstance(data, list)
-    for m in data:
-        if m.get("title") == title:
-            return int(m["number"])
-    return None
-
-
-def existing_titles() -> set[str]:
-    titles: set[str] = set()
-    page = 1
-    while True:
-        items = _request("GET", f"/issues?state=all&per_page=100&page={page}")
-        assert isinstance(items, list)
-        if not items:
-            break
-        for it in items:
-            if "pull_request" not in it:
-                titles.add(it["title"])
-        page += 1
-    return titles
+api = GithubApi(repo="GonxKZ/atllashabita")
 
 
 MILESTONE_TITLE = "M8 Datos reales nacionales v0.2.0"
@@ -179,9 +136,9 @@ ISSUES: list[dict] = [
 
 
 def main() -> None:
-    milestone_number = find_milestone(MILESTONE_TITLE)
+    milestone_number = api.find_milestone(MILESTONE_TITLE)
     if milestone_number is None:
-        milestone = _request(
+        milestone = api.call(
             "POST",
             "/milestones",
             {"title": MILESTONE_TITLE, "description": MILESTONE_BODY, "state": "open"},
@@ -191,7 +148,7 @@ def main() -> None:
     else:
         print(f"Milestone reutilizado: {milestone_number}")
 
-    already = existing_titles()
+    already = api.existing_titles()
     for item in ISSUES:
         if item["title"] in already:
             print(f"= ya existe: {item['title'][:60]}")
@@ -203,7 +160,7 @@ def main() -> None:
             "milestone": milestone_number,
             "assignees": ["GonxKZ"],
         }
-        res = _request("POST", "/issues", payload)
+        res = api.call("POST", "/issues", payload)
         if isinstance(res, dict) and "number" in res:
             print(f"+ {res['number']} {res['title'][:60]}")
         else:
