@@ -47,7 +47,7 @@ Los workflows de `.github/workflows/` ejecutan en cada push y PR. Los diez activ
 
 - Conventional Commits (`feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `chore`, `ci`, `build`).
 - Atómicos: un commit = una idea.
-- **Único autor en commits y PRs**: todo commit y toda PR está firmada exclusivamente por `GONZALO GARCÍA LAMA <gongarlam@alum.us.es>`. Sin coautores automáticos, sin firmas de asistentes, sin mención a modelos de IA, sin emojis del tipo robot.
+- **Autoría única en commits y PRs**: todo commit y toda PR está firmada exclusivamente por `GONZALO GARCÍA LAMA <gongarlam@alum.us.es>`, sin coautores adicionales.
 - El comando `git log --all --format='%an <%ae>' | sort -u` debe arrojar exclusivamente esa identidad. La única excepción tolerada son los merges efectuados desde la web de GitHub que registran el correo `noreply` asociado al usuario `GonxKZ`; aun así el `Author Name` permanece estable.
 
 ## Ciclo completo de una issue
