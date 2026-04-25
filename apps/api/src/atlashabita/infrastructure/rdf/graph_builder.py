@@ -263,6 +263,9 @@ class GraphBuilder:
             graphs ``mobility``/``accidents``/``transit`` permanecen vacíos.
         """
         ds = Dataset()
+        # ``bind_all`` se invoca una sola vez sobre el Dataset: rdflib propaga
+        # los prefijos a los named graphs derivados, por lo que iterar la
+        # llamada por grafo era redundante (ver issue #133, hallazgo H14).
         bind_all(ds)
 
         mobility_data = mobility or _EMPTY_MOBILITY
@@ -277,20 +280,6 @@ class GraphBuilder:
         mobility_graph = ds.graph(self.uri_builder.named_graph(GRAPH_MOBILITY))
         accidents_graph = ds.graph(self.uri_builder.named_graph(GRAPH_ACCIDENTS))
         transit_graph = ds.graph(self.uri_builder.named_graph(GRAPH_TRANSIT))
-
-        for graph in (
-            territories_graph,
-            indicators_graph,
-            sources_graph,
-            observations_graph,
-            profiles_graph,
-            provenance_graph,
-            geometry_graph,
-            mobility_graph,
-            accidents_graph,
-            transit_graph,
-        ):
-            bind_all(graph)
 
         for territory in dataset.territories:
             self._emit_territory(territories_graph, territory)
@@ -426,6 +415,14 @@ class GraphBuilder:
         Un municipio pertenece a su provincia; una provincia pertenece a su
         comunidad autónoma; las comunidades no tienen padre. Esto codifica
         ``ah:belongsTo`` en el grafo sin necesidad de lookups cruzados.
+
+        Invariante administrativa esperada (no validada aquí porque la capa
+        de dominio ya la ha asegurado):
+
+        * Municipios: código INE de 5 dígitos y ``province_code`` de 2 dígitos.
+        * Provincias: código INE de 2 dígitos y ``autonomous_community_code``
+          de 2 dígitos compatible con la nomenclatura del INE.
+        * Comunidades: código INE de 2 dígitos sin padre.
         """
         if territory.kind is TerritoryKind.MUNICIPALITY and territory.province_code:
             return self.uri_builder.territory(territory.province_code, TerritoryKind.PROVINCE)
