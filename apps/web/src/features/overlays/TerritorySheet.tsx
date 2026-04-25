@@ -97,12 +97,13 @@ export function TerritorySheet({
   }
 
   /* `Escape` cierra el sheet. Sólo registramos el listener cuando está abierto
-   * para no contaminar el árbol cuando no procede. */
+   * para no contaminar el árbol cuando no procede. NO usamos `stopPropagation`
+   * para que el orquestador (RootLayout / useShortcuts) pueda decidir el orden
+   * de cierre cuando convivan varios overlays. */
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        event.stopPropagation();
         onClose();
       }
     };
@@ -202,6 +203,12 @@ export function TerritorySheet({
 
   const heightPct = SHEET_SNAP_POINTS[snap];
   const offset = Math.max(0, dragOffset);
+  // Texto descriptivo para SR; aporta contexto extra cuando estamos en el
+  // snap minimo (peek), donde la siguiente pulsacion abajo cierra la ficha.
+  const handleAriaValueText =
+    snap === 'peek'
+      ? `${snap} (${heightPct}%) — pulsa flecha abajo para cerrar la ficha`
+      : `${snap} (${heightPct}%)`;
 
   return (
     <div
@@ -247,7 +254,7 @@ export function TerritorySheet({
           aria-valuemin={SHEET_SNAP_POINTS.peek}
           aria-valuemax={SHEET_SNAP_POINTS.expanded}
           aria-valuenow={heightPct}
-          aria-valuetext={`${snap} (${heightPct}%)`}
+          aria-valuetext={handleAriaValueText}
           aria-label="Arrastra hacia abajo para cerrar la ficha."
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
