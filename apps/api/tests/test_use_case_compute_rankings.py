@@ -8,6 +8,7 @@ import pytest
 
 from atlashabita.application import Container
 from atlashabita.config import Settings
+from atlashabita.domain.territories import TerritoryKind
 from atlashabita.observability.errors import InvalidProfileError, InvalidScopeError
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -105,3 +106,23 @@ def test_ranking_con_pesos_personalizados(container: Container) -> None:
     for result in payload["results"]:
         assert len(result["top_contributions"]) == 1
         assert result["top_contributions"][0]["factor"] == "broadband_coverage"
+
+
+def test_indices_o1_resuelven_provincia_y_comunidad(container: Container) -> None:
+    """Los índices O(1) precomputados deben coincidir con un cálculo manual."""
+    use_case = container.compute_rankings
+    municipios_p20 = use_case._municipalities_by_province["20"]
+    assert all(t.kind.value == "municipality" for t in municipios_p20)
+    assert all(t.province_code == "20" for t in municipios_p20)
+
+    municipios_c01 = use_case._municipalities_by_community["01"]
+    assert all(t.autonomous_community_code == "01" for t in municipios_c01)
+
+
+def test_lookup_name_devuelve_nombre_correcto(container: Container) -> None:
+    """``_lookup_name`` debe resolver provincia/comunidad por código en O(1)."""
+    use_case = container.compute_rankings
+    nombre = use_case._lookup_name("20", TerritoryKind.PROVINCE)
+    assert nombre == "Gipuzkoa"
+    assert use_case._lookup_name(None, TerritoryKind.PROVINCE) is None
+    assert use_case._lookup_name("ZZ", TerritoryKind.PROVINCE) is None
