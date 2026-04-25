@@ -5,6 +5,60 @@ Todas las versiones notables del producto se documentan en este archivo.
 El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y el proyecto adopta
 [Versionado Semántico](https://semver.org/lang/es/).
 
+## [0.5.1] - 2026-04-25
+
+Hito **M13 · Calidad state-of-the-art**. Pase orquestado con 5 teammates en
+worktrees aislados sobre `develop` para auditar y endurecer todo el código
+sin tocar la estética Atelier ni la funcionalidad.
+
+### Añadido
+
+- `react-scan@0.5.3` integrado en `apps/web/src/main.tsx` bajo
+  `import.meta.env.DEV`. Bundle de producción intacto.
+- Auditoría `react-doctor` con score `90 → ≥95/100` (1 error → 0; 23
+  warnings corregidos). Reporte: `docs/reviews/v0.5.1-react-doctor.md`.
+- Skip-link al `#main-content` en `index.html` + `globals.css` (WCAG 2.4.1).
+- Focus trap básico en `CommandPalette` (Tab/Shift+Tab) y orden de foco
+  coordinado en `TerritorySheet` (sin `stopPropagation`).
+- Reportes de auditoría: `v0.5.1-react-scan.md`, `v0.5.1-react-doctor.md`,
+  `v0.5.1-ultrareview-backend.md`, `v0.5.1-ultrareview-frontend.md`,
+  `v0.5.1-ultrareview-rdf.md`, `v0.5.1-review-cross.md`,
+  `v0.5.1-simplify.md`.
+- `scripts/_bootstrap/_github_api.py` · cliente compartido por los scripts
+  `create_m{8,9,11,12}_issues.py` (~120 líneas duplicadas eliminadas).
+
+### Cambiado
+
+- **Backend** (`apps/api`): O(n²) eliminado en rankings; `_resolve_scope`
+  cacheado por provincia/comunidad; `risk()` y `summary()` single-pass;
+  `_top_pairs` con `heapq.nlargest`; cache `_make_key` estable.
+- **Frontend** (`apps/web`): patrón "adjusting state during render" en
+  `CommandPalette` y `TerritorySheet` (sustituye `useEffect` de
+  sincronización); `<form action>` React 19 en `Topbar`; keys estables
+  sin index en `MapLegend`, `Pagination`, `CodeBlock`, `CommandPalette`,
+  `ComparadorPage`; functional setState en `StatsStrip`.
+- **Ontología y SHACL**: `ah:flowDestination` subPropertyOf
+  `prov:wasInfluencedBy`; `ah:transitMode` `owl:FunctionalProperty`;
+  `sh:datatype` y `sh:message` con códigos en cinco shapes.
+- **SPARQL**: `mobility_flow_between` con `VALUES` + IRIs canónicas;
+  `top_by_composite_score` con `PREFIX xsd`; `provenance_chain` con
+  `OPTIONAL` desacoplado; `count_triples_by_class` con `LIMIT 1000`.
+- Comentarios obsoletos eliminados en `state/auth.ts`, `services/auth.ts`,
+  `interfaces/api/schemas.py` (`HealthResponse`).
+
+### Eliminado
+
+- 10 archivos huérfanos: `components/ui/{ErrorState,Skeleton,index}.tsx` y
+  `features/{activity,hero,map,provenance,recommendations,sparql,trends}/index.ts`.
+
+### Calidad
+
+- pytest: 493 passed + 1 skipped (cobertura 95%).
+- vitest: 370/370 passed (82 archivos).
+- ESLint: 0 warnings (`--max-warnings 0`).
+- TypeScript estricto sin errores.
+- ruff/ruff format clean.
+
 ## [Unreleased] · candidato v0.3.0 · 2026-04-24
 
 Hito **M9 · Pulido pixel-perfect**. Cuatro pistas paralelas (A/B/C/D) coordinadas en

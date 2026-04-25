@@ -122,10 +122,28 @@ def cached(
 
 
 def _make_key(args: tuple[Any, ...], kwargs: dict[str, Any]) -> Hashable:
-    """Construye una clave hashable a partir de argumentos de llamada."""
-    if kwargs:
-        return (args, tuple(sorted(kwargs.items())))
-    return args
+    """Construye una clave hashable a partir de argumentos de llamada.
+
+    El formato siempre es ``(args, frozen_kwargs)`` para que dos llamadas con
+    la misma firma produzcan la misma clave aunque los kwargs lleguen vacíos
+    (antes ``args`` y ``(args, ())`` podían convivir en la cache provocando
+    misses falsos).
+
+    Si algún argumento no es hashable (``dict``, ``list``...), se eleva
+    ``TypeError`` con un mensaje explícito que identifica el primer culpable
+    en lugar de propagar el ``TypeError`` opaco que generaría más tarde el
+    ``OrderedDict`` interno.
+    """
+    frozen_kwargs: tuple[tuple[str, Any], ...] = tuple(sorted(kwargs.items())) if kwargs else ()
+    candidate: tuple[tuple[Any, ...], tuple[tuple[str, Any], ...]] = (args, frozen_kwargs)
+    try:
+        hash(candidate)
+    except TypeError as exc:  # pragma: no cover — defensivo, branchea según runtime
+        raise TypeError(
+            "cached() requiere argumentos hashables; revisa los parámetros pasados"
+            f" a la función cacheada (args={args!r}, kwargs={kwargs!r})."
+        ) from exc
+    return candidate
 
 
 __all__ = ["cached"]

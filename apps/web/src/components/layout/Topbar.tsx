@@ -1,16 +1,7 @@
-/* eslint-disable no-undef -- KeyboardEvent es global del navegador. */
+/* eslint-disable no-undef -- KeyboardEvent y HTMLInputElement son globales del navegador. */
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight,
-  Bell,
-  Command,
-  LogIn,
-  LogOut,
-  MessageCircle,
-  Search,
-  UserCircle,
-} from 'lucide-react';
+import { ArrowRight, Bell, Command, LogIn, LogOut, MessageCircle, Search } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -135,12 +126,18 @@ export function Topbar({
 
         <form
           role="search"
-          onSubmit={(event) => {
-            event.preventDefault();
-            const input = event.currentTarget.elements.namedItem('query') as {
-              value?: string;
-            } | null;
-            onSearch?.(input?.value ?? '');
+          /*
+           * `action` (React 19) recibe el `FormData` y previene el submit
+           * por defecto sin requerir `event.preventDefault()`. Mejora la
+           * accesibilidad porque el formulario sigue siendo válido y el
+           * navegador puede aplicar autofill/keyboard hints
+           * (`react-doctor/no-prevent-default`). El narrowing del valor
+           * se hace en el propio `FormData.get`, sin asumir que el input
+           * existe ni el tipo del candidato.
+           */
+          action={(formData: FormData) => {
+            const value = formData.get('query');
+            onSearch?.(typeof value === 'string' ? value : '');
           }}
           className="relative min-w-0 flex-1"
         >
@@ -262,6 +259,3 @@ export function Topbar({
     </header>
   );
 }
-
-// Re-exportamos `UserCircle` para consumers externos que lo necesiten.
-export const TopbarUserIcon = UserCircle;
