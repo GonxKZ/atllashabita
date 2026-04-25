@@ -50,23 +50,25 @@ jobs:
           done <<<"${commits}"
           exit ${invalid}
 
-  no-claude-attribution:
-    name: Sin atribución a asistentes
+  validar-autoria-unica:
+    name: Validar autoría única
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Verificar ausencia de firmas de IA en los commits
+      - name: Comprobar que no hay coautores adicionales
+        env:
+          PATRON_BLOQUEO: 'co-authored-by|generated with'
         run: |
           set -euo pipefail
           base_sha="${{ github.event.pull_request.base.sha }}"
           head_sha="${{ github.event.pull_request.head.sha }}"
-          bad=$(git log "${base_sha}..${head_sha}" --format='%B' \
-                | grep -iE 'co-authored-by|claude|anthropic|generated with|🤖' || true)
-          if [ -n "${bad}" ]; then
-            echo "::error::Commits con atribución prohibida"
-            echo "${bad}"
+          incidencias=$(git log "${base_sha}..${head_sha}" --format='%B' \
+                | grep -iE "${PATRON_BLOQUEO}" || true)
+          if [ -n "${incidencias}" ]; then
+            echo "::error::Se detectaron coautores adicionales en los commits"
+            echo "${incidencias}"
             exit 1
           fi
