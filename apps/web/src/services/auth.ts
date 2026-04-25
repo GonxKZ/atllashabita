@@ -137,13 +137,13 @@ export function buildUserFromRegistration(input: {
  *
  * En el MVP no se hashea la contraseña: se guarda tal cual en `localStorage`.
  * Cuando exista backend real, esta función se sustituirá por una llamada a
- * `POST /auth/login` que devuelva el JWT correspondiente.
+ * `POST /auth/login` que devuelva el JWT correspondiente. El hash robusto
+ * (Argon2id en backend o PBKDF2 en cliente) se integra en ese mismo punto.
  *
  * Cadena de seguridad documentada:
  *   1. UI captura email + contraseña con `type="password"` y autocomplete adecuado.
  *   2. `validatePassword` exige longitud y diversidad de caracteres.
  *   3. `assertCredentials` compara contra el registro persistido.
- *   4. TODO: integrar PBKDF2 (o Argon2id en backend) en cuanto el endpoint exista.
  */
 export function assertCredentials(input: {
   email: string;
