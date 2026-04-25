@@ -27,3 +27,5 @@ export { Slider, type SliderProps } from './Slider';
 export { CodeBlock, type CodeBlockProps } from './CodeBlock';
 export { DataTable, type DataTableColumn, type DataTableProps } from './DataTable';
 export { Toggle, type ToggleProps } from './Toggle';
+export { Tooltip, type TooltipProps, type TooltipSide } from './Tooltip';
+export { HelpKey, type HelpKeyProps } from './HelpKey';
