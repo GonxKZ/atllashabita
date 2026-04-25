@@ -61,10 +61,12 @@ def test_rate_limit_expone_cabeceras_de_estado(rate_limited_app: FastAPI) -> Non
     assert int(response.headers["x-ratelimit-remaining"]) >= 0
 
 
-def test_rate_limit_usa_xforwardedfor_para_distinguir_clientes(
+def test_rate_limit_no_confia_en_xforwardedfor_sin_proxy_explicito(
     rate_limited_app: FastAPI,
 ) -> None:
     with TestClient(rate_limited_app) as client:
-        for ip in ("10.0.0.1", "10.0.0.2", "10.0.0.3"):
-            response = client.get("/health", headers={"x-forwarded-for": ip})
-            assert response.status_code == 200
+        assert client.get("/health", headers={"x-forwarded-for": "10.0.0.1"}).status_code == 200
+        assert client.get("/health", headers={"x-forwarded-for": "10.0.0.2"}).status_code == 200
+        response = client.get("/health", headers={"x-forwarded-for": "10.0.0.3"})
+
+    assert response.status_code == 429

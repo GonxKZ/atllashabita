@@ -28,10 +28,11 @@ describe('UserCard', () => {
     expect(screen.getByRole('img', { name: 'Ana Pérez' })).toBeInTheDocument();
   });
 
-  it('muestra el enlace "Iniciar sesión" cuando no hay usuario en el store', () => {
+  it('muestra el acceso a cuenta cuando no hay usuario en el store', () => {
     renderInRouter(<UserCard />);
     expect(screen.getByText('Hola, Invitado')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Iniciar sesión/i })).toHaveAttribute('href', '/login');
+    expect(screen.queryByRole('link', { name: /Iniciar sesión/i })).toBeNull();
+    expect(screen.getByRole('link', { name: /Abrir cuenta/i })).toHaveAttribute('href', '/cuenta');
   });
 
   it('usa el usuario del store cuando no se pasa nombre explícito', () => {

@@ -21,7 +21,8 @@ def get_container(request: Request) -> Container:
             "Container no inicializado: comprueba que ``create_app`` haya configurado "
             "``app.state.container`` durante el lifespan."
         )
-    assert isinstance(container, Container)
+    if not isinstance(container, Container):
+        raise TypeError("app.state.container no tiene el tipo Container esperado.")
     return container
 
 
@@ -30,7 +31,8 @@ def get_settings(request: Request) -> Settings:
     settings = getattr(request.app.state, "settings", None)
     if settings is None:
         raise RuntimeError("Settings no inicializados en la aplicación.")
-    assert isinstance(settings, Settings)
+    if not isinstance(settings, Settings):
+        raise TypeError("app.state.settings no tiene el tipo Settings esperado.")
     return settings
 
 

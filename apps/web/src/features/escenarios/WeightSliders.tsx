@@ -80,6 +80,11 @@ const PERCENT_FORMATTER = new Intl.NumberFormat('es-ES', {
   maximumFractionDigits: 0,
 });
 
+function clampWeight(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(1, Math.max(0, value));
+}
+
 export function WeightSliders({
   weights,
   onChange,
@@ -131,19 +136,40 @@ export function WeightSliders({
       <div className="grid gap-4 md:grid-cols-2">
         {descriptors.map((descriptor) => {
           const value = weights[descriptor.id] ?? 0;
+          const percentage = Math.round(value * 100);
           return (
-            <Slider
-              key={descriptor.id}
-              label={descriptor.label}
-              value={value}
-              min={0}
-              max={1}
-              step={0.01}
-              onValueChange={(next) => onChange(descriptor.id, next)}
-              format={(rawValue) => PERCENT_FORMATTER.format(rawValue)}
-              helper={descriptor.hint}
-              data-testid={`weight-slider-${descriptor.id}`}
-            />
+            <div key={descriptor.id} className="grid gap-2">
+              <Slider
+                label={descriptor.label}
+                value={value}
+                min={0}
+                max={1}
+                step={0.01}
+                onValueChange={(next) => onChange(descriptor.id, clampWeight(next))}
+                format={(rawValue) => PERCENT_FORMATTER.format(rawValue)}
+                helper={descriptor.hint}
+                data-testid={`weight-slider-${descriptor.id}`}
+              />
+              <label className="sr-only" htmlFor={`weight-percent-${descriptor.id}`}>
+                Porcentaje de {descriptor.label}
+              </label>
+              <div className="border-line-soft bg-surface-muted flex h-10 items-center rounded-2xl border px-3">
+                <input
+                  id={`weight-percent-${descriptor.id}`}
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={percentage}
+                  onChange={(event) => {
+                    onChange(descriptor.id, clampWeight(Number(event.target.value) / 100));
+                  }}
+                  aria-label={`Porcentaje de ${descriptor.label}`}
+                  className="text-ink-800 min-w-0 flex-1 bg-transparent text-sm font-semibold tabular-nums outline-none"
+                />
+                <span className="text-ink-500 text-xs font-semibold">%</span>
+              </div>
+            </div>
           );
         })}
       </div>

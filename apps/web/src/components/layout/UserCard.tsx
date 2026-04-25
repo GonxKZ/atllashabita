@@ -47,10 +47,10 @@ export function UserCard({
   const signOut = useAuthStore((state) => state.signOut);
 
   // Si el llamador no fija un nombre fijo, derivamos del usuario en sesión.
-  // El subtitle por defecto comunica el estado de la sesión: "Cuenta personal"
-  // si hay sesión activa, "Inicia sesión" si no.
+  // El subtitle por defecto comunica el estado de la sesión sin mostrar una
+  // acción de login dentro del shell principal.
   const resolvedName = name ?? user?.name ?? FALLBACK_NAME;
-  const resolvedSubtitle = subtitle ?? (user ? 'Cuenta personal' : 'Inicia sesión');
+  const resolvedSubtitle = subtitle ?? (user ? 'Cuenta personal' : 'Perfil local');
   const resolvedAvatar = avatarUrl ?? user?.avatarUrl;
 
   // Animación de entrada con un leve "pop" + fade. La combinación es
@@ -132,14 +132,14 @@ export function UserCard({
         </Button>
       ) : (
         <Link
-          to="/login"
+          to="/cuenta"
           className={cn(
             'inline-flex h-8 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors',
             'bg-brand-50 text-brand-700 hover:bg-brand-100 active:bg-brand-200',
             'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:outline-none'
           )}
         >
-          Iniciar sesión
+          Abrir cuenta
         </Link>
       )}
     </div>

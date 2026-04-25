@@ -1,7 +1,7 @@
 /* eslint-disable no-undef -- KeyboardEvent y HTMLInputElement son globales del navegador. */
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Bell, Command, LogIn, LogOut, MessageCircle, Search } from 'lucide-react';
+import { ArrowRight, Bell, Command, LogOut, MessageCircle, Search, UserRound } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -34,6 +34,7 @@ export interface TopbarProps {
   placeholder?: string;
   onSearch?: (value: string) => void;
   onFeedback?: () => void;
+  onNotifications?: () => void;
   onNewAnalysis?: () => void;
   /** Migas explícitas; en su ausencia se infiere desde la URL. */
   breadcrumbs?: BreadcrumbItem[];
@@ -52,6 +53,7 @@ export function Topbar({
   placeholder = 'Buscar municipio o territorio…',
   onSearch,
   onFeedback,
+  onNotifications,
   onNewAnalysis,
   breadcrumbs,
   onOpenCommandPalette,
@@ -110,17 +112,18 @@ export function Topbar({
       className={cn(
         // Topbar flotante: el wrapper externo aporta el padding y el
         // interno la pieza glass. La altura efectiva ronda los 64-72px.
-        'sticky top-0 z-30 w-full px-4 pt-4 md:px-6',
+        'sticky top-0 z-30 w-full px-3 pt-3 sm:px-4 md:px-5',
         className
       )}
     >
       <div
         className={cn(
-          'surface-glass mx-auto flex h-14 items-center gap-4 rounded-full px-3 md:px-4',
-          'shadow-[var(--shadow-3)]'
+          'mx-auto flex min-h-14 w-full max-w-[1120px] items-center gap-2 rounded-[28px] border px-2.5 py-2 sm:gap-3 md:px-3',
+          'border-[color:color-mix(in_srgb,var(--color-line-soft)_95%,var(--color-linen-700)_5%)]',
+          'bg-[color:color-mix(in_srgb,var(--color-linen-0)_94%,var(--color-brand-50)_6%)]/95 shadow-[0_18px_46px_-30px_rgba(15,23,42,0.55)] backdrop-blur-xl supports-[backdrop-filter]:bg-[color:color-mix(in_srgb,var(--color-linen-0)_88%,var(--color-brand-50)_12%)]/90'
         )}
       >
-        <div className="hidden max-w-[28%] min-w-0 shrink-0 items-center md:flex">
+        <div className="hidden max-w-[24%] min-w-0 shrink-0 items-center xl:flex">
           <Breadcrumbs items={breadcrumbs} />
         </div>
 
@@ -156,8 +159,8 @@ export function Topbar({
             placeholder={placeholder}
             aria-label="Buscar en AtlasHabita"
             className={cn(
-              'h-10 w-full rounded-full pr-20 pl-9 text-[13px]',
-              'bg-[color:color-mix(in_srgb,var(--color-linen-0)_60%,transparent)]',
+              'h-10 w-full rounded-full pr-12 pl-9 text-[13px] sm:pr-20',
+              'bg-[color:var(--color-linen-0)]',
               'text-[color:var(--color-linen-900)] placeholder:text-[color:var(--color-linen-500)]',
               'border border-[color:color-mix(in_srgb,var(--color-linen-700)_10%,transparent)] transition-colors',
               'hover:border-[color:var(--color-moss-300)]',
@@ -172,7 +175,7 @@ export function Topbar({
             title={SHORTCUT_LABEL}
             className={cn(
               'absolute top-1/2 right-2 -translate-y-1/2',
-              'inline-flex items-center gap-1 rounded-full px-2 py-0.5',
+              'hidden items-center gap-1 rounded-full px-2 py-0.5 sm:inline-flex',
               'bg-[color:color-mix(in_srgb,var(--color-linen-100)_70%,transparent)]',
               'text-[11px] font-medium text-[color:var(--color-linen-700)]',
               'border border-[color:color-mix(in_srgb,var(--color-linen-700)_10%,transparent)]',
@@ -187,14 +190,14 @@ export function Topbar({
           </button>
         </form>
 
-        <nav aria-label="Acciones" className="ml-auto flex shrink-0 items-center gap-2">
-          {extra}
+        <nav aria-label="Acciones" className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+          <span className="hidden min-w-0 lg:inline-flex">{extra}</span>
           <Button
             variant="ghost"
             size="sm"
             leadingIcon={<MessageCircle size={16} />}
             onClick={onFeedback}
-            className="hidden text-[color:var(--color-linen-700)] hover:text-[color:var(--color-moss-700)] md:inline-flex"
+            className="hidden text-[color:var(--color-linen-700)] hover:text-[color:var(--color-moss-700)] lg:inline-flex"
           >
             Feedback
           </Button>
@@ -203,9 +206,10 @@ export function Topbar({
             icon={<Bell size={18} />}
             variant="secondary"
             size="md"
+            onClick={onNotifications}
           />
           {user ? (
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
               <Link
                 to="/cuenta"
                 aria-label={`Ir a mi cuenta de ${user.name}`}
@@ -217,7 +221,7 @@ export function Topbar({
                 )}
               >
                 <Avatar name={user.name} src={user.avatarUrl} size="sm" />
-                <span className="hidden max-w-[8rem] truncate text-sm font-medium md:inline">
+                <span className="hidden max-w-[5.5rem] truncate text-sm font-medium xl:inline">
                   {user.name.split(' ')[0]}
                 </span>
               </Link>
@@ -226,24 +230,24 @@ export function Topbar({
                 size="sm"
                 leadingIcon={<LogOut size={16} />}
                 onClick={() => signOut()}
-                className="hidden md:inline-flex"
+                className="hidden xl:inline-flex"
               >
                 Cerrar sesión
               </Button>
             </div>
           ) : (
             <Link
-              to="/login"
-              aria-label="Iniciar sesión"
+              to="/cuenta"
+              aria-label="Abrir cuenta"
               className={cn(
-                'inline-flex h-9 items-center gap-2 rounded-full px-3 text-sm font-medium transition-colors',
+                'inline-flex h-9 items-center gap-2 rounded-full px-2.5 text-sm font-medium transition-colors sm:px-3',
                 'border border-[color:var(--color-line-soft)] bg-[color:var(--color-linen-0)] text-[color:var(--color-linen-700)]',
                 'hover:border-[color:var(--color-moss-300)] hover:text-[color:var(--color-moss-700)]',
                 'focus-visible:ring-2 focus-visible:ring-[color:var(--color-moss-300)] focus-visible:ring-offset-2 focus-visible:outline-none'
               )}
             >
-              <LogIn aria-hidden="true" size={16} />
-              <span className="hidden md:inline">Iniciar sesión</span>
+              <UserRound aria-hidden="true" size={16} />
+              <span className="hidden xl:inline">Cuenta</span>
             </Link>
           )}
           <Button
@@ -251,8 +255,10 @@ export function Topbar({
             size="md"
             trailingIcon={<ArrowRight size={16} strokeWidth={2.25} />}
             onClick={onNewAnalysis}
+            className="shrink-0 px-3 sm:px-4 max-[640px]:h-10 max-[640px]:w-10 max-[640px]:px-0"
           >
-            Nuevo análisis
+            <span className="hidden sm:inline">Nuevo análisis</span>
+            <span className="sr-only sm:hidden">Nuevo análisis</span>
           </Button>
         </nav>
       </div>

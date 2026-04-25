@@ -85,6 +85,10 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-ra --strict-markers --cov=atlashabita --cov-report=term-missing"
+filterwarnings = [
+  "ignore:Dataset\\.contexts is deprecated, use Dataset\\.graphs instead\\.:DeprecationWarning:rdflib\\.plugins\\.serializers\\.trig",
+  "ignore:Dataset\\.default_context is deprecated, use Dataset\\.default_graph instead\\.:DeprecationWarning:rdflib\\.plugins\\.serializers\\.trig",
+]
 
 [tool.coverage.run]
 branch = true

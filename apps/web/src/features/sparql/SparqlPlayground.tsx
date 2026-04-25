@@ -8,7 +8,7 @@
  */
 
 import { AlertTriangle, Play } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { CodeBlock } from '../../components/ui/CodeBlock';
@@ -61,33 +61,42 @@ export function SparqlPlayground({ className }: SparqlPlaygroundProps) {
   const catalog = catalogQuery.data ?? fallbackCatalog;
   const usingFallback = !catalogQuery.data;
 
-  const [selectedId, setSelectedId] = useState<string>(() => catalog.entries[0]?.id ?? '');
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [selectedId, setSelectedId] = useState<string>(() => fallbackCatalog.entries[0]?.id ?? '');
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    buildInitialValues(fallbackCatalog.entries[0]?.bindings ?? [])
+  );
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({});
   const [result, setResult] = useState<SparqlResult | null>(null);
 
+  const effectiveSelectedId = useMemo(() => {
+    if (catalog.entries.some((entry) => entry.id === selectedId)) return selectedId;
+    return catalog.entries[0]?.id ?? '';
+  }, [catalog.entries, selectedId]);
+
   const selectedEntry = useMemo<SparqlCatalogEntry | undefined>(
-    () => catalog.entries.find((entry) => entry.id === selectedId),
-    [catalog, selectedId]
+    () => catalog.entries.find((entry) => entry.id === effectiveSelectedId),
+    [catalog.entries, effectiveSelectedId]
   );
 
-  useEffect(() => {
-    if (selectedEntry) {
-      setValues(buildInitialValues(selectedEntry.bindings));
-      setErrors({});
-      setResult(null);
-    }
-  }, [selectedEntry]);
+  const bindingValues = useMemo(
+    () => ({
+      ...buildInitialValues(selectedEntry?.bindings ?? []),
+      ...values,
+    }),
+    [selectedEntry, values]
+  );
 
-  useEffect(() => {
-    if (!selectedId && catalog.entries.length > 0) {
-      setSelectedId(catalog.entries[0].id);
-    }
-  }, [catalog, selectedId]);
+  const handleQueryChange = (entryId: string) => {
+    const nextEntry = catalog.entries.find((entry) => entry.id === entryId);
+    setSelectedId(entryId);
+    setValues(buildInitialValues(nextEntry?.bindings ?? []));
+    setErrors({});
+    setResult(null);
+  };
 
   const runQuery = async () => {
     if (!selectedEntry) return;
-    const parsed = parseBindings(selectedEntry.bindings, values);
+    const parsed = parseBindings(selectedEntry.bindings, bindingValues);
     if (!parsed.success) {
       setErrors(parsed.errors);
       setResult(null);
@@ -134,8 +143,8 @@ export function SparqlPlayground({ className }: SparqlPlaygroundProps) {
             'bg-surface-soft h-11 rounded-2xl border border-[color:var(--color-line-soft)] px-3 text-sm',
             'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:outline-none'
           )}
-          value={selectedId}
-          onChange={(event) => setSelectedId(event.target.value)}
+          value={effectiveSelectedId}
+          onChange={(event) => handleQueryChange(event.target.value)}
         >
           {catalog.entries.map((entry) => (
             <option key={entry.id} value={entry.id}>
@@ -168,7 +177,7 @@ export function SparqlPlayground({ className }: SparqlPlaygroundProps) {
                 <input
                   id={inputId}
                   data-testid={`sparql-binding-${binding.name}`}
-                  value={values[binding.name] ?? ''}
+                  value={bindingValues[binding.name] ?? ''}
                   onChange={(event) =>
                     setValues((prev) => ({ ...prev, [binding.name]: event.target.value }))
                   }

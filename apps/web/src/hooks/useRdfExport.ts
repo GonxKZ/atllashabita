@@ -17,7 +17,7 @@ import { exportRdf, type RdfExportPage, type RdfExportRequest } from '../service
  */
 const RDF_EXPORT_NOOP_KEY = ['rdf', 'export', 'noop'] as const;
 
-export type RdfExportQueryKey =
+type RdfExportQueryKey =
   | readonly ['rdf', 'export', string, RdfExportRequest['format'] | 'turtle', number]
   | typeof RDF_EXPORT_NOOP_KEY;
 

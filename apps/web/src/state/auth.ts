@@ -60,7 +60,7 @@ interface AccountRecord {
 }
 
 /** Resultado discriminado para acciones que pueden fallar con mensaje. */
-export type AuthResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
+type AuthResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
 
 export interface AuthState {
   readonly user: AuthUser | null;

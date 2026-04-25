@@ -2,13 +2,16 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { EscenariosPage, rankMunicipalities, scoreMunicipality } from '../EscenariosPage';
+import { EscenariosPage } from '../EscenariosPage';
+import { computeRanges, rankMunicipalities, scoreMunicipality } from '../scoring';
 import {
   DEFAULT_WEIGHTS,
   useEscenariosStore,
   type WeightVector,
 } from '../../../state/escenariosStore';
 import { NATIONAL_MUNICIPALITIES } from '../../../data/national_mock';
+
+const RANGES = computeRanges(NATIONAL_MUNICIPALITIES);
 
 beforeAll(() => {
   type Callback = (entries: unknown[], observer: unknown) => void;
@@ -64,7 +67,7 @@ beforeEach(() => {
 describe('scoreMunicipality', () => {
   it('produce un valor entre 0 y 100', () => {
     const entry = NATIONAL_MUNICIPALITIES[0]!;
-    const score = scoreMunicipality(entry, DEFAULT_WEIGHTS);
+    const score = scoreMunicipality(entry, DEFAULT_WEIGHTS, RANGES);
     expect(score).toBeGreaterThanOrEqual(0);
     expect(score).toBeLessThanOrEqual(100);
   });
@@ -117,6 +120,13 @@ describe('EscenariosPage', () => {
     const slider = screen.getByLabelText('Alquiler asequible');
     fireEvent.change(slider, { target: { value: '0.9' } });
     expect(useEscenariosStore.getState().weights.rent_price).toBeCloseTo(0.9, 5);
+  });
+
+  it('actualiza el peso desde el campo porcentual accesible', () => {
+    renderPage();
+    const input = screen.getByLabelText('Porcentaje de Alquiler asequible');
+    fireEvent.change(input, { target: { value: '92' } });
+    expect(useEscenariosStore.getState().weights.rent_price).toBeCloseTo(0.92, 5);
   });
 
   it('guarda escenarios desde el formulario', async () => {

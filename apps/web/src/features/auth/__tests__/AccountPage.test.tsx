@@ -1,6 +1,6 @@
 /* eslint-disable no-undef -- localStorage y Blob son globales DOM disponibles en navegador y jsdom. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { AccountPage } from '../AccountPage';
@@ -53,7 +53,7 @@ describe('AccountPage', () => {
     const user = userEvent.setup();
     renderAccount();
     await user.click(screen.getByRole('button', { name: /Cerrar sesión/i }));
-    expect(useAuthStore.getState().user).toBeNull();
+    await waitFor(() => expect(useAuthStore.getState().user).toBeNull());
   });
 
   it('exige confirmar antes de eliminar la cuenta', async () => {
@@ -62,8 +62,8 @@ describe('AccountPage', () => {
     await user.click(screen.getByRole('button', { name: /Eliminar mi cuenta/i }));
     expect(useAuthStore.getState().user?.email).toBe('cuenta@example.com');
     await user.click(screen.getByRole('button', { name: /Confirmar eliminación/i }));
-    expect(useAuthStore.getState().user).toBeNull();
-    expect(useAuthStore.getState().accounts).toHaveLength(0);
+    await waitFor(() => expect(useAuthStore.getState().user).toBeNull());
+    await waitFor(() => expect(useAuthStore.getState().accounts).toHaveLength(0));
   });
 
   it('exporta los datos generando un blob de tipo application/json', async () => {
@@ -71,6 +71,9 @@ describe('AccountPage', () => {
     const revokeObjectURL = vi.fn<(url: string) => void>();
     const originalCreate = URL.createObjectURL;
     const originalRevoke = URL.revokeObjectURL;
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
     URL.createObjectURL = createObjectURL as typeof URL.createObjectURL;
     URL.revokeObjectURL = revokeObjectURL as typeof URL.revokeObjectURL;
 
@@ -85,5 +88,6 @@ describe('AccountPage', () => {
 
     URL.createObjectURL = originalCreate;
     URL.revokeObjectURL = originalRevoke;
+    clickSpy.mockRestore();
   });
 });

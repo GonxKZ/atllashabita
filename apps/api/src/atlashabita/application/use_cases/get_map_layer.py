@@ -129,7 +129,8 @@ def _build_feature(
     value: float,
     label: str,
 ) -> dict[str, Any]:
-    assert territory.centroid is not None  # invariante: filtrado previo
+    if territory.centroid is None:
+        raise ValueError("No se puede construir una feature GeoJSON sin centroide.")
     return {
         "type": "Feature",
         "geometry": {

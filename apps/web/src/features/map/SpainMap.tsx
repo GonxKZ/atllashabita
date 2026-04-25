@@ -168,6 +168,7 @@ export function SpainMap({
 }: SpainMapProps) {
   const [hovered, setHovered] = useState<HoveredState | null>(null);
   const containerRef = useRef<HTMLElement | null>(null);
+  const hideTooltipTimerRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
 
   /*
    * Resolver la capa activa: cuando viene un `layerId` consultamos el
@@ -285,6 +286,10 @@ export function SpainMap({
 
   const handleEnter = useCallback(
     (marker: MarkerPresentation) => (event: ReactPointerEvent<Element>) => {
+      if (hideTooltipTimerRef.current !== null) {
+        globalThis.clearTimeout(hideTooltipTimerRef.current);
+        hideTooltipTimerRef.current = null;
+      }
       const container = event.currentTarget.closest('[data-spain-map]') as HTMLElement | null;
       const rect = container?.getBoundingClientRect();
       const x = rect ? event.clientX - rect.left : event.clientX;
@@ -306,7 +311,24 @@ export function SpainMap({
     [hovered]
   );
 
-  const handleLeave = useCallback(() => setHovered(null), []);
+  const hideTooltip = useCallback(() => {
+    if (hideTooltipTimerRef.current !== null) {
+      globalThis.clearTimeout(hideTooltipTimerRef.current);
+    }
+    hideTooltipTimerRef.current = globalThis.setTimeout(() => {
+      setHovered(null);
+      hideTooltipTimerRef.current = null;
+    }, 140);
+  }, []);
+
+  const keepTooltipOpen = useCallback(() => {
+    if (hideTooltipTimerRef.current !== null) {
+      globalThis.clearTimeout(hideTooltipTimerRef.current);
+      hideTooltipTimerRef.current = null;
+    }
+  }, []);
+
+  const handleLeave = hideTooltip;
 
   const mapStyle = offline ? FALLBACK_STYLE : OPENFREEMAP_STYLE;
 
@@ -410,6 +432,8 @@ export function SpainMap({
             unit={resolvedUnit}
             activeIndicatorId={activeLayer.id === 'score' ? undefined : activeLayer.id}
             onOpenSheet={onMarkerSelect}
+            onPointerEnter={keepTooltipOpen}
+            onPointerLeave={hideTooltip}
           />
         ) : (
           <MapTooltip

@@ -16,7 +16,7 @@
  */
 
 import { Check, Filter, Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type KeyboardEvent } from 'react';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader } from '../../components/ui/Card';
@@ -51,6 +51,10 @@ function confidenceTone(confidence: number): 'success' | 'warning' | 'danger' {
   if (confidence >= 0.9) return 'success';
   if (confidence >= 0.8) return 'warning';
   return 'danger';
+}
+
+function isActivationKey(event: KeyboardEvent<HTMLElement>): boolean {
+  return event.key === 'Enter' || event.key === ' ';
 }
 
 export function filterMunicipalities(
@@ -158,14 +162,22 @@ export function RankingPanel({
             const rentIndicator = entry.indicators.find((i) => i.id === 'rent_price');
             const rentSource = rentIndicator ? findSourceRef(rentIndicator.sourceId) : undefined;
             const isSelected = selectedId === entry.id;
+            const toggleSelected = () => selectTerritory(isSelected ? null : entry.id);
             return (
               <li key={entry.id}>
-                <button
-                  type="button"
-                  onClick={() => selectTerritory(isSelected ? null : entry.id)}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={toggleSelected}
+                  onKeyDown={(event) => {
+                    if (!isActivationKey(event)) return;
+                    event.preventDefault();
+                    toggleSelected();
+                  }}
                   aria-pressed={isSelected}
                   data-testid={`ranking-item-${entry.id}`}
                   className={cn(
+                    'cursor-pointer',
                     'flex w-full items-center gap-4 px-4 py-3 text-left transition-colors',
                     'focus-visible:ring-brand-300 focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
                     'hover:bg-surface-soft',
@@ -215,7 +227,7 @@ export function RankingPanel({
                       conf · {Math.round(entry.confidence * 100)}%
                     </Badge>
                   </span>
-                </button>
+                </div>
               </li>
             );
           })

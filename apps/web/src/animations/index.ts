@@ -26,5 +26,4 @@ export {
   resolveAtelierDurationOrSkip,
   resolveConicDuration,
 } from './atelier';
-export type { DurationKey, EasingKey, StaggerKey } from './atelier';
 export { usePrefersReducedMotion } from './usePrefersReducedMotion';

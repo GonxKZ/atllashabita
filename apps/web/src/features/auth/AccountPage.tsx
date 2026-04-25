@@ -128,8 +128,8 @@ export function AccountPage() {
   }
 
   function handleSignOut() {
-    signOut();
     navigate('/', { replace: true });
+    window.setTimeout(() => signOut(), 50);
   }
 
   function handleDelete() {
@@ -137,12 +137,13 @@ export function AccountPage() {
       setConfirmDelete(true);
       return;
     }
-    const result = deleteAccount();
-    if (!result.ok) {
-      setFeedback({ kind: 'error', message: result.error });
-      return;
-    }
     navigate('/', { replace: true });
+    window.setTimeout(() => {
+      const result = deleteAccount();
+      if (!result.ok) {
+        setFeedback({ kind: 'error', message: result.error });
+      }
+    }, 50);
   }
 
   return (
