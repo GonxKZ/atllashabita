@@ -161,7 +161,8 @@ export function AccountPage() {
             Mi cuenta
           </h1>
           <p className="text-ink-500 mt-1 text-sm">
-            Gestiona tu perfil, preferencias y datos almacenados en este dispositivo.
+            Personaliza cómo te ve la app: foto, nombre y unidades. Tus datos viven en este
+            dispositivo y los puedes exportar en cualquier momento.
           </p>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -296,8 +297,8 @@ export function AccountPage() {
           Zona delicada
         </h2>
         <p className="mt-1 text-sm text-rose-700">
-          Eliminar la cuenta borrará todos tus datos almacenados en este dispositivo. Esta acción no
-          se puede deshacer.
+          Eliminar la cuenta borrará tu perfil y los escenarios guardados en este dispositivo. Esta
+          acción es definitiva: no podemos restaurarla más tarde.
         </p>
         <Button
           type="button"
@@ -311,7 +312,7 @@ export function AccountPage() {
         </Button>
         {confirmDelete ? (
           <p role="status" aria-live="polite" className="mt-2 text-xs text-rose-700">
-            Pulsa de nuevo para confirmar la eliminación definitiva.
+            Si estás seguro, vuelve a pulsar el botón para confirmar la eliminación.
           </p>
         ) : null}
       </section>
