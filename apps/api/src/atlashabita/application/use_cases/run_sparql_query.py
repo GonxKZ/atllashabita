@@ -56,15 +56,19 @@ class SparqlRunnerProtocol(Protocol):
 
     def mobility_flow_between(
         self, origin_code: str, destination_code: str, period: str
-    ) -> list[dict[str, Any]]: ...
+    ) -> list[dict[str, Any]]:
+        """Flujos de movilidad entre dos municipios para un periodo concreto."""
 
     def accidents_in_radius(
         self, lat: float, lon: float, km: float, year: int | None = ...
-    ) -> list[dict[str, Any]]: ...
+    ) -> list[dict[str, Any]]:
+        """Accidentes con víctimas dentro de un radio en kilómetros."""
 
-    def transit_stops_in_municipality(self, municipality_code: str) -> list[dict[str, Any]]: ...
+    def transit_stops_in_municipality(self, municipality_code: str) -> list[dict[str, Any]]:
+        """Paradas de transporte público de un municipio dado."""
 
-    def risk_index(self, municipality_code: str) -> dict[str, Any]: ...
+    def risk_index(self, municipality_code: str) -> dict[str, Any]:
+        """Índice agregado de riesgo combinando accidentes y movilidad."""
 
 
 @dataclass(frozen=True, slots=True)
