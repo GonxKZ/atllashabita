@@ -7,11 +7,11 @@ import type { ReactNode } from 'react';
 import { Topbar } from '../Topbar';
 import { useAuthStore } from '../../../state/auth';
 
-function renderInRouter(ui: ReactNode) {
-  return render(<MemoryRouter>{ui}</MemoryRouter>);
+function renderInRouter(ui: ReactNode, initialEntries: string[] = ['/']) {
+  return render(<MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>);
 }
 
-describe('Topbar', () => {
+describe('Topbar (Atelier)', () => {
   beforeEach(() => {
     useAuthStore.getState().reset();
     localStorage.clear();
@@ -23,6 +23,19 @@ describe('Topbar', () => {
     expect(screen.getByRole('button', { name: /Feedback/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Nuevo análisis/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Notificaciones/i })).toBeInTheDocument();
+  });
+
+  it('muestra el hint del comando ⌘K con etiqueta accesible', () => {
+    renderInRouter(<Topbar />);
+    expect(screen.getByRole('button', { name: /Ver atajos rápidos/i })).toBeInTheDocument();
+  });
+
+  it('utiliza el placeholder atelier por defecto', () => {
+    renderInRouter(<Topbar />);
+    expect(screen.getByRole('searchbox', { name: 'Buscar en AtlasHabita' })).toHaveAttribute(
+      'placeholder',
+      'Buscar municipio o territorio…'
+    );
   });
 
   it('envía la búsqueda cuando el formulario se envía', async () => {
@@ -48,6 +61,14 @@ describe('Topbar', () => {
     expect(onNewAnalysis).toHaveBeenCalledTimes(1);
   });
 
+  it('abre el command palette al hacer clic en el hint ⌘K', async () => {
+    const onOpenCommandPalette = vi.fn();
+    const user = userEvent.setup();
+    renderInRouter(<Topbar onOpenCommandPalette={onOpenCommandPalette} />);
+    await user.click(screen.getByRole('button', { name: /Ver atajos rápidos/i }));
+    expect(onOpenCommandPalette).toHaveBeenCalledTimes(1);
+  });
+
   it('muestra "Iniciar sesión" cuando no hay usuario', () => {
     renderInRouter(<Topbar />);
     const link = screen.getByRole('link', { name: /Iniciar sesión/i });
@@ -69,5 +90,11 @@ describe('Topbar', () => {
     ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Cerrar sesión/i }));
     expect(useAuthStore.getState().user).toBeNull();
+  });
+
+  it('expone migas de pan cuando se navega a una ruta interior', () => {
+    renderInRouter(<Topbar />, ['/mapa']);
+    const breadcrumbs = screen.getByRole('navigation', { name: /Migas de pan/i });
+    expect(breadcrumbs).toBeInTheDocument();
   });
 });

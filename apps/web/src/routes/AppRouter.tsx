@@ -1,27 +1,29 @@
+/* eslint-disable no-undef -- HTMLInputElement es tipo DOM global resuelto por TypeScript. */
 /**
  * Configuración de enrutado global con React Router v7.
  *
- * El layout raíz monta una sola vez el Sidebar y el Topbar y delega el
- * contenido principal al `<Outlet />`. Cada ruta decide qué pantalla mostrar:
+ * El layout raíz monta una sola vez el Sidebar, el Topbar y la paleta de
+ * comandos. Cada ruta decide qué pantalla mostrar a través del `<Outlet />`:
  *
- *  - `/`           → `DashboardShell` con hero, mapa real, panel derecho y CTAs.
- *  - `/mapa`       → `MapPage` a página completa con MapLibre y filtros.
- *  - `/ranking`    → `RankingPanel` paginado.
- *  - `/recomendador` → alias de `/ranking`.
- *  - `/comparador` → comparador territorial (placeholder estructurado).
- *  - `/territorio/:id` → `TerritoryDetail` (Sevilla, etc.).
- *  - `/escenarios` → alias del playground SPARQL.
- *  - `/sparql`     → `SparqlPlayground` lazy-loaded.
- *  - `/login`      → `LoginPage` (sin chrome, layout autocontenido).
- *  - `/registro`   → `RegisterPage` (sin chrome, layout autocontenido).
- *  - `/cuenta`     → `AccountPage` protegida con `RequireAuth`.
- *  - `*`           → `NotFound`.
+ *  - `/`              → `DashboardShell` con hero, mapa real y panel derecho.
+ *  - `/mapa`          → `MapPage` a pantalla completa con MapLibre.
+ *  - `/ranking`       → `RankingPanel` paginado.
+ *  - `/recomendador`  → alias de `/ranking`.
+ *  - `/comparador`    → `ComparadorPage` real con drag & drop.
+ *  - `/escenarios`    → `EscenariosPage` real con simulador de pesos.
+ *  - `/territorio/:id`→ `TerritoryDetail`.
+ *  - `/sparql`        → `SparqlPlayground` lazy-loaded.
+ *  - `/login`         → `LoginPage` (sin chrome).
+ *  - `/registro`      → `RegisterPage` (sin chrome).
+ *  - `/cuenta`        → `AccountPage` protegida con `RequireAuth`.
+ *  - `*`              → `NotFound`.
  *
- * Crítico: ya no se renderiza `DashboardShell` por encima del `<Outlet />`,
- * lo cual antes hacía que cada ruta interna mostrase también el dashboard.
+ * El `RootLayout` es el responsable de orquestar la `CommandPalette` (⌘K)
+ * y el panel de atajos. Los toggles de UI (sidebar, leyenda, mini-mapa) se
+ * gestionan en estado local porque no requieren persistencia entre rutas.
  */
 
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useCallback, useState } from 'react';
 import { createBrowserRouter, Outlet, useNavigate } from 'react-router-dom';
 
 import { DashboardShell } from '../features/dashboard/DashboardShell';
@@ -34,6 +36,14 @@ import { AccountPage } from '../features/auth/AccountPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
 import { RequireAuth } from '../features/auth/RequireAuth';
+import { ComparadorPage } from '../features/comparador/ComparadorPage';
+import { EscenariosPage } from '../features/escenarios/EscenariosPage';
+import { CommandPalette } from '../features/command/CommandPalette';
+import { useShortcuts } from '../features/command/useShortcuts';
+import { COMMAND_LAYER_OPTIONS } from '../features/command/items';
+import { useMapLayerStore } from '../state/mapLayer';
+import { HelpKey } from '../components/ui/HelpKey';
+import { cn } from '../components/ui/cn';
 
 const LazySparqlPlayground = lazy(() =>
   import('../features/sparql/SparqlPlayground').then((module) => ({
@@ -46,16 +56,72 @@ const LazyMapPage = lazy(() =>
 );
 
 /**
- * Layout principal: chroma + sidebar fija + topbar pegajosa + contenido.
+ * Layout principal con shortcuts y paleta global.
  *
- * El topbar conecta su buscador y el botón "Nuevo análisis" con el router para
- * que toda navegación pase por React Router (no anchor scroll).
+ * Mantiene en estado local la visibilidad de la sidebar, la leyenda y el
+ * mini-mapa; los componentes hijos pueden consumir esos toggles vía CSS o
+ * props si lo necesitan más adelante. Por ahora el efecto observable es:
+ *
+ *   - El layout colapsa la sidebar al pulsar ⌘B.
+ *   - La paleta abre con ⌘K y se cierra con Esc.
+ *   - El panel `Atajos` se monta cuando el usuario pulsa `?`.
  */
 function RootLayout() {
   const navigate = useNavigate();
+  const setActiveLayer = useMapLayerStore((state) => state.setActiveLayer);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [legendVisible, setLegendVisible] = useState(true);
+  const [miniMapVisible, setMiniMapVisible] = useState(true);
+
+  const focusTopbarSearch = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    const input = document.querySelector<HTMLInputElement>(
+      'header[role="banner"] input[type="search"], header input[type="search"]'
+    );
+    input?.focus();
+    input?.select();
+  }, []);
+
+  const handleSelectLayer = useCallback(
+    (index: number) => {
+      const target = COMMAND_LAYER_OPTIONS[index - 1];
+      if (target) setActiveLayer(target.id);
+    },
+    [setActiveLayer]
+  );
+
+  useShortcuts({
+    onTogglePalette: () => setPaletteOpen((open) => !open),
+    onToggleSidebar: () => setSidebarVisible((visible) => !visible),
+    onToggleLegend: () => setLegendVisible((visible) => !visible),
+    onToggleMiniMap: () => setMiniMapVisible((visible) => !visible),
+    onSelectLayer: handleSelectLayer,
+    onFocusSearch: focusTopbarSearch,
+    onShowShortcuts: () => setShortcutsOpen(true),
+    onEscape: () => {
+      if (paletteOpen) setPaletteOpen(false);
+      else if (shortcutsOpen) setShortcutsOpen(false);
+    },
+  });
+
   return (
-    <div className="bg-surface-soft text-ink-900 flex min-h-screen">
-      <Sidebar />
+    <div
+      className="bg-surface-soft text-ink-900 flex min-h-screen"
+      data-sidebar-visible={sidebarVisible}
+      data-legend-visible={legendVisible}
+      data-minimap-visible={miniMapVisible}
+    >
+      <div
+        className={cn(
+          'transition-all duration-200 ease-out',
+          sidebarVisible ? 'w-72' : 'w-0 overflow-hidden'
+        )}
+        aria-hidden={!sidebarVisible}
+      >
+        <Sidebar />
+      </div>
       <div className="flex min-h-screen flex-1 flex-col">
         <Topbar
           onSearch={(q) => {
@@ -68,10 +134,127 @@ function RootLayout() {
             window.open('mailto:licitaciones@gpic.es?subject=Feedback%20AtlasHabita')
           }
           onNewAnalysis={() => navigate('/sparql')}
+          extra={
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="Abrir paleta de comandos"
+              className="text-ink-700 hover:border-brand-300 hover:text-brand-700 hidden h-10 items-center gap-2 rounded-full border border-[color:var(--color-line-soft)] bg-white px-3 text-xs transition-colors sm:inline-flex"
+            >
+              <span className="font-medium">Buscar acciones</span>
+              <HelpKey>Ctrl</HelpKey>
+              <HelpKey>K</HelpKey>
+            </button>
+          }
         />
         <main className="flex-1">
           <Outlet />
         </main>
+      </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onShowShortcuts={() => {
+          setShortcutsOpen(true);
+          setPaletteOpen(false);
+        }}
+        onToggleSidebar={() => setSidebarVisible((visible) => !visible)}
+        onToggleLegend={() => setLegendVisible((visible) => !visible)}
+        onToggleMiniMap={() => setMiniMapVisible((visible) => !visible)}
+        onFocusSearch={focusTopbarSearch}
+      />
+
+      {shortcutsOpen ? <ShortcutsHelp onClose={() => setShortcutsOpen(false)} /> : null}
+    </div>
+  );
+}
+
+interface ShortcutsHelpProps {
+  readonly onClose: () => void;
+}
+
+const SHORTCUT_GROUPS: ReadonlyArray<{
+  readonly title: string;
+  readonly entries: ReadonlyArray<{
+    readonly keys: readonly string[];
+    readonly description: string;
+  }>;
+}> = [
+  {
+    title: 'Navegación',
+    entries: [
+      { keys: ['Ctrl', 'K'], description: 'Abrir o cerrar la paleta de comandos' },
+      { keys: ['/'], description: 'Foco en el buscador del topbar' },
+      { keys: ['?'], description: 'Mostrar este panel de atajos' },
+      { keys: ['Esc'], description: 'Cerrar overlays activos' },
+    ],
+  },
+  {
+    title: 'Vistas',
+    entries: [
+      { keys: ['Ctrl', 'B'], description: 'Mostrar / ocultar barra lateral' },
+      { keys: ['Ctrl', 'L'], description: 'Mostrar / ocultar leyenda del mapa' },
+      { keys: ['Ctrl', 'M'], description: 'Mostrar / ocultar mini-mapa' },
+    ],
+  },
+  {
+    title: 'Capas del mapa',
+    entries: [
+      { keys: ['Ctrl', '1'], description: 'Activar capa principal' },
+      { keys: ['Ctrl', '2'], description: 'Capa secundaria' },
+      { keys: ['Ctrl', '3..9'], description: 'Resto de capas en orden' },
+    ],
+  },
+];
+
+function ShortcutsHelp({ onClose }: ShortcutsHelpProps) {
+  return (
+    <div className="fixed inset-0 z-[55] flex items-center justify-center px-4">
+      <button
+        type="button"
+        className="bg-ink-900/40 absolute inset-0 backdrop-blur-md"
+        aria-label="Cerrar atajos"
+        onClick={onClose}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Atajos disponibles"
+        className="relative z-10 w-full max-w-xl rounded-3xl border border-[color:var(--color-line-soft)] bg-white p-6 shadow-[0_30px_80px_-30px_rgba(15,23,42,0.45)]"
+      >
+        <header className="mb-4">
+          <h2 className="font-display text-ink-900 text-lg font-semibold tracking-tight">
+            Atajos rápidos
+          </h2>
+          <p className="text-ink-500 text-xs">
+            Pulsa <HelpKey>Esc</HelpKey> para volver. Estos atajos funcionan en cualquier página.
+          </p>
+        </header>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {SHORTCUT_GROUPS.map((group) => (
+            <section key={group.title}>
+              <h3 className="text-ink-500 mb-2 text-[11px] font-semibold tracking-[0.16em] uppercase">
+                {group.title}
+              </h3>
+              <ul className="flex flex-col gap-2">
+                {group.entries.map((entry) => (
+                  <li
+                    key={entry.description}
+                    className="flex items-center justify-between gap-3 text-sm"
+                  >
+                    <span className="text-ink-700">{entry.description}</span>
+                    <span className="inline-flex items-center gap-1">
+                      {entry.keys.map((key) => (
+                        <HelpKey key={`${entry.description}-${key}`}>{key}</HelpKey>
+                      ))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -82,24 +265,11 @@ function HomeRoute() {
 }
 
 function ComparadorRoute() {
-  return (
-    <section
-      aria-label="Comparador"
-      className="mx-auto w-full max-w-6xl px-8 py-8"
-      data-route="comparador"
-    >
-      <header className="mb-6">
-        <h1 className="font-display text-ink-900 text-2xl font-semibold tracking-tight">
-          Comparador territorial
-        </h1>
-        <p className="text-ink-500 mt-1 text-sm">
-          Selecciona dos o más territorios para comparar indicadores normalizados con sus
-          contribuciones al score y la procedencia de cada dato.
-        </p>
-      </header>
-      <RankingPanel />
-    </section>
-  );
+  return <ComparadorPage />;
+}
+
+function EscenariosRoute() {
+  return <EscenariosPage />;
 }
 
 function SparqlRoute() {
@@ -212,7 +382,7 @@ export const appRouter = createBrowserRouter([
       { path: 'recomendador', element: <RankingRoute /> },
       { path: 'ranking', element: <RankingRoute /> },
       { path: 'comparador', element: <ComparadorRoute /> },
-      { path: 'escenarios', element: <SparqlRoute /> },
+      { path: 'escenarios', element: <EscenariosRoute /> },
       { path: 'territorio/:id', element: <TerritoryRoute /> },
       { path: 'sparql', element: <SparqlRoute /> },
       { path: 'cuenta', element: <CuentaRoute /> },
@@ -225,6 +395,7 @@ export {
   RootLayout,
   HomeRoute,
   ComparadorRoute,
+  EscenariosRoute,
   RankingRoute,
   TerritoryRoute,
   SparqlRoute,
