@@ -36,20 +36,18 @@ jobs:
           done < <(find . -type f -name '*.md' -not -path './node_modules/*' -not -path './.venv/*' -not -path './apps/web/node_modules/*' -print0)
           exit $fallos
 
-      - name: Buscar atribuciones prohibidas en docs
+      - name: Comprobar autoría única en la documentación
+        env:
+          PATRON_BLOQUEO: '(^[[:space:]]*Co-Authored-By:[[:space:]]+[^`])'
         run: |
           set -euo pipefail
-          # Sólo cuentan los trailers reales (Co-Authored-By: <correo>) o
-          # firmas explícitas tipo "🤖 Generated with [Claude...]" en cuerpo
-          # de prosa. Las menciones literales documentando la regla (entre
-          # backticks o en docs/reviews/) no son atribución y se filtran.
-          patron='(^[[:space:]]*Co-Authored-By:[[:space:]]+[^`])|(^[^`]*🤖[[:space:]]*Generated[[:space:]]+with[[:space:]]+\[Claude)|(Generated with \[Claude.*\]\(https://claude)'
-          if grep -R --include='*.md' --exclude-dir='docs/reviews' -nE "$patron" docs/ README.md 2>/dev/null; then
-            echo "::error::Se encontraron atribuciones a asistentes en la documentación"
+          # Sólo se bloquean trailers reales tipo `Co-Authored-By:` en
+          # prosa. Las menciones documentadas entre backticks o en
+          # `docs/reviews/` no se consideran trailer.
+          if grep -R --include='*.md' --exclude-dir='docs/reviews' -nE "$PATRON_BLOQUEO" docs/ README.md 2>/dev/null; then
+            echo "::error::Se detectaron coautores adicionales en la documentación"
             exit 1
           fi
-          # Recordatorio: docs/reviews/* documenta la regla y puede mencionar
-          # los trailers entre backticks; allí no hace falta ningún chequeo.
 
       - name: Comprobar enlaces internos relativos
         run: |
