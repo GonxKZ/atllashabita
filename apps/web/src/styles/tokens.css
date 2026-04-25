@@ -1,50 +1,247 @@
 /**
- * Tokens de diseño complementarios para AtlasHabita.
+ * AtlasHabita · Atelier Design Tokens (M12, issue #116)
  *
- * Extienden los definidos en `globals.css` siguiendo la paleta verde-turquesa,
- * las tipografías Plus Jakarta Sans / Inter y la densidad generosa de la
- * captura de referencia. Esta capa no sustituye los tokens previos: los
- * reutiliza y añade rampas y semánticos adicionales que consumen las
- * primitivas UI y el shell del dashboard.
+ * Capa central del rediseño "Atelier": palette extendida (moss/copper/linen +
+ * señales y capas temáticas), tipografía variable (Fraunces / Geist /
+ * JetBrains Mono), escala fluid clamp(), spacing 4-base + golden, radios
+ * progresivos y sombras multi-capa con glow de marca.
  *
- * Nota M9 — pase pixel-perfect (issue #89): los valores se calibran contra
- * `atlashabita-main.png`. La marca se refuerza con `brand-500=#10b981` y
- * `brand-700=#047857`, los neutros se acercan a la paleta cálida del comp y
- * los radios pasan a 1.25rem-1.5rem para igualar las cards de la captura.
+ * Convenciones:
+ *  - Las variables se exponen tanto como CSS custom properties (`--foo`)
+ *    para CSS plano, como tokens `@theme` Tailwind (`--color-foo`,
+ *    `--font-foo`, etc.) para que los utilitarios `bg-moss-500`,
+ *    `text-copper-600`, `font-display`, etc. estén disponibles sin más.
+ *  - 70% linen (neutros cálidos) + 20% moss (verdes) + 10% cobre / danger.
+ *  - Tracking display `-0.02em`, h2/h3 `-0.01em`, eyebrows `+0.04em`.
+ *  - Radios xs..2xl + full (8..36 / 999px). Sombras multi-capa shadow-1..5
+ *    + un glow específico para halos de marca.
+ *
+ * Las variables previas (`--color-brand-*`, `--color-surface-*`,
+ * `--color-ink-*`, `--shadow-card`, `--font-display`) se mantienen como
+ * alias retro-compatibles: el shell antiguo y los componentes ranking/map/
+ * sparql siguen funcionando sin tocar mientras se migran.
  */
 
 @theme {
-  /* Alias semánticos sobre la rampa "brand" existente. */
-  --color-brand-primary: var(--color-brand-500);
-  --color-brand-strong: var(--color-brand-600);
-  --color-brand-contrast: #ffffff;
+  /* ──────────────────────────────────────────────────────────────────
+   * Palette principal — Atelier
+   * ────────────────────────────────────────────────────────────────── */
 
-  /* Colores semánticos para estados. */
-  --color-success-500: #10b981;
-  --color-warning-500: #f59e0b;
-  --color-danger-500: #ef4444;
-  --color-info-500: #0ea5e9;
+  /* Moss — verde profundo, carga la identidad territorial */
+  --color-moss-50: #f1faf3;
+  --color-moss-100: #d9f1e0;
+  --color-moss-200: #b3e2c2;
+  --color-moss-300: #84cd9e;
+  --color-moss-400: #46b272;
+  --color-moss-500: #128a3f;
+  --color-moss-600: #0e7236;
+  --color-moss-700: #0c5b2c;
+  --color-moss-800: #0a4321;
+  --color-moss-900: #0a2a18;
 
-  /*
-   * Bordes suaves alineados con el comp pixel-perfect: tonos cálidos en gris
-   * verdoso para que las cards reposen sobre el fondo `surface-soft` sin
-   * romper la continuidad visual. `line-soft` es el por defecto en cards y
-   * `line-strong` se reserva para divisores explícitos.
-   */
-  --color-line-soft: #e6ebe8;
-  --color-line-strong: #cdd5d0;
+  /* Copper — cobre cálido, acento secundario */
+  --color-copper-200: #f3d7be;
+  --color-copper-300: #ebbf99;
+  --color-copper-400: #d99657;
+  --color-copper-500: #b97335;
+  --color-copper-600: #93582a;
+  --color-copper-700: #6e421f;
 
-  /*
-   * Sombras de elevación pixel-perfect: la base es prácticamente invisible
-   * para que el borde sea quien delimite, y la "lift" añade un halo difuso
-   * a 28px que reproduce la flotación percibida en la captura.
-   */
-  --shadow-elevated-soft:
-    0 1px 2px rgba(15, 23, 42, 0.04), 0 16px 32px -22px rgba(15, 23, 42, 0.16);
+  /* Linen — neutros cálidos: fondo y tipografía base */
+  --color-linen-0: #fdfcf8;
+  --color-linen-50: #f6f3ec;
+  --color-linen-100: #ece7da;
+  --color-linen-200: #d8d2c1;
+  --color-linen-300: #bdb6a3;
+  --color-linen-400: #8c8676;
+  --color-linen-500: #6c6757;
+  --color-linen-600: #5a564a;
+  --color-linen-700: #4b4a40;
+  --color-linen-800: #2c2c25;
+  --color-linen-900: #1d1d18;
+
+  /* Señales accesibles (WCAG AA contraste sobre linen-0) */
+  --color-signal-positive: var(--color-moss-500);
+  --color-signal-warning: var(--color-copper-500);
+  --color-signal-danger: #c8472f;
+  --color-signal-info: #1d6e9a;
+
+  /* Capas temáticas — usadas por mapas, leyendas y badges semánticos */
+  --color-layer-housing: #2f8b6a;
+  --color-layer-broadband: #1f6f9c;
+  --color-layer-income: #b97335;
+  --color-layer-services: #6c3789;
+  --color-layer-climate: #c98a2b;
+  --color-layer-mobility: #2c6f72;
+  --color-layer-accidents: #c8472f;
+  --color-layer-transit: #1d4ed8;
+
+  /* ──────────────────────────────────────────────────────────────────
+   * Aliases retro-compatibles (no romper el shell legacy)
+   * ────────────────────────────────────────────────────────────────── */
+  --color-brand-50: var(--color-moss-50);
+  --color-brand-100: var(--color-moss-100);
+  --color-brand-200: var(--color-moss-200);
+  --color-brand-300: var(--color-moss-300);
+  --color-brand-400: var(--color-moss-400);
+  --color-brand-500: var(--color-moss-500);
+  --color-brand-600: var(--color-moss-600);
+  --color-brand-700: var(--color-moss-700);
+  --color-brand-800: var(--color-moss-800);
+
+  --color-brand-primary: var(--color-moss-500);
+  --color-brand-strong: var(--color-moss-600);
+  --color-brand-contrast: var(--color-linen-0);
+
+  --color-accent-500: var(--color-copper-400);
+  --color-accent-600: var(--color-copper-500);
+
+  /* Surfaces alineadas a linen */
+  --color-surface-base: var(--color-linen-0);
+  --color-surface-soft: var(--color-linen-50);
+  --color-surface-muted: var(--color-linen-100);
+  --color-surface-raised: #ffffff;
+
+  /* Tinta sobre linen */
+  --color-ink-900: var(--color-linen-900);
+  --color-ink-700: var(--color-linen-700);
+  --color-ink-500: var(--color-linen-500);
+  --color-ink-300: var(--color-linen-300);
+
+  /* Estados semánticos */
+  --color-success-500: var(--color-signal-positive);
+  --color-warning-500: var(--color-signal-warning);
+  --color-danger-500: var(--color-signal-danger);
+  --color-info-500: var(--color-signal-info);
+
+  /* Bordes sobre linen */
+  --color-line-soft: #e6e1d2;
+  --color-line-strong: #cfc8b4;
+
+  /* ──────────────────────────────────────────────────────────────────
+   * Tipografía
+   * ────────────────────────────────────────────────────────────────── */
+  --font-display: 'Fraunces Variable', 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-sans:
+    'Geist Variable', 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
+  --font-mono:
+    'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* ──────────────────────────────────────────────────────────────────
+   * Sombras multi-capa + glow moss
+   * ────────────────────────────────────────────────────────────────── */
+  --shadow-1: 0 1px 1px rgba(29, 29, 24, 0.04), 0 1px 2px rgba(29, 29, 24, 0.04);
+  --shadow-2: 0 1px 2px rgba(29, 29, 24, 0.05), 0 4px 12px -6px rgba(29, 29, 24, 0.08);
+  --shadow-3:
+    0 1px 2px rgba(29, 29, 24, 0.05), 0 8px 24px -12px rgba(29, 29, 24, 0.12),
+    0 16px 36px -24px rgba(29, 29, 24, 0.1);
+  --shadow-4:
+    0 2px 4px rgba(29, 29, 24, 0.06), 0 16px 32px -16px rgba(29, 29, 24, 0.14),
+    0 32px 64px -32px rgba(29, 29, 24, 0.16);
+  --shadow-5:
+    0 4px 8px rgba(29, 29, 24, 0.08), 0 24px 48px -24px rgba(29, 29, 24, 0.18),
+    0 48px 96px -48px rgba(29, 29, 24, 0.22);
+  --shadow-glow-moss:
+    0 0 0 1px color-mix(in srgb, var(--color-moss-500) 20%, transparent),
+    0 12px 32px -16px color-mix(in srgb, var(--color-moss-500) 50%, transparent);
+
+  /* Aliases legacy */
+  --shadow-card: var(--shadow-2);
+  --shadow-elevated: var(--shadow-3);
+  --shadow-elevated-soft: var(--shadow-2);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Escala tipográfica fluid (clamp)
+ * Se exponen como custom properties + tokens Tailwind `--text-*`.
+ * ────────────────────────────────────────────────────────────────── */
+:root {
+  --text-xs: clamp(11px, 0.68rem, 12px);
+  --text-sm: clamp(13px, 0.8rem, 14px);
+  --text-base: clamp(15px, 0.94rem, 16px);
+  --text-lg: clamp(17px, 1.1rem, 19px);
+  --text-xl: clamp(20px, 1.45rem, 24px);
+  --text-2xl: clamp(26px, 2.1rem, 34px);
+  --text-3xl: clamp(34px, 2.85rem, 48px);
+  --text-display: clamp(44px, 4.4vw, 72px);
+
+  /* Tracking de marca */
+  --tracking-display: -0.02em;
+  --tracking-heading: -0.01em;
+  --tracking-eyebrow: 0.04em;
+
+  /* Spacing 4-base + golden */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 56px;
+  --space-11: 64px;
+  --space-12: 80px;
+  --space-13: 96px;
+  --space-14: 112px;
+  --space-24: 128px;
+
+  /* Radios */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-2xl: 36px;
+  --radius-full: 999px;
+}
+
+@theme {
+  /* Exposición de la escala tipográfica como tokens Tailwind. */
+  --text-xs: clamp(11px, 0.68rem, 12px);
+  --text-sm: clamp(13px, 0.8rem, 14px);
+  --text-base: clamp(15px, 0.94rem, 16px);
+  --text-lg: clamp(17px, 1.1rem, 19px);
+  --text-xl: clamp(20px, 1.45rem, 24px);
+  --text-2xl: clamp(26px, 2.1rem, 34px);
+  --text-3xl: clamp(34px, 2.85rem, 48px);
+  --text-display: clamp(44px, 4.4vw, 72px);
+
+  /* Radios Tailwind compatibles con utilitarios `rounded-*`. */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-2xl: 36px;
 }
 
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+@keyframes atelier-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes atelier-grain-shift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-4px, 6px, 0);
   }
 }
