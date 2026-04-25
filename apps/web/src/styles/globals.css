@@ -49,6 +49,19 @@
 
   --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 28px -18px rgba(15, 23, 42, 0.18);
   --shadow-elevated: 0 20px 40px -24px rgba(15, 23, 42, 0.22);
+
+  /*
+   * Z-index escalonado para overlays cartográficos (M12 — issue #118).
+   *
+   * El mapa y los marcadores viven en el plano base. Los overlays "quiet"
+   * (mini-map, ranking flotante, leyenda en estado relajado) se sitúan
+   * justo por encima sin competir con marcadores enfocados. Los overlays
+   * "rich" (tooltip detallado y bottom-sheet de ficha) toman precedencia
+   * porque vehiculan información contextual prioritaria al gesto del
+   * usuario y deben quedar siempre por delante.
+   */
+  --z-overlay-quiet: 10;
+  --z-overlay-rich: 20;
 }
 
 @layer base {
