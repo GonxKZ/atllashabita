@@ -49,7 +49,7 @@ export interface EscenariosActions {
 export type EscenariosStore = EscenariosState & EscenariosActions;
 
 /**
- * Pesos por defecto inspirados en el perfil "explorer" del backend.
+ * Pesos por defecto inspirados en el perfil "remote_work" del backend.
  * Suman 1.00. Pensado para que los sliders arranquen en una distribución
  * coherente sin tener que llamar a la API.
  */

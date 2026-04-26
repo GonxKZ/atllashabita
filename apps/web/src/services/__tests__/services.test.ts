@@ -60,7 +60,7 @@ describe('servicios REST', () => {
     const fetchFn = mockFetch({ results: [] });
     const body = {
       profile: 'family' as const,
-      scope: 'country:es' as const,
+      scope: 'es' as const,
       weights: [{ factor: 'services', weight: 0.5 }],
     };
     await computeRankingCustom(body);

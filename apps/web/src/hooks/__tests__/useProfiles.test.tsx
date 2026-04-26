@@ -13,7 +13,14 @@ describe('useProfiles', () => {
   });
 
   it('carga perfiles desde /api/profiles', async () => {
-    const payload = [{ id: 'explorer', name: 'Explorador', description: '', default_weights: [] }];
+    const payload = [
+      {
+        id: 'remote_work',
+        label: 'Teletrabajo',
+        description: '',
+        weights: { broadband_coverage: 0.3 },
+      },
+    ];
     const fetchFn = installFetchMock(async () => jsonResponse(payload));
 
     const client = createTestQueryClient();

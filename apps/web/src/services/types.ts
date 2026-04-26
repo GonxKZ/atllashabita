@@ -14,7 +14,7 @@
  * Identificadores canónicos de perfil de decisión soportados por la API.
  * Cualquier nuevo perfil debe añadirse aquí y en la fuente `profiles.ts`.
  */
-export type ProfileId = 'student' | 'family' | 'remote_work' | 'entrepreneur' | 'explorer';
+export type ProfileId = 'student' | 'family' | 'remote_work' | 'retire';
 
 export interface ProfileWeight {
   readonly factor: string;
@@ -24,22 +24,21 @@ export interface ProfileWeight {
 
 export interface Profile {
   readonly id: ProfileId;
-  readonly name: string;
+  readonly label: string;
   readonly description: string;
-  readonly default_weights: readonly ProfileWeight[];
+  readonly weights: Readonly<Record<string, number>>;
 }
 
 /**
  * Ámbito territorial: país, comunidad autónoma, provincia o municipio.
  *
- * Se codifica como `kind:code` (por ejemplo `province:41`) para alinearse con
+ * Se codifica como `es` o `kind:code` (por ejemplo `province:41`) para alinearse con
  * el parámetro `scope` aceptado por el endpoint `/rankings`.
  */
 export type TerritoryScope =
-  | 'country:es'
+  | 'es'
   | `autonomous_community:${string}`
-  | `province:${string}`
-  | `municipality:${string}`;
+  | `province:${string}`;
 
 // -------------------------------------------------------------------------
 // Territorios e indicadores

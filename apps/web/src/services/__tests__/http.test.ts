@@ -34,11 +34,11 @@ describe('apiFetch', () => {
 
   it('serializa body JSON y fuerza Content-Type', async () => {
     const fetchFn = mockFetchResponse(jsonResponse({ ok: true }));
-    await apiFetch('/rankings/custom', { method: 'POST', body: { profile: 'explorer' } });
+    await apiFetch('/rankings/custom', { method: 'POST', body: { profile: 'remote_work' } });
     const [, init] = fetchFn.mock.calls[0];
     const headers = (init as RequestInit).headers as Headers;
     expect(headers.get('Content-Type')).toBe('application/json');
-    expect((init as RequestInit).body).toBe('{"profile":"explorer"}');
+    expect((init as RequestInit).body).toBe('{"profile":"remote_work"}');
   });
 
   it('parsea JSON en respuestas 2xx', async () => {
