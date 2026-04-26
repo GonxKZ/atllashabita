@@ -29,7 +29,8 @@ describe('TerritorySheet', () => {
     render(wrap(<TerritorySheet territoryId={FIRST.id} onClose={() => {}} />));
     const sheet = screen.getByTestId('territory-sheet');
     expect(sheet).toHaveAttribute('data-snap', 'default');
-    expect(sheet.style.height).toBe(`${SHEET_SNAP_POINTS.default}vh`);
+    expect(sheet.style.height).toBe(`${SHEET_SNAP_POINTS.default}dvh`);
+    expect(sheet.style.maxHeight).toBe('calc(100dvh - 1rem)');
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(FIRST.name);
   });
 

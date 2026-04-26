@@ -34,7 +34,8 @@
  */
 :root {
   --z-overlay-quiet: 10;
-  --z-overlay-rich: 20;
+  --z-overlay-rich: 50;
+  --z-overlay-dialog: 70;
   --z-skip-link: 100;
 }
 

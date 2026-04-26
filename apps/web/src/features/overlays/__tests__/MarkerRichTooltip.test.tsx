@@ -90,10 +90,54 @@ describe('MarkerRichTooltip', () => {
     expect(screen.queryByTestId('marker-rich-tooltip-top')).toBeNull();
   });
 
-  it('expone microcopy "Pinchar en el mapa"', () => {
+  it('expone microcopy de apertura de ficha', () => {
     render(
       <MarkerRichTooltip marker={baseMarker} x={0} y={0} layerLabel="Banda ancha" unit=" %" />
     );
-    expect(screen.getByTestId('marker-rich-tooltip').textContent).toMatch(/Pinchar en el mapa/i);
+    expect(screen.getByTestId('marker-rich-tooltip').textContent).toMatch(/abrir la ficha/i);
+  });
+
+  it('reposiciona el tooltip debajo cuando el marcador esta cerca del borde superior', () => {
+    render(
+      <MarkerRichTooltip
+        marker={baseMarker}
+        x={24}
+        y={40}
+        containerHeight={420}
+        layerLabel="Banda ancha"
+        unit=" %"
+      />
+    );
+    const tooltip = screen.getByTestId('marker-rich-tooltip');
+    expect(tooltip).toHaveAttribute('data-placement', 'below');
+    expect(tooltip.style.left).toContain('clamp(');
+  });
+
+  it('mantiene el tooltip encima cuando hay altura suficiente', () => {
+    render(
+      <MarkerRichTooltip
+        marker={baseMarker}
+        x={280}
+        y={360}
+        containerHeight={420}
+        layerLabel="Banda ancha"
+        unit=" %"
+      />
+    );
+    expect(screen.getByTestId('marker-rich-tooltip')).toHaveAttribute('data-placement', 'above');
+  });
+
+  it('limita la altura disponible para que el CTA no quede recortado', () => {
+    render(
+      <MarkerRichTooltip
+        marker={baseMarker}
+        x={220}
+        y={190}
+        containerHeight={430}
+        layerLabel="Banda ancha"
+        unit=" %"
+      />
+    );
+    expect(screen.getByTestId('marker-rich-tooltip').style.maxHeight).toBe('216px');
   });
 });
