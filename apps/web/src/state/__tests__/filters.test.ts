@@ -8,10 +8,10 @@ describe('useFiltersStore', () => {
     localStorage.clear();
   });
 
-  it('tiene estado inicial explorer/country:es sin overrides', () => {
+  it('tiene estado inicial compatible con la API sin overrides', () => {
     const state = useFiltersStore.getState();
-    expect(state.activeProfile).toBe('explorer');
-    expect(state.scope).toBe('country:es');
+    expect(state.activeProfile).toBe('remote_work');
+    expect(state.scope).toBe('es');
     expect(state.weightOverrides).toEqual({});
     expect(state.activeLayers).toEqual(['score']);
     expect(state.hardFilters).toEqual([]);

@@ -38,8 +38,8 @@ export interface FiltersActions {
 }
 
 const INITIAL_STATE: FiltersState = {
-  activeProfile: 'explorer',
-  scope: 'country:es',
+  activeProfile: 'remote_work',
+  scope: 'es',
   weightOverrides: {},
   activeLayers: ['score'],
   hardFilters: [],

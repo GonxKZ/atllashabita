@@ -107,7 +107,7 @@ const BINDING_DEFAULTS: Record<
     type: 'string',
     default: 'municipality',
     example: 'municipality',
-    description: 'municipality, province o autonomous_community.',
+    description: 'municipality, province o autonomous_community para consultas RDF.',
   },
   limit: {
     label: 'Número de resultados',

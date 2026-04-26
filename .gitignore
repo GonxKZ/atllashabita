@@ -52,6 +52,8 @@ data/reports/
 Thumbs.db
 *.swp
 
-# Claude / MCP locales
+# Configuracion local no versionada
 .claude/
 .mcp.json
+
+.vercel

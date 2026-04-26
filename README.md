@@ -4,7 +4,8 @@
 > emprender en Espana combinando datos abiertos oficiales, RDF/RDFLib,
 > GeoSPARQL, PROV-O, scoring explicable y una interfaz territorial premium.
 
-[![Version](https://img.shields.io/badge/version-v0.5.3-blue.svg)](docs/reviews/v0.5.1-review-cross.md)
+[![Version](https://img.shields.io/badge/version-v0.5.4-blue.svg)](docs/reviews/v0.5.1-review-cross.md)
+[![Produccion](https://img.shields.io/badge/vercel-atlashabita.vercel.app-009966.svg)](https://atlashabita.vercel.app)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green.svg)](apps/api/pyproject.toml)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-20%20LTS-green.svg)](https://nodejs.org/)
@@ -18,12 +19,16 @@ territorial accionable: mapa de Espana, ranking multicriterio, mezcla de
 indicadores personalizada, ficha municipal, comparador, playground SPARQL,
 exportacion RDF y trazabilidad de fuentes.
 
+**Produccion:** [https://atlashabita.vercel.app](https://atlashabita.vercel.app)
+
+![Interfaz principal desplegada en Vercel](docs/screenshots/vercel-atlashabita-home.png)
+
 La release actual integra el trabajo de calidad UI, seguridad API y scoring
 personalizado:
 
 - `develop`: rama de integracion estable.
 - `main`: rama publicada.
-- `v0.5.3`: tag de release con README actualizado.
+- `v0.5.4`: release de despliegue en Vercel con smoke E2E publico.
 - Commit funcional principal: `2df5260 feat(ui): personalizar score territorial por indicadores`.
 - Merge a `main`: `5e9c4db release: v0.5.2 mezcla personalizada y calidad UI`.
 
@@ -53,7 +58,8 @@ personalizado:
 | Seguridad | Cabeceras defensivas, sanitizacion, rate limiting, SPARQL whitelist, limites de exportacion y tests. |
 | Tests backend | `493 passed, 1 skipped`, cobertura total `95%`. |
 | Tests frontend | `82` suites, `372` tests verdes. |
-| Release Git | `develop` y `main` publicados; tag `v0.5.2` publicado antes de este README. |
+| Despliegue Vercel | `https://atlashabita.vercel.app` operativo con frontend y API serverless. |
+| Release Git | `develop` y `main` publicados; release actual `v0.5.4`. |
 
 ## Datos y cobertura
 
@@ -157,7 +163,7 @@ Flujos principales:
 - **SPARQL**: consultas predefinidas, bindings tipados y resultados tabulares.
 - **Cuenta**: login, registro, cuenta protegida y preferencias locales.
 
-Validacion interactiva reciente con Browser Use:
+Validacion interactiva reciente con smoke E2E de navegador:
 
 - Feedback abre, valida y registra estado local.
 - Notificaciones abre panel real de datasets, API y ranking personalizado.
@@ -166,7 +172,9 @@ Validacion interactiva reciente con Browser Use:
 - Mezcla de indicadores recalcula ranking y mapa.
 - Capas del mapa y marcadores abren ficha territorial.
 - Cuenta protegida responde con pantalla de login.
-- Consola del navegador sin warnings ni errores durante el recorrido.
+- Registro, cierre de sesion e inicio de sesion funcionan sobre la app desplegada.
+- Captura principal generada desde Vercel en `docs/screenshots/vercel-atlashabita-home.png`.
+- Consola del navegador sin errores de aplicacion durante el recorrido.
 
 ## Arquitectura
 
@@ -256,6 +264,19 @@ pnpm build
 pnpm preview --host 127.0.0.1 --port 4173
 ```
 
+Despliegue de produccion en Vercel:
+
+```bash
+npx vercel deploy --prod --yes --scope gonxkz-3021s-projects
+```
+
+La configuracion de Vercel vive en `vercel.json` y publica:
+
+- Frontend Vite desde `apps/web/dist`.
+- API FastAPI serverless desde `api/index.py`.
+- Rewrites `/api/*` hacia la funcion Python.
+- Artefactos necesarios de `apps/api/src`, `data/seed` y `ontology`.
+
 ## Pipeline de datos y RDF
 
 ```bash
@@ -319,6 +340,7 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+node scripts/qa/vercel-smoke.cjs
 python scripts/data_pipeline.py ingest
 python -m pytest apps/api/tests
 python -m ruff check apps/api/src apps/api/tests
@@ -338,6 +360,22 @@ Resultados principales:
 - Ruff: correcto.
 - Mypy strict: correcto.
 - Bandit: correcto.
+- Smoke Vercel: home, mapa, Feedback, SPARQL, ranking, comparador, escenarios,
+  registro, cierre de sesion, login y captura principal correctos.
+
+Validacion HTTP del despliegue:
+
+```text
+GET /                                  200
+GET /api/health                        200
+GET /api/rankings?profile=remote_work  200
+GET /api/territories/search?q=Sevilla  200
+GET /login                             200
+GET /registro                          200
+```
+
+Las respuestas de API incluyen cabeceras defensivas `X-Frame-Options: DENY` y
+`X-Content-Type-Options: nosniff`.
 
 ## Flujo Git y release
 
@@ -357,13 +395,13 @@ Flujo operativo:
 Estado actual tras integracion:
 
 ```text
-origin/develop -> 2df5260
-origin/main    -> 5e9c4db
-tag v0.5.2     -> 5e9c4db
+origin/develop -> release v0.5.4 desplegada
+origin/main    -> release v0.5.4 desplegada
+tag v0.5.4     -> release Vercel final
 ```
 
-Este README prepara el tag siguiente `v0.5.3`, que debe apuntar al commit que
-incluye esta documentacion.
+El release `v0.5.4` corresponde al despliegue final en Vercel con smoke E2E y
+captura principal versionada.
 
 No se incluyen atribuciones externas en commits, tags ni documentacion. La
 configuracion Git local usada es:
@@ -379,8 +417,7 @@ GONZALO GARCIA LAMA <gongarlam@alum.us.es>
   publica. Para refresco real se activa `ATLASHABITA_INGESTION_ONLINE=1`.
 - CRTM es una fuente metropolitana de Madrid; se usa para enriquecer transporte
   donde hay cobertura disponible.
-- La release formal de GitHub requiere GitHub CLI o token de entorno. En esta
-  sesion `gh` no esta instalado y no hay `GH_TOKEN`, `GITHUB_TOKEN` ni
-  `GITHUB_PAT`, por lo que la publicacion garantizada es el tag Git remoto.
-- Quedan artefactos locales sin versionar (`.playwright-mcp/` y capturas
-  temporales) que no forman parte del release.
+- El registro e inicio de sesion actuales son locales al navegador mediante
+  `localStorage`; no transmiten contrasenas a terceros. Para cuentas multiusuario
+  reales debe conectarse un backend de autenticacion persistente.
+- Quedan artefactos locales temporales ignorados que no forman parte del release.
