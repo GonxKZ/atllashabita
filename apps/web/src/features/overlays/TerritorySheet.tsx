@@ -41,8 +41,8 @@ import { NATIONAL_MUNICIPALITIES, type NationalMunicipality } from '@/data/natio
  * `data-snap`.
  */
 export const SHEET_SNAP_POINTS = {
-  peek: 15,
-  default: 55,
+  peek: 18,
+  default: 82,
   expanded: 92,
 } as const;
 
@@ -214,8 +214,8 @@ export function TerritorySheet({
     <div
       data-feature="territory-sheet"
       role="presentation"
-      style={{ zIndex: 'var(--z-overlay-rich)' as unknown as number }}
-      className="fixed inset-0 flex items-end justify-center"
+      style={{ zIndex: 'var(--z-overlay-dialog)' as unknown as number }}
+      className="fixed inset-0 flex items-end justify-center p-2 sm:p-4"
     >
       <div
         aria-hidden="true"
@@ -234,11 +234,13 @@ export function TerritorySheet({
         data-snap={snap}
         data-testid="territory-sheet"
         className={cn(
-          'relative w-full max-w-3xl overflow-hidden rounded-t-3xl bg-white shadow-[var(--shadow-elevated)]',
+          'relative w-full max-w-4xl overflow-hidden rounded-[28px] bg-white shadow-[var(--shadow-elevated)]',
           'flex flex-col will-change-transform'
         )}
         style={{
-          height: `${heightPct}vh`,
+          width: 'min(calc(100vw - 1rem), 56rem)',
+          height: `${heightPct}dvh`,
+          maxHeight: 'calc(100dvh - 1rem)',
           transform: `translate3d(0, ${offset}px, 0)`,
           transition:
             dragOffset === 0

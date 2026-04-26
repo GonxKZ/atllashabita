@@ -132,6 +132,7 @@ interface HoveredState {
   readonly marker: MarkerPresentation;
   readonly x: number;
   readonly y: number;
+  readonly containerHeight: number;
 }
 
 function isEnriched(point: SpainMapPoint): point is EnrichedMapPoint {
@@ -294,7 +295,7 @@ export function SpainMap({
       const rect = container?.getBoundingClientRect();
       const x = rect ? event.clientX - rect.left : event.clientX;
       const y = rect ? event.clientY - rect.top : event.clientY;
-      setHovered({ marker, x, y });
+      setHovered({ marker, x, y, containerHeight: rect?.height ?? 0 });
     },
     []
   );
@@ -306,7 +307,9 @@ export function SpainMap({
       const rect = container?.getBoundingClientRect();
       const x = rect ? event.clientX - rect.left : event.clientX;
       const y = rect ? event.clientY - rect.top : event.clientY;
-      setHovered((prev) => (prev ? { ...prev, x, y } : prev));
+      setHovered((prev) =>
+        prev ? { ...prev, x, y, containerHeight: rect?.height ?? prev.containerHeight } : prev
+      );
     },
     [hovered]
   );
@@ -388,7 +391,7 @@ export function SpainMap({
                 const btn = event.currentTarget.getBoundingClientRect();
                 const x = rect ? btn.left + btn.width / 2 - rect.left : btn.left;
                 const y = rect ? btn.top - rect.top : btn.top;
-                setHovered({ marker, x, y });
+                setHovered({ marker, x, y, containerHeight: rect?.height ?? 0 });
               }}
               onBlur={handleLeave}
             >
@@ -428,6 +431,7 @@ export function SpainMap({
             }}
             x={hovered.x}
             y={hovered.y}
+            containerHeight={hovered.containerHeight}
             layerLabel={resolvedLabel}
             unit={resolvedUnit}
             activeIndicatorId={activeLayer.id === 'score' ? undefined : activeLayer.id}

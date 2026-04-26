@@ -4,14 +4,14 @@
 > emprender en Espana combinando datos abiertos oficiales, RDF/RDFLib,
 > GeoSPARQL, PROV-O, scoring explicable y una interfaz territorial premium.
 
-[![Version](https://img.shields.io/badge/version-v0.5.5-blue.svg)](docs/reviews/v0.5.1-review-cross.md)
+[![Version](https://img.shields.io/badge/version-v0.5.6-blue.svg)](docs/reviews/v0.5.1-review-cross.md)
 [![Produccion](https://img.shields.io/badge/vercel-atlashabita.vercel.app-009966.svg)](https://atlashabita.vercel.app)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green.svg)](apps/api/pyproject.toml)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
 [![Node](https://img.shields.io/badge/node-20%20LTS-green.svg)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-9.15-orange.svg)](https://pnpm.io/)
 [![Backend](https://img.shields.io/badge/backend%20tests-493%20passed-brightgreen.svg)](docs/testing.md)
-[![Frontend](https://img.shields.io/badge/frontend%20tests-372%20passed-brightgreen.svg)](docs/testing.md)
+[![Frontend](https://img.shields.io/badge/frontend%20tests-375%20passed-brightgreen.svg)](docs/testing.md)
 [![Stack](https://img.shields.io/badge/stack-FastAPI%20%7C%20RDFLib%20%7C%20React%2019%20%7C%20GSAP%20%7C%20MapLibre-purple.svg)](docs/adr/0003-stack-tecnologico.md)
 
 AtlasHabita convierte datasets publicos heterogeneos en una experiencia
@@ -26,7 +26,8 @@ exportacion RDF y trazabilidad de fuentes.
 La release actual integra el despliegue de produccion, la validacion E2E y el
 pulido del mapa principal:
 
-- `v0.5.5`: release con mini-mapa real basado en MapLibre.
+- `v0.5.6`: release con ficha territorial y tooltip de mapa protegidos contra
+  recortes de viewport.
 - Produccion Vercel validada con smoke E2E publico.
 - Mapa principal, registro, login y API funcionando en produccion.
 
@@ -55,9 +56,9 @@ pulido del mapa principal:
 | RDF/RDFLib               | Grafo con namespaces propios, GeoSPARQL, PROV-O, SHACL y consultas SPARQL controladas.               |
 | Seguridad                | Cabeceras defensivas, sanitizacion, rate limiting, SPARQL whitelist, limites de exportacion y tests. |
 | Tests backend            | `493 passed, 1 skipped`, cobertura total `95%`.                                                      |
-| Tests frontend           | `82` suites, `372` tests verdes.                                                                     |
+| Tests frontend           | `82` suites, `375` tests verdes.                                                                     |
 | Despliegue Vercel        | `https://atlashabita.vercel.app` operativo con frontend y API serverless.                            |
-| Release                  | `v0.5.5` publicada y validada en Vercel.                                                             |
+| Release                  | `v0.5.6` publicada y validada en Vercel.                                                             |
 
 ## Datos y cobertura
 
@@ -156,6 +157,8 @@ Flujos principales:
   servicios, clima, movilidad, accidentes y transporte.
 - **Mini-mapa**: vista real de España con MapLibre y el mismo estilo
   cartografico del mapa principal.
+- **Ficha territorial**: dialogo responsive por encima del shell completo, con
+  altura `dvh`, scroll interno y CTA de tooltip siempre dentro del viewport.
 - **Escenarios**: mezcla de indicadores con sliders y campos porcentuales. El
   ranking cambia al instante y el dashboard refleja la mezcla activa.
 - **Ranking**: listado paginado, confianza, score y datos territoriales.
@@ -171,6 +174,8 @@ Validacion interactiva reciente con smoke E2E de navegador:
 - Sidebar navega por Inicio, Mapa, Ranking, Comparador y Escenarios.
 - Mezcla de indicadores recalcula ranking y mapa.
 - Capas del mapa y marcadores abren ficha territorial.
+- Tooltip de marcador y ficha territorial permanecen visibles en viewport
+  estrecho, sin quedar bajo sidebar, topbar ni bordes del mapa.
 - Cuenta protegida responde con pantalla de login.
 - Registro, cierre de sesion e inicio de sesion funcionan sobre la app desplegada.
 - Captura principal generada desde Vercel en `docs/screenshots/vercel-atlashabita-home.png`.
@@ -351,7 +356,7 @@ python -m pip_audit
 
 Resultados principales:
 
-- Frontend: `82 passed`, `372 tests`.
+- Frontend: `82 passed`, `375 tests`.
 - Backend: `493 passed`, `1 skipped`, cobertura total `95%`.
 - Build Vite: correcto.
 - TypeScript strict: correcto.
@@ -389,12 +394,13 @@ Flujo operativo recomendado:
 Estado actual:
 
 ```text
-release v0.5.5 -> mini-mapa real y despliegue Vercel validado
+release v0.5.6 -> ficha territorial visible y despliegue Vercel validado
 produccion     -> https://atlashabita.vercel.app
 ```
 
-El release `v0.5.5` corresponde al despliegue final en Vercel con mini-mapa
-real de España, smoke E2E y captura principal versionada.
+El release `v0.5.6` corresponde al despliegue final en Vercel con mini-mapa
+real de España, ficha territorial sin recortes, smoke E2E y captura principal
+versionada.
 
 No se incluyen atribuciones externas en commits, tags ni documentacion. La
 configuracion Git local usada es:

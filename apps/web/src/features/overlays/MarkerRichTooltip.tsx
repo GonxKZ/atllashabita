@@ -42,6 +42,8 @@ export interface MarkerRichTooltipProps {
   readonly x: number;
   /** Coordenada Y dentro del contenedor. */
   readonly y: number;
+  /** Alto del contenedor del mapa. Permite evitar que el CTA quede recortado. */
+  readonly containerHeight?: number;
   /** Etiqueta de la capa activa. */
   readonly layerLabel: string;
   /** Sufijo de unidad de la capa activa. */
@@ -59,6 +61,9 @@ export interface MarkerRichTooltipProps {
 const SPARKLINE_WIDTH = 160;
 const SPARKLINE_HEIGHT = 36;
 const SPARKLINE_MONTHS = 12;
+const TOOLTIP_HALF_WIDTH = 146;
+const TOOLTIP_EDGE_GAP = 12;
+const TOOLTIP_VERTICAL_THRESHOLD = 248;
 
 /**
  * Generador determinista basado en una string. Devuelve siempre la misma
@@ -124,6 +129,7 @@ export function MarkerRichTooltip({
   marker,
   x,
   y,
+  containerHeight,
   layerLabel,
   unit,
   activeIndicatorId,
@@ -140,19 +146,44 @@ export function MarkerRichTooltip({
     () => pickTop(marker.indicators, activeIndicatorId),
     [marker.indicators, activeIndicatorId]
   );
+  const estimatedHeight = topIndicators.length > 0 ? 316 : 224;
+  const spaceAbove = y - TOOLTIP_EDGE_GAP * 2;
+  const spaceBelow =
+    typeof containerHeight === 'number' && containerHeight > 0
+      ? containerHeight - y - TOOLTIP_EDGE_GAP * 2
+      : Number.POSITIVE_INFINITY;
+  const placement =
+    spaceBelow < estimatedHeight && spaceAbove > spaceBelow
+      ? 'above'
+      : y < TOOLTIP_VERTICAL_THRESHOLD
+        ? 'below'
+        : 'above';
+  const availableHeight =
+    placement === 'above'
+      ? Math.max(176, spaceAbove)
+      : Number.isFinite(spaceBelow)
+        ? Math.max(176, spaceBelow)
+        : undefined;
 
   return (
     <div
       role="tooltip"
       data-testid="marker-rich-tooltip"
       data-feature="marker-rich-tooltip"
+      data-placement={placement}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
       className={cn(
-        'pointer-events-auto absolute min-w-[260px] -translate-x-1/2 -translate-y-full overflow-hidden rounded-2xl',
-        'border border-white/15 bg-[var(--color-ink-900)]/95 text-white shadow-[var(--shadow-elevated)] backdrop-blur'
+        'pointer-events-auto absolute flex w-[min(292px,calc(100%-24px))] flex-col overflow-y-auto overscroll-contain rounded-2xl',
+        'border border-white/15 bg-[var(--color-ink-900)]/95 text-white shadow-[var(--shadow-elevated)] backdrop-blur',
+        placement === 'above' ? '-translate-x-1/2 -translate-y-full' : '-translate-x-1/2'
       )}
-      style={{ left: x, top: y - 14, zIndex: 'var(--z-overlay-rich)' as unknown as number }}
+      style={{
+        left: `clamp(${TOOLTIP_HALF_WIDTH}px, ${x}px, calc(100% - ${TOOLTIP_HALF_WIDTH}px))`,
+        top: placement === 'above' ? y - TOOLTIP_EDGE_GAP : y + TOOLTIP_EDGE_GAP,
+        maxHeight: availableHeight,
+        zIndex: 'var(--z-overlay-rich)' as unknown as number,
+      }}
     >
       <div className="flex items-start justify-between gap-3 px-3 pt-3">
         <div className="min-w-0">
@@ -237,9 +268,9 @@ export function MarkerRichTooltip({
         </ul>
       ) : null}
 
-      <div className="mt-3 flex items-center justify-between gap-2 border-t border-white/10 bg-white/5 px-3 py-2">
+      <div className="sticky bottom-0 mt-3 flex shrink-0 items-center justify-between gap-2 border-t border-white/10 bg-[color-mix(in_srgb,var(--color-ink-900)_96%,white_4%)] px-3 py-2">
         <span className="text-[10px] text-white/55">
-          Pinchar en el mapa para abrir la ficha del municipio.
+          Haz clic en el marcador o usa el botón para abrir la ficha.
         </span>
         <button
           type="button"

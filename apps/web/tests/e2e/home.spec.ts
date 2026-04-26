@@ -14,13 +14,7 @@ import { expect, test } from '@playwright/test';
  * backend real, exportar `E2E_BACKEND=1`.
  */
 
-const NAV_LABELS = [
-  'Inicio',
-  'Explorar mapa',
-  'Recomendador',
-  'Comparador',
-  'Escenarios',
-] as const;
+const NAV_LABELS = ['Inicio', 'Explorar mapa', 'Recomendador', 'Comparador', 'Escenarios'] as const;
 
 test.describe('Dashboard principal', () => {
   test.beforeEach(async ({ page }) => {
@@ -29,7 +23,7 @@ test.describe('Dashboard principal', () => {
 
   test('muestra el titular y la marca del producto', async ({ page }) => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(page.getByText('AtlasHabita', { exact: false })).toBeVisible();
+    await expect(page.getByRole('link', { name: /AtlasHabita, ir a inicio/i })).toBeVisible();
   });
 
   test('renderiza la sidebar con los enlaces de navegación', async ({ page }) => {
@@ -89,5 +83,29 @@ test.describe('Dashboard principal', () => {
       }
     }
     expect(trendsFound).toBe(true);
+  });
+
+  test('mantiene ficha y tooltip del mapa dentro del viewport estrecho', async ({ page }) => {
+    await page.setViewportSize({ width: 512, height: 654 });
+    await page.goto('/');
+
+    const marker = page.getByRole('button', { name: /Teruel:/ });
+    await marker.click();
+
+    const sheet = page.getByTestId('territory-sheet');
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toBeInViewport();
+
+    await page.getByTestId('territory-sheet-close').click();
+    await marker.hover();
+
+    const tooltip = page.getByTestId('marker-rich-tooltip');
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toBeInViewport();
+    await expect(page.getByTestId('marker-rich-tooltip-cta')).toBeInViewport();
+
+    await page.getByTestId('marker-rich-tooltip-cta').click();
+    await expect(sheet).toBeVisible();
+    await expect(sheet).toBeInViewport();
   });
 });
