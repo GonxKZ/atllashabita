@@ -1,14 +1,39 @@
 /**
  * Tests del componente MiniMap.
  *
- * Verifican: render del SVG, posición proporcional del recuadro de
- * viewport, y comportamiento del toggle (mostrar/ocultar) coordinado con
+ * Verifican: render del mapa real, estado offline, y comportamiento del
+ * toggle (mostrar/ocultar) coordinado con
  * `useUiStore`.
  */
 
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { vi } from 'vitest';
+
+vi.mock('maplibre-gl', () => ({ default: {} }));
+
+vi.mock('react-map-gl/maplibre', () => ({
+  __esModule: true,
+  default: ({
+    children,
+    mapStyle,
+    interactive,
+  }: {
+    children?: ReactNode;
+    mapStyle?: unknown;
+    interactive?: boolean;
+  }) => (
+    <div
+      data-testid="maplibre-minimap"
+      data-interactive={String(interactive)}
+      data-style-kind={typeof mapStyle === 'string' ? 'remote' : 'fallback'}
+    >
+      {children}
+    </div>
+  ),
+}));
 
 import { MiniMap } from '../MiniMap';
 import { useUiStore } from '@/state/ui';
@@ -18,27 +43,17 @@ describe('MiniMap', () => {
     useUiStore.getState().reset();
   });
 
-  it('renderiza el SVG y un recuadro de viewport por defecto', () => {
+  it('renderiza una instancia real de mapa no interactiva', () => {
     render(<MiniMap />);
     const figure = screen.getByTestId('mini-map');
     expect(figure).toBeInTheDocument();
-    const viewport = screen.getByTestId('mini-map-viewport');
-    expect(viewport).toBeInTheDocument();
+    expect(screen.getByTestId('mini-map-real-map')).toBeInTheDocument();
+    expect(screen.getByTestId('maplibre-minimap')).toHaveAttribute('data-interactive', 'false');
   });
 
-  it('proyecta el viewport al rectángulo SVG', () => {
-    render(<MiniMap viewport={{ minLon: -5, maxLon: 0, minLat: 38, maxLat: 42 }} />);
-    const viewport = screen.getByTestId('mini-map-viewport');
-    // El cálculo esperado: lonSpan=14.5, latSpan=8.5.
-    // x=( -5 - (-10) ) / 14.5 * 200 ≈ 68.97
-    // width=( 0 - (-5) ) / 14.5 * 200 ≈ 68.97
-    // y=( 44 - 42 ) / 8.5 * 140 ≈ 32.94
-    // height=( 42 - 38 ) / 8.5 * 140 ≈ 65.88
-    expect(Number(viewport.getAttribute('x'))).toBeGreaterThan(60);
-    expect(Number(viewport.getAttribute('x'))).toBeLessThan(80);
-    expect(Number(viewport.getAttribute('width'))).toBeGreaterThan(60);
-    expect(Number(viewport.getAttribute('y'))).toBeGreaterThan(20);
-    expect(Number(viewport.getAttribute('height'))).toBeGreaterThan(50);
+  it('puede usar estilo offline sin depender de tiles remotos', () => {
+    render(<MiniMap offline />);
+    expect(screen.getByTestId('maplibre-minimap')).toHaveAttribute('data-style-kind', 'fallback');
   });
 
   it('al ocultar muestra el botón de re-apertura y desaparece la figura', async () => {

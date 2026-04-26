@@ -4,7 +4,7 @@
 > emprender en Espana combinando datos abiertos oficiales, RDF/RDFLib,
 > GeoSPARQL, PROV-O, scoring explicable y una interfaz territorial premium.
 
-[![Version](https://img.shields.io/badge/version-v0.5.4-blue.svg)](docs/reviews/v0.5.1-review-cross.md)
+[![Version](https://img.shields.io/badge/version-v0.5.5-blue.svg)](docs/reviews/v0.5.1-review-cross.md)
 [![Produccion](https://img.shields.io/badge/vercel-atlashabita.vercel.app-009966.svg)](https://atlashabita.vercel.app)
 [![Licencia](https://img.shields.io/badge/licencia-MIT-green.svg)](apps/api/pyproject.toml)
 [![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
@@ -23,14 +23,12 @@ exportacion RDF y trazabilidad de fuentes.
 
 ![Interfaz principal desplegada en Vercel](docs/screenshots/vercel-atlashabita-home.png)
 
-La release actual integra el trabajo de calidad UI, seguridad API y scoring
-personalizado:
+La release actual integra el despliegue de produccion, la validacion E2E y el
+pulido del mapa principal:
 
-- `develop`: rama de integracion estable.
-- `main`: rama publicada.
-- `v0.5.4`: release de despliegue en Vercel con smoke E2E publico.
-- Commit funcional principal: `2df5260 feat(ui): personalizar score territorial por indicadores`.
-- Merge a `main`: `5e9c4db release: v0.5.2 mezcla personalizada y calidad UI`.
+- `v0.5.5`: release con mini-mapa real basado en MapLibre.
+- Produccion Vercel validada con smoke E2E publico.
+- Mapa principal, registro, login y API funcionando en produccion.
 
 ## Contenido
 
@@ -43,23 +41,23 @@ personalizado:
 7. [Pipeline de datos y RDF](#pipeline-de-datos-y-rdf)
 8. [API y seguridad](#api-y-seguridad)
 9. [Testing y calidad](#testing-y-calidad)
-10. [Flujo Git y release](#flujo-git-y-release)
+10. [Release](#release)
 11. [Limitaciones honestas](#limitaciones-honestas)
 
 ## Estado actual
 
-| Area | Estado |
-|---|---|
-| Frontend React 19 + Vite | Operativo, build de produccion correcto. |
-| UI territorial | Dashboard, mapa, ranking, comparador, escenarios, SPARQL y cuenta protegida. |
-| Mezcla de indicadores | Los pesos del usuario recalculan ranking y marcadores del mapa en tiempo real. |
-| Backend FastAPI | Endpoints de salud, rankings, mapa, fuentes, movilidad, accidentes, transporte, SPARQL y RDF. |
-| RDF/RDFLib | Grafo con namespaces propios, GeoSPARQL, PROV-O, SHACL y consultas SPARQL controladas. |
-| Seguridad | Cabeceras defensivas, sanitizacion, rate limiting, SPARQL whitelist, limites de exportacion y tests. |
-| Tests backend | `493 passed, 1 skipped`, cobertura total `95%`. |
-| Tests frontend | `82` suites, `372` tests verdes. |
-| Despliegue Vercel | `https://atlashabita.vercel.app` operativo con frontend y API serverless. |
-| Release Git | `develop` y `main` publicados; release actual `v0.5.4`. |
+| Area                     | Estado                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| Frontend React 19 + Vite | Operativo, build de produccion correcto.                                                             |
+| UI territorial           | Dashboard, mapa, ranking, comparador, escenarios, SPARQL y cuenta protegida.                         |
+| Mezcla de indicadores    | Los pesos del usuario recalculan ranking y marcadores del mapa en tiempo real.                       |
+| Backend FastAPI          | Endpoints de salud, rankings, mapa, fuentes, movilidad, accidentes, transporte, SPARQL y RDF.        |
+| RDF/RDFLib               | Grafo con namespaces propios, GeoSPARQL, PROV-O, SHACL y consultas SPARQL controladas.               |
+| Seguridad                | Cabeceras defensivas, sanitizacion, rate limiting, SPARQL whitelist, limites de exportacion y tests. |
+| Tests backend            | `493 passed, 1 skipped`, cobertura total `95%`.                                                      |
+| Tests frontend           | `82` suites, `372` tests verdes.                                                                     |
+| Despliegue Vercel        | `https://atlashabita.vercel.app` operativo con frontend y API serverless.                            |
+| Release                  | `v0.5.5` publicada y validada en Vercel.                                                             |
 
 ## Datos y cobertura
 
@@ -73,32 +71,32 @@ reproducibles y evita subir datasets pesados o cambiantes.
 
 `data/seed/sources.csv` contiene 11 fuentes:
 
-| Id | Fuente | Uso principal |
-|---|---|---|
-| `mivau_serpavi` | MIVAU SERPAVI | Alquiler mediano. |
-| `seteleco_broadband_maps` | SETELECO banda ancha | Cobertura de conectividad. |
-| `ine_atlas_renta` | INE Atlas de Distribucion de Renta | Renta por territorio. |
-| `miteco_reto_demografico_servicios` | MITECO servicios | Servicios municipales. |
-| `aemet_opendata` | AEMET OpenData | Confort climatico. |
-| `ine_datosabiertos` | INE datos abiertos | Poblacion y hogares. |
-| `miteco_reto_demografico_demografia` | MITECO demografia | Edad, poblacion y reto demografico. |
-| `ine_dirce` | INE DIRCE | Densidad empresarial. |
-| `mitma_movilidad` | MITMA movilidad big data | Flujos origen-destino. |
-| `dgt_accidentes` | DGT accidentes | Seguridad vial. |
-| `crtm_gtfs` | CRTM Madrid GTFS | Transporte publico metropolitano. |
+| Id                                   | Fuente                             | Uso principal                       |
+| ------------------------------------ | ---------------------------------- | ----------------------------------- |
+| `mivau_serpavi`                      | MIVAU SERPAVI                      | Alquiler mediano.                   |
+| `seteleco_broadband_maps`            | SETELECO banda ancha               | Cobertura de conectividad.          |
+| `ine_atlas_renta`                    | INE Atlas de Distribucion de Renta | Renta por territorio.               |
+| `miteco_reto_demografico_servicios`  | MITECO servicios                   | Servicios municipales.              |
+| `aemet_opendata`                     | AEMET OpenData                     | Confort climatico.                  |
+| `ine_datosabiertos`                  | INE datos abiertos                 | Poblacion y hogares.                |
+| `miteco_reto_demografico_demografia` | MITECO demografia                  | Edad, poblacion y reto demografico. |
+| `ine_dirce`                          | INE DIRCE                          | Densidad empresarial.               |
+| `mitma_movilidad`                    | MITMA movilidad big data           | Flujos origen-destino.              |
+| `dgt_accidentes`                     | DGT accidentes                     | Seguridad vial.                     |
+| `crtm_gtfs`                          | CRTM Madrid GTFS                   | Transporte publico metropolitano.   |
 
 ### Seed versionado
 
-| Archivo | Filas | Uso |
-|---|---:|---|
-| `territories.csv` | 172 | CCAA, provincias y municipios. |
-| `sources.csv` | 11 | Metadatos de procedencia. |
-| `indicators.csv` | 12 | Definicion semantica de indicadores. |
-| `observations.csv` | 1212 | Observaciones municipio x indicador. |
-| `mobility_flows.csv` | 36 | Flujos MITMA agregados. |
-| `accidents.csv` | 101 | Accidentes DGT por municipio. |
-| `transit_stops.csv` | 19 | Paradas CRTM usadas para transporte. |
-| `profiles.csv` | 4 | Perfiles de decision iniciales. |
+| Archivo              | Filas | Uso                                  |
+| -------------------- | ----: | ------------------------------------ |
+| `territories.csv`    |   172 | CCAA, provincias y municipios.       |
+| `sources.csv`        |    11 | Metadatos de procedencia.            |
+| `indicators.csv`     |    12 | Definicion semantica de indicadores. |
+| `observations.csv`   |  1212 | Observaciones municipio x indicador. |
+| `mobility_flows.csv` |    36 | Flujos MITMA agregados.              |
+| `accidents.csv`      |   101 | Accidentes DGT por municipio.        |
+| `transit_stops.csv`  |    19 | Paradas CRTM usadas para transporte. |
+| `profiles.csv`       |     4 | Perfiles de decision iniciales.      |
 
 ### Indicadores
 
@@ -127,16 +125,16 @@ python scripts/data_pipeline.py ingest
 
 genera artefactos en `data/processed/` desde cache determinista:
 
-| Fuente | Artefacto | Filas validadas |
-|---|---|---:|
-| INE datos abiertos | `ine_population.csv` | 10 |
-| INE Atlas Renta | `ine_income.csv` | 10 |
-| INE DIRCE | `ine_enterprises.csv` | 10 |
-| MITECO demografia | `miteco_demographic.csv` | 10 |
-| MITECO servicios | `miteco_services.csv` | 10 |
-| MITMA movilidad | `mitma_movilidad.csv` | 36 |
-| DGT accidentes | `dgt_accidentes.csv` | 17 |
-| CRTM GTFS | `crtm_transit.csv` | 19 |
+| Fuente             | Artefacto                | Filas validadas |
+| ------------------ | ------------------------ | --------------: |
+| INE datos abiertos | `ine_population.csv`     |              10 |
+| INE Atlas Renta    | `ine_income.csv`         |              10 |
+| INE DIRCE          | `ine_enterprises.csv`    |              10 |
+| MITECO demografia  | `miteco_demographic.csv` |              10 |
+| MITECO servicios   | `miteco_services.csv`    |              10 |
+| MITMA movilidad    | `mitma_movilidad.csv`    |              36 |
+| DGT accidentes     | `dgt_accidentes.csv`     |              17 |
+| CRTM GTFS          | `crtm_transit.csv`       |              19 |
 
 Para descarga real externa se usa:
 
@@ -156,6 +154,8 @@ Flujos principales:
   y feedback visual inmediato.
 - **Mapa**: capas multi-metrica para score, alquiler, banda ancha, renta,
   servicios, clima, movilidad, accidentes y transporte.
+- **Mini-mapa**: vista real de España con MapLibre y el mismo estilo
+  cartografico del mapa principal.
 - **Escenarios**: mezcla de indicadores con sliders y campos porcentuales. El
   ranking cambia al instante y el dashboard refleja la mezcla activa.
 - **Ranking**: listado paginado, confianza, score y datos territoriales.
@@ -227,7 +227,6 @@ Requisitos:
 ```bash
 git clone https://github.com/GonxKZ/atllashabita.git
 cd atllashabita
-git switch develop
 make bootstrap
 ```
 
@@ -298,19 +297,19 @@ El backend incluye:
 
 Endpoints principales:
 
-| Endpoint | Uso |
-|---|---|
-| `GET /health` | Salud de API. |
-| `GET /sources` | Fuentes disponibles. |
-| `GET /rankings` | Ranking territorial base. |
+| Endpoint                | Uso                          |
+| ----------------------- | ---------------------------- |
+| `GET /health`           | Salud de API.                |
+| `GET /sources`          | Fuentes disponibles.         |
+| `GET /rankings`         | Ranking territorial base.    |
 | `POST /rankings/custom` | Ranking con pesos y filtros. |
-| `GET /map/layers/{id}` | Capa territorial. |
-| `GET /territories/{id}` | Ficha territorial. |
-| `GET /mobility` | Flujos MITMA. |
-| `GET /accidents` | Accidentes DGT. |
-| `GET /transit` | Transporte CRTM. |
-| `POST /sparql` | Consulta SPARQL controlada. |
-| `GET /rdf/export` | Export RDF con limites. |
+| `GET /map/layers/{id}`  | Capa territorial.            |
+| `GET /territories/{id}` | Ficha territorial.           |
+| `GET /mobility`         | Flujos MITMA.                |
+| `GET /accidents`        | Accidentes DGT.              |
+| `GET /transit`          | Transporte CRTM.             |
+| `POST /sparql`          | Consulta SPARQL controlada.  |
+| `GET /rdf/export`       | Export RDF con limites.      |
 
 Controles de seguridad implementados:
 
@@ -377,31 +376,25 @@ GET /registro                          200
 Las respuestas de API incluyen cabeceras defensivas `X-Frame-Options: DENY` y
 `X-Content-Type-Options: nosniff`.
 
-## Flujo Git y release
+## Release
 
-Flujo operativo:
+Flujo operativo recomendado:
 
-1. Crear rama desde `develop`.
-2. Implementar y validar.
-3. Commit con Conventional Commits.
-4. Push de rama.
-5. Integrar en `develop`.
-6. Validar `develop`.
-7. Merge controlado a `main`.
-8. Crear tag anotado.
-9. Publicar tag remoto.
-10. Borrar ramas ya integradas solo tras confirmacion explicita.
+1. Implementar cambios pequenos y trazables.
+2. Ejecutar lint, typecheck, tests y build.
+3. Validar la app desplegada con `node scripts/qa/vercel-smoke.cjs`.
+4. Crear tag anotado de release.
+5. Publicar el despliegue de produccion en Vercel.
 
-Estado actual tras integracion:
+Estado actual:
 
 ```text
-origin/develop -> release v0.5.4 desplegada
-origin/main    -> release v0.5.4 desplegada
-tag v0.5.4     -> release Vercel final
+release v0.5.5 -> mini-mapa real y despliegue Vercel validado
+produccion     -> https://atlashabita.vercel.app
 ```
 
-El release `v0.5.4` corresponde al despliegue final en Vercel con smoke E2E y
-captura principal versionada.
+El release `v0.5.5` corresponde al despliegue final en Vercel con mini-mapa
+real de España, smoke E2E y captura principal versionada.
 
 No se incluyen atribuciones externas en commits, tags ni documentacion. La
 configuracion Git local usada es:

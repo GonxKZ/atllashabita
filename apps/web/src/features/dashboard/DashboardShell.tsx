@@ -160,7 +160,8 @@ function StatsStripItem({ icon, label, value }: { icon: ReactNode; label: string
  *
  *  - Hero compacto con el titular + StatsStrip por encima del mapa.
  *  - Mapa fullscreen (`SpainMap`) con `FloatingRanking`, `RichLegend` y
- *    `MiniMap` solapados como overlays "quiet" (`z-overlay-quiet`).
+ *    `MiniMap` real de MapLibre solapados como overlays "quiet"
+ *    (`z-overlay-quiet`).
  *  - Tooltip rico (`MarkerRichTooltip`) y `TerritorySheet` como overlays
  *    "rich" (`z-overlay-rich`).
  *  - Cards de acción inferiores conservadas para mantener el flujo de
@@ -227,7 +228,7 @@ export function DashboardShell() {
       <div className="relative overflow-hidden rounded-3xl border border-[color:var(--color-line-soft)] bg-white p-5 text-[color:var(--color-ink-900)] shadow-[var(--shadow-card)] sm:p-6">
         <div
           aria-hidden="true"
-          className="from-brand-100/70 via-sky-100/55 pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l to-transparent"
+          className="from-brand-100/70 pointer-events-none absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l via-sky-100/55 to-transparent"
         />
         <div
           aria-hidden="true"
@@ -248,7 +249,7 @@ export function DashboardShell() {
             El score del mapa se recalcula con tu mezcla de indicadores. Ajusta pesos en{' '}
             <Link
               to="/escenarios"
-              className="text-brand-700 font-semibold underline decoration-[color:var(--color-brand-200)] underline-offset-4 hover:text-brand-800"
+              className="text-brand-700 hover:text-brand-800 font-semibold underline decoration-[color:var(--color-brand-200)] underline-offset-4"
             >
               Escenarios
             </Link>
@@ -334,7 +335,7 @@ export function DashboardShell() {
           onLayerChange={handleLayerChange}
         />
 
-        <MiniMap className="hidden 2xl:block" />
+        <MiniMap className="hidden xl:block" />
       </div>
     </section>
   );
