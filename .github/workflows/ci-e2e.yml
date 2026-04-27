@@ -42,7 +42,7 @@ jobs:
           cache: pip
           cache-dependency-path: apps/api/pyproject.toml
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         if: steps.detect.outputs.has_tests == 'true'
         with:
           version: 9
